@@ -25,6 +25,18 @@ Then you can activate the virtual environment with:
 $ source .venv/bin/activate
 ```
 
+### windows环境
+```
+# 1. 确保Python已安装并添加到环境变量
+python --version  # 或 py --version（Windows多版本Python）
+
+# 2. 重新创建虚拟环境
+python -m venv .venv
+
+# 3. 再次执行激活脚本
+& .\.venv\Scripts\Activate.ps1
+```
+
 Make sure your editor is using the correct Python virtual environment, with the interpreter at `backend/.venv/bin/python`.
 
 Modify or add SQLModel models for data and SQL tables in `./backend/app/models.py`, API endpoints in `./backend/app/api/`, CRUD (Create, Read, Update, Delete) utils in `./backend/app/crud.py`.
