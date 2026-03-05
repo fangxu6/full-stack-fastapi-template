@@ -9,22 +9,33 @@ backend/app/
 ├── alembic/                # Database migrations (Alembic)
 ├── api/
 │   ├── dependencies/       # Modular dependency injection (Auth, DB session, etc.)
+│   │   ├── __init__.py    # Exports all dependencies
+│   │   ├── auth.py        # Authentication & Authorization logic
+│   │   └── database.py    # Database session management
 │   ├── routes/             # API Endpoints / Controllers
+│   │   ├── __init__.py    # Router aggregation
+│   │   ├── items.py       # Item-related routes
+│   │   ├── login.py       # Authentication routes
+│   │   └── users.py       # User-related routes
 │   ├── deps.py             # Public entry point for dependencies (Backward compatibility)
 │   └── main.py             # API router aggregation
 ├── core/                   # Global configuration, security, and DB setup
 ├── crud/                   # Atomic database operations (Pure DB interactions)
+│   ├── __init__.py        # Exports all CRUD functions
 │   ├── item.py             # Item-specific CRUD
 │   └── user.py             # User-specific CRUD
 ├── models/                 # SQLModel Database Tables (Database Layer)
+│   ├── __init__.py        # Exports tables and schemas for convenience
 │   ├── base.py             # Shared model utilities
 │   ├── item.py             # Item database table definition
 │   └── user.py             # User database table definition
 ├── schemas/                # Pydantic/SQLModel DTOs (API Contract Layer)
+│   ├── __init__.py        # Exports all DTOs
 │   ├── item.py             # Item-related request/response schemas
 │   ├── security.py         # Auth-related schemas (Token, Message, etc.)
 │   └── user.py             # User-related request/response schemas
 ├── services/               # Core Business Logic (Service Layer)
+│   ├── __init__.py        # Exports all services
 │   ├── auth.py             # Authentication and security orchestration
 │   ├── item.py             # Item business logic and flow
 │   └── user.py             # User management and flow logic
