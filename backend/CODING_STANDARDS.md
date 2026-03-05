@@ -23,10 +23,28 @@ This document defines the backend coding standards for `backend/` in this reposi
 - Data models and schemas live in `backend/app/models/`. Use submodules for different domains (e.g., `user.py`, `item.py`). Export public models in `backend/app/models/__init__.py`.
 - CRUD operations (pure DB interactions) live in `backend/app/crud/`.
 - Business logic (orchestrating CRUD, emails, external services) lives in `backend/app/services/`.
-- Core configuration/security/database setup lives in `backend/app/core/`.
-- Database migrations live in `backend/app/alembic/`.
 
-## 4. Naming Conventions
+## 4. Layered Architecture Flow
+
+Follow the **Route -> Service -> CRUD -> Model** data flow pattern:
+
+1.  **Route (`app/api/routes/`)**:
+    - Handle HTTP concerns (status codes, response models).
+    - Parse request inputs and call the appropriate Service.
+    - Minimal business logic.
+2.  **Service (`app/services/`)**:
+    - Contain core business logic (orchestration).
+    - Handle permissions, external calls, and cross-model logic.
+    - Call one or multiple CRUD functions as needed.
+3.  **CRUD (`app/crud/`)**:
+    - Pure database interactions using SQLModel.
+    - Focus on atomic operations (create, read, update, delete).
+    - No external side effects (like sending emails).
+4.  **Model (`app/models/`)**:
+    - Define data structures and relationships.
+    - Use submodules per domain for scalability.
+
+## 5. Naming Conventions
 
 - Modules and file names: `snake_case.py`.
 - Variables/functions/methods: `snake_case`.
