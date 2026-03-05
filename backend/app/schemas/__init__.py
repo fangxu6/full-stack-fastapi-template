@@ -1,8 +1,6 @@
-from sqlmodel import SQLModel
-
-from app.schemas.item import ItemBase, ItemCreate, ItemPublic, ItemsPublic, ItemUpdate
-from app.schemas.security import Message, NewPassword, Token, TokenPayload
-from app.schemas.user import (
+from .item import ItemBase, ItemCreate, ItemPublic, ItemsPublic, ItemUpdate
+from .security import Message, NewPassword, Token, TokenPayload
+from .user import (
     UpdatePassword,
     UserBase,
     UserCreate,
@@ -13,25 +11,17 @@ from app.schemas.user import (
     UserUpdateMe,
 )
 
-from .base import get_datetime_utc
-from .item import Item
-from .user import User
-
 __all__ = [
-    "SQLModel",
-    "get_datetime_utc",
-    "Message",
-    "Item",
     "ItemBase",
     "ItemCreate",
     "ItemPublic",
     "ItemsPublic",
     "ItemUpdate",
+    "Message",
     "NewPassword",
     "Token",
     "TokenPayload",
     "UpdatePassword",
-    "User",
     "UserBase",
     "UserCreate",
     "UserPublic",
