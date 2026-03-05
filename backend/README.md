@@ -39,13 +39,44 @@ python -m venv .venv
 
 Make sure your editor is using the correct Python virtual environment, with the interpreter at `backend/.venv/bin/python`.
 
-Modify or add SQLModel models for data and SQL tables in `./backend/app/models.py`, API endpoints in `./backend/app/api/`, CRUD (Create, Read, Update, Delete) utils in `./backend/app/crud.py`.
+Backend code follows the layered structure:
+
+- Models (database tables): `./backend/app/models/`
+- Schemas (request/response DTOs): `./backend/app/schemas/`
+- CRUD (atomic DB operations): `./backend/app/crud/`
+- Services (business logic): `./backend/app/services/`
+- API routes: `./backend/app/api/routes/`
 
 ## VS Code
 
 There are already configurations in place to run the backend through the VS Code debugger, so that you can use breakpoints, pause and explore variables, etc.
 
 The setup is also already configured so you can run the tests through the VS Code Python tests tab.
+
+## PyCharm
+
+If you run backend in PyCharm, use **Module mode** (not Script mode) to start `uvicorn`.
+
+Recommended Run/Debug configuration:
+
+- **Run kind**: `Module name`
+- **Module name**: `uvicorn`
+- **Parameters**: `app.main:app --reload`
+- **Working directory**: `backend/`
+- **Python interpreter**: `backend/.venv/Scripts/python.exe` (Windows) or `backend/.venv/bin/python` (macOS/Linux)
+
+Why this matters:
+
+- `uvicorn` is a third-party Python package (ASGI server), installed into your virtual environment.
+- It is imported as a Python module, not a file under `backend/app/`.
+- So `backend/app/` not containing `uvicorn` is expected.
+- If Script mode is used with `uvicorn` as file path, PyCharm tries to open a local file named `uvicorn` and raises `FileNotFoundError`.
+
+Quick terminal check from `backend/`:
+
+```console
+$ uv run uvicorn app.main:app --reload
+```
 
 ## Docker Compose Override
 
