@@ -1,12 +1,12 @@
-from .dependencies import (
+from .auth import (
     CurrentUser,
     SessionDep,
     TokenDep,
     get_current_active_superuser,
     get_current_user,
-    get_db,
     reusable_oauth2,
 )
+from .database import get_db
 
 __all__ = [
     "CurrentUser",
@@ -14,6 +14,6 @@ __all__ = [
     "TokenDep",
     "get_current_active_superuser",
     "get_current_user",
-    "get_db",
     "reusable_oauth2",
+    "get_db",
 ]

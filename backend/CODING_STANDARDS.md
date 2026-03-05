@@ -19,8 +19,8 @@ This document defines the backend coding standards for `backend/` in this reposi
 ## 3. Project Structure
 
 - API routes live in `backend/app/api/routes/`.
-- Dependency providers and request context helpers live in `backend/app/api/deps.py`.
-- Data models and schemas live in `backend/app/models/`. Use submodules for different domains (e.g., `user.py`, `item.py`). Export public models in `backend/app/models/__init__.py`.
+- Dependency providers and request context helpers live in `backend/app/api/dependencies/`. Export public dependencies in `backend/app/api/deps.py` for backward compatibility.
+- Data models (SQLModel tables) live in `backend/app/models/`. Use submodules per domain.
 - CRUD operations (pure DB interactions) live in `backend/app/crud/`.
 - Business logic (orchestrating CRUD, emails, external services) lives in `backend/app/services/`.
 
