@@ -55,16 +55,19 @@ Run from repo root unless noted.
 
 ## Code Style (Short)
 ### Backend (Python)
+- If using `docs/私域知识/prompt/Python开发专家Prompt.md`, activate `docs/skills/python-patterns/` before Python implementation/refactor/review.
+- Detailed Python best practices come from the activated skill; below are repo-specific constraints.
 - Type hints everywhere; mypy is strict.
 - Use `model_validate` / `model_dump` and `sqlmodel_update` for partial updates.
 - Use `HTTPException` with clear `status_code` and `detail`.
 - No `print`; use logging if needed.
 
 ### Frontend (TypeScript/React)
+- If using `docs/私域知识/prompt/React开发专家Prompt.md`, activate `docs/skills/vercel-react-best-practices/` before React/Next implementation/refactor/review.
+- Detailed React/Next best practices come from the activated skill; below are repo-specific constraints.
 - Biome enforces double quotes and semicolons as needed.
 - Prefer `type` imports: `import { type Foo } ...`.
 - Use `@/` alias for app imports.
-- Keep side effects in hooks; components stay focused and pure.
 
 ### Generated / Excluded
 - Do not edit generated files directly:
@@ -105,36 +108,36 @@ Usage notes:
 <available_skills>
 
 <skill>
-<name>coding-standards</name>
-<description>Universal coding standards, best practices, and patterns for TypeScript, JavaScript, React, and Node.js development.</description>
-<location>global</location>
-</skill>
-
-<skill>
-<name>python-best-practices</name>
-<description>Provides Python patterns for type-first development with dataclasses, discriminated unions, NewType, and Protocol. Must use when reading or writing Python files.</description>
-<location>global</location>
-</skill>
-
-<skill>
-<name>python-logging-best-practices</name>
-<description>Python logging with loguru and platformdirs. TRIGGERS - loguru, structured logging, JSONL logs, log rotation, XDG directories.</description>
-<location>global</location>
-</skill>
-
-<skill>
 <name>python-patterns</name>
 <description>Pythonic idioms, PEP 8 standards, type hints, and best practices for building robust, efficient, and maintainable Python applications.</description>
 <location>global</location>
 </skill>
 
 <skill>
-<name>react-best-practices</name>
-<description>Provides React patterns for hooks, effects, refs, and component design. Covers escape hatches, anti-patterns, and correct effect usage. Must use when reading or writing React components (.tsx, .jsx files with React imports).</description>
-<location>global</location>
+<name>vercel-react-best-practices</name>
+<description>React and Next.js performance optimization guidelines from Vercel Engineering. Use when writing, reviewing, or refactoring React/Next.js code to ensure optimal performance patterns.</description>
+<location>local</location>
 </skill>
 
 </available_skills>
 <!-- SKILLS_TABLE_END -->
 
 </skills_system>
+<!-- TRELLIS:START -->
+# Trellis Instructions
+
+These instructions are for AI assistants working in this project.
+
+Use the `/trellis:start` command when starting a new session to:
+- Initialize your developer identity
+- Understand current project context
+- Read relevant guidelines
+
+Use `@/.trellis/` to learn:
+- Development workflow (`workflow.md`)
+- Project structure guidelines (`spec/`)
+- Developer workspace (`workspace/`)
+
+Keep this managed block so 'trellis update' can refresh the instructions.
+
+<!-- TRELLIS:END -->
