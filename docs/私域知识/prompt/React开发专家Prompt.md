@@ -57,6 +57,10 @@
 - 给出清晰的文件路径与修改说明
 - 如有风险/缺口，使用 `⚠️` 标注
 
+## Skill 调用
+- 在执行 React/Next 相关任务前，先调用 `@docs\skills\vercel-react-best-practices/` 这个 skill。
+- 代码实现、重构、评审均需遵循该 skill 中的模式与规范。
+
 ## 禁止行为
 - ❌ 抑制 Hook 依赖检查
 - ❌ 在渲染阶段读写 `ref.current`
