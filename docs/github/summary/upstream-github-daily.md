@@ -591,8 +591,55 @@ Source: `fastapi/full-stack-fastapi-template` (UTC)
 ## 2026-03-04
 - No PR activity in this window scope.
 
-## Weekly Totals
-- Created PRs: 104
-- Merged PRs: 58
-- Closed (unmerged): 38
-- Still Open: 8
+## 2026-03-05
+- No PR activity in this window scope.
+
+## 2026-03-06
+- No PR activity in this window scope.
+
+## 2026-03-07
+- Created PRs: 4, Merged: 0, Closed (unmerged): 0
+- Created: #2223 "⬆ Bump @types/node from 25.3.2 to 25.3.5"
+  - https://github.com/fastapi/full-stack-fastapi-template/pull/2223
+- Created: #2224 "⬆ Bump @tanstack/router-devtools from 1.159.10 to 1.166.2"
+  - https://github.com/fastapi/full-stack-fastapi-template/pull/2224
+- Created: #2225 "⬆ Bump @biomejs/biome from 2.3.14 to 2.4.6"
+  - https://github.com/fastapi/full-stack-fastapi-template/pull/2225
+- Created: #2226 "⬆ Bump tailwindcss from 4.2.0 to 4.2.1"
+  - https://github.com/fastapi/full-stack-fastapi-template/pull/2226
+
+## 2026-03-08
+- No PR activity in this window scope.
+
+## 2026-03-09
+- Created PRs: 0, Merged: 1, Closed (unmerged): 0
+- Merged: #2226 "⬆ Bump tailwindcss from 4.2.0 to 4.2.1"
+  - https://github.com/fastapi/full-stack-fastapi-template/pull/2226
+
+## 2026-03-10
+- Created PRs: 3, Merged: 0, Closed (unmerged): 1
+- Created: #2227 "👷 Add `ty` to precommit"
+  - https://github.com/fastapi/full-stack-fastapi-template/pull/2227
+- Created: #2228 "WIP"
+  - https://github.com/fastapi/full-stack-fastapi-template/pull/2228
+- Created: #2229 "Agentic workflow kit"
+  - https://github.com/fastapi/full-stack-fastapi-template/pull/2229
+- Closed (unmerged): #2228 "WIP"
+  - https://github.com/fastapi/full-stack-fastapi-template/pull/2228
+
+## 2026-03-11
+- No PR activity in this window scope.
+
+## 2026-03-12
+- Created PRs: 0, Merged: 0, Closed (unmerged): 1
+- Closed (unmerged): #2229 "Agentic workflow kit"
+  - https://github.com/fastapi/full-stack-fastapi-template/pull/2229
+
+## 2026-03-13
+- No PR activity in this window scope.
+
+## Rolling Totals
+- Created PRs: 111
+- Merged PRs: 59
+- Closed (unmerged): 40
+- Still Open: 12
