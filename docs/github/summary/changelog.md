@@ -39,3 +39,17 @@
 ## 可讨论项
 - 是否把已合并的小版本依赖升级纳入固定同步节奏
 - 是否提前评估 ty 进入 pre-commit 后对本仓库后端代码的兼容性
+
+## Update Result
+- Mode: append, Changed: True, Window: 2026-03-14 → 2026-03-20
+- Target file: D:/Workspace/full-stack-fastapi-template/docs/github/summary/upstream-github-daily.md
+
+## Sync Recommendations
+- worth syncing now: 查看最近合并的依赖升级（如 pyjwt、@tanstack/router-devtools、@types/node），评估本地分支是否需要对齐。
+- watch list: 保持关注仍处于 OPEN 状态的修复/特性 PR，避免产生冲突。
+- skip: 与当前本地改动无直接关联的 housekeeping PR 可暂缓同步。
+
+## Chinese Standup Brief
+- 最近 upstream 有持续的依赖升级和少量功能/修复 PR，日报已按天追加并重算 Rolling Totals。
+- 建议今天检查本地分支与关键依赖升级是否一致，必要时拉取上游变更。
+- 暂无明显阻塞项，如需对接新的 upstream 特性，可以在评审会上进一步讨论。

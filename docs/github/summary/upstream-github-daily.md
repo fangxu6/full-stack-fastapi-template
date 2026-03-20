@@ -638,8 +638,61 @@ Source: `fastapi/full-stack-fastapi-template` (UTC)
 ## 2026-03-13
 - No PR activity in this window scope.
 
+## 2026-03-14
+- Created PRs: 4, Merged: 0, Closed (unmerged): 0
+- Created:
+  - #2231 "⬆ Bump pyjwt from 2.10.1 to 2.12.0"
+    - https://github.com/fastapi/full-stack-fastapi-template/pull/2231
+  - #2232 "⬆ Bump @tailwindcss/vite from 4.1.18 to 4.2.1"
+    - https://github.com/fastapi/full-stack-fastapi-template/pull/2232
+  - #2233 "⬆ Bump @types/node from 25.3.2 to 25.5.0"
+    - https://github.com/fastapi/full-stack-fastapi-template/pull/2233
+  - #2234 "⬆ Bump @tanstack/router-devtools from 1.159.10 to 1.166.7"
+    - https://github.com/fastapi/full-stack-fastapi-template/pull/2234
+
+## 2026-03-15
+- No PR activity in this window scope.
+
+## 2026-03-16
+- Created PRs: 0, Merged: 3, Closed (unmerged): 0
+- Merged:
+  - #2231 "⬆ Bump pyjwt from 2.10.1 to 2.12.0"
+    - https://github.com/fastapi/full-stack-fastapi-template/pull/2231
+  - #2233 "⬆ Bump @types/node from 25.3.2 to 25.5.0"
+    - https://github.com/fastapi/full-stack-fastapi-template/pull/2233
+  - #2234 "⬆ Bump @tanstack/router-devtools from 1.159.10 to 1.166.7"
+    - https://github.com/fastapi/full-stack-fastapi-template/pull/2234
+
+## 2026-03-17
+- Created PRs: 1, Merged: 0, Closed (unmerged): 0
+- Created:
+  - #2236 "fix: remove unused os import in alembic env.py"
+    - https://github.com/fastapi/full-stack-fastapi-template/pull/2236
+
+## 2026-03-18
+- Created PRs: 1, Merged: 0, Closed (unmerged): 0
+- Created:
+  - #2237 "Add MVP document"
+    - https://github.com/fastapi/full-stack-fastapi-template/pull/2237
+
+## 2026-03-19
+- Created PRs: 2, Merged: 0, Closed (unmerged): 2
+- Created:
+  - #2238 "Agentic workflow kit"
+    - https://github.com/fastapi/full-stack-fastapi-template/pull/2238
+  - #2239 "feat: validate existing email and set 201 status on user creation"
+    - https://github.com/fastapi/full-stack-fastapi-template/pull/2239
+- Closed (unmerged):
+  - #2237 "Add MVP document"
+    - https://github.com/fastapi/full-stack-fastapi-template/pull/2237
+  - #2238 "Agentic workflow kit"
+    - https://github.com/fastapi/full-stack-fastapi-template/pull/2238
+
+## 2026-03-20
+- No PR activity in this window scope.
+
 ## Rolling Totals
-- Created PRs: 111
-- Merged PRs: 59
-- Closed (unmerged): 40
-- Still Open: 12
+- Created PRs: 8
+- Merged PRs: 3
+- Closed (unmerged): 2
+- Still Open: 3

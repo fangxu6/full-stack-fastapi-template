@@ -1,3 +1,9 @@
+---
+name: upstream-github-daily-append
+description: "Maintain a single append-only upstream GitHub PR daily report and changelog for fastapi/full-stack-fastapi-template."
+user-invocable: true
+---
+
 # Skill: upstream-github-daily-append
 
 Use this skill to maintain a single upstream PR activity report for:
