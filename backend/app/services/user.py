@@ -6,11 +6,10 @@ from sqlmodel import Session, col, delete, func, select
 from app import crud
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
-from app.models import (
-    Item,
-    Message,
-    UpdatePassword,
-    User,
+from app.models import Item, User
+from app.schemas.security import Message
+from app.schemas.user import UpdatePassword
+from app.schemas.user import (
     UserCreate,
     UserRegister,
     UsersPublic,
@@ -50,6 +49,25 @@ def create_user(*, session: Session, user_in: UserCreate) -> User:
             subject=email_data.subject,
             html_content=email_data.html_content,
         )
+    return user
+
+
+def read_user_by_id(
+    *,
+    session: Session,
+    current_user: User,
+    user_id: uuid.UUID,
+) -> User:
+    user = session.get(User, user_id)
+    if user == current_user:
+        return user
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=403,
+            detail="The user doesn't have enough privileges",
+        )
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
     return user
 
 

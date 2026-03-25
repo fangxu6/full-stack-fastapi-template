@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from app import services
 from app.api.deps import (
@@ -9,10 +9,9 @@ from app.api.deps import (
     SessionDep,
     get_current_active_superuser,
 )
-from app.models import (
-    Message,
-    UpdatePassword,
-    User,
+from app.schemas.security import Message
+from app.schemas.user import UpdatePassword
+from app.schemas.user import (
     UserCreate,
     UserPublic,
     UserRegister,
@@ -103,17 +102,11 @@ def read_user_by_id(
     """
     Get a specific user by id.
     """
-    user = session.get(User, user_id)
-    if user == current_user:
-        return user
-    if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=403,
-            detail="The user doesn't have enough privileges",
-        )
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
+    return services.user.read_user_by_id(
+        session=session,
+        current_user=current_user,
+        user_id=user_id,
+    )
 
 
 @router.patch(
