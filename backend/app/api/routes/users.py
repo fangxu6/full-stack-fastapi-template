@@ -10,8 +10,8 @@ from app.api.deps import (
     get_current_active_superuser,
 )
 from app.schemas.security import Message
-from app.schemas.user import UpdatePassword
 from app.schemas.user import (
+    UpdatePassword,
     UserCreate,
     UserPublic,
     UserRegister,

@@ -1,15 +1,15 @@
 import uuid
 
 from fastapi import HTTPException
-from sqlmodel import Session, col, delete, func, select
+from sqlmodel import Session, col, func, select
 
 from app import crud
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
-from app.models import Item, User
+from app.models import User
 from app.schemas.security import Message
-from app.schemas.user import UpdatePassword
 from app.schemas.user import (
+    UpdatePassword,
     UserCreate,
     UserRegister,
     UsersPublic,
@@ -52,13 +52,20 @@ def create_user(*, session: Session, user_in: UserCreate) -> User:
     return user
 
 
+def _get_required_user(*, session: Session, user_id: uuid.UUID) -> User:
+    user = crud.get_user_by_id(session=session, user_id=user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
 def read_user_by_id(
     *,
     session: Session,
     current_user: User,
     user_id: uuid.UUID,
 ) -> User:
-    user = session.get(User, user_id)
+    user = crud.get_user_by_id(session=session, user_id=user_id)
     if user == current_user:
         return user
     if not current_user.is_superuser:
@@ -118,12 +125,7 @@ def register_user(*, session: Session, user_in: UserRegister) -> User:
 
 
 def update_user(*, session: Session, user_id: uuid.UUID, user_in: UserUpdate) -> User:
-    db_user = session.get(User, user_id)
-    if not db_user:
-        raise HTTPException(
-            status_code=404,
-            detail="The user with this id does not exist in the system",
-        )
+    db_user = _get_required_user(session=session, user_id=user_id)
     if user_in.email:
         existing_user = crud.get_user_by_email(session=session, email=user_in.email)
         if existing_user and existing_user.id != user_id:
@@ -136,15 +138,11 @@ def update_user(*, session: Session, user_id: uuid.UUID, user_in: UserUpdate) ->
 
 
 def delete_user(*, session: Session, current_user: User, user_id: uuid.UUID) -> Message:
-    user = session.get(User, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = _get_required_user(session=session, user_id=user_id)
     if user == current_user:
         raise HTTPException(
             status_code=403, detail="Super users are not allowed to delete themselves"
         )
-    statement = delete(Item).where(col(Item.owner_id) == user_id)
-    session.exec(statement)
-    session.delete(user)
-    session.commit()
+    crud.delete_items_by_owner(session=session, owner_id=user_id)
+    crud.delete_user(session=session, db_user=user)
     return Message(message="User deleted successfully")

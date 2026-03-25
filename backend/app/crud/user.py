@@ -1,3 +1,4 @@
+import uuid
 
 from sqlmodel import Session, select
 
@@ -31,6 +32,15 @@ def update_user(*, session: Session, db_user: User, user_in: UserUpdate) -> User
     session.commit()
     session.refresh(db_user)
     return db_user
+
+
+def get_user_by_id(*, session: Session, user_id: uuid.UUID) -> User | None:
+    return session.get(User, user_id)
+
+
+def delete_user(*, session: Session, db_user: User) -> None:
+    session.delete(db_user)
+    session.commit()
 
 
 def get_user_by_email(*, session: Session, email: str) -> User | None:
