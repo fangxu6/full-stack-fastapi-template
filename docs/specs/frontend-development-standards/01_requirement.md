@@ -8,11 +8,13 @@
 - 沉淀一份可直接指导后续开发的前端规范文档。
 - 以当前代码为基线，总结已存在的实现约定，并补充少量应强制执行的增强规则。
 - 明确前端开发的目录职责、代码组织、表单模式、数据获取方式、样式与测试要求。
+- 把 `.agents/skills/react-best-practices/` 中与当前项目直接相关的性能实践转译为本仓库可执行规范。
 
 ## Scope
 - In scope:
   - `frontend/` 现有代码风格、目录结构与工具链约束的归纳。
   - 新增 `docs/rules/前端开发规范.md`。
+  - 将 React 性能实践补充到现有规范中，包括请求并行、bundle 控制、Query 去重、re-render 控制和热点路径约束。
   - 记录本次文档化决策与适用范围。
 - Out of scope:
   - 重构前端运行时代码。
@@ -24,6 +26,7 @@
 - AC2: 规范明确区分“现有约定”和“新增强制项/推荐项”。
 - AC3: 规范至少覆盖路由、数据获取、表单、样式、生成代码、测试和提交流程。
 - AC4: 文档可作为后续前端需求开发、代码评审和自检的统一参考。
+- AC5: 文档显式覆盖 `react-best-practices` 中适用于当前仓库的关键规则，而不引入与现有栈不匹配的 Next.js 专属写法。
 
 ## Constraints
 - 不修改 `frontend/src/client/**`、`frontend/src/routeTree.gen.ts`、`frontend/src/components/ui/**`。

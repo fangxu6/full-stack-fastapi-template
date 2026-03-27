@@ -11,6 +11,11 @@ Record significant AI-assisted decisions and rationale.
 
 ## Entries
 - YYYY-MM-DD: (placeholder)
+- Date: 2026-03-27
+- Scope: frontend standards documentation
+- Decision: Updated `docs/rules/前端开发规范.md` to explicitly incorporate the applicable rules from `.agents/skills/react-best-practices/`, including waterfall prevention, bundle constraints, TanStack Query deduplication, React 19 effect/state guidance, and hot-path JavaScript rules.
+- Reason: The previous standards captured project structure and common frontend patterns, but did not clearly encode the React performance practices expected during new feature work and reviews.
+- Risk: Some existing frontend code may not fully satisfy the new performance-oriented guidance yet; enforcement should focus first on new or modified code and avoid cargo-cult optimization in non-hot paths.
 - Date: 2026-03-25
 - Scope: frontend standards documentation
 - Decision: Added `docs/rules/前端开发规范.md` and supporting spec docs based on the current frontend codebase, with a small set of strengthened constraints for future development.

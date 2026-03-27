@@ -15,11 +15,14 @@
 - 适用范围与技术栈
 - 工具链与基础约束
 - 目录职责与文件组织
+- 命名、导入与 bundle 约束
 - TypeScript / React 编码约定
 - 路由、页面、鉴权与状态边界
 - React Query / OpenAPI Client 使用规则
+- 请求并行、Suspense 边界与 waterfall 控制
 - 表单、错误处理、加载态和空态规范
-- UI、样式、主题与可访问性要求
+- UI、样式、主题与渲染性能要求
+- JavaScript 热点路径约束
 - 测试、构建、联调与提交流程
 - 开发自检清单
 
