@@ -12,6 +12,11 @@ Record significant AI-assisted decisions and rationale.
 ## Entries
 - YYYY-MM-DD: (placeholder)
 - Date: 2026-03-27
+- Scope: frontend styling guidance
+- Decision: Updated `docs/skills/tailwind-best-practices-guide.md` and refined `docs/rules/前端开发规范.md` to treat `tailwind-best-practices` as a repo-adapted review reference instead of a directly enforceable rule set.
+- Reason: The original skill targets Mastra Playground and assumes a different component system, token source, and stricter prohibitions on arbitrary Tailwind values and `className` overrides than this repository's Tailwind v4 + shadcn/ui setup actually uses.
+- Risk: If readers only skim the original skill and ignore the repo adaptation, they may still over-apply Mastra-specific constraints during reviews; future frontend guidance should keep pointing back to the repo-local documents as the source of truth.
+- Date: 2026-03-27
 - Scope: frontend standards documentation
 - Decision: Updated `docs/rules/前端开发规范.md` to explicitly incorporate the applicable rules from `.agents/skills/react-best-practices/`, including waterfall prevention, bundle constraints, TanStack Query deduplication, React 19 effect/state guidance, and hot-path JavaScript rules.
 - Reason: The previous standards captured project structure and common frontend patterns, but did not clearly encode the React performance practices expected during new feature work and reviews.
