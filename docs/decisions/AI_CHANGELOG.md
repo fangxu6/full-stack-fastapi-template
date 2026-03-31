@@ -25,6 +25,16 @@ In most cases, updating `AI_CHANGELOG.md` alone is enough.
 ## Entries
 - YYYY-MM-DD: (placeholder)
 - Date: 2026-03-31
+- Scope: rules viewer hardening
+- Decision: Updated the rules viewer backend so the backend image now includes `docs/rules`, local compose development can sync that directory into the container, and the backend whitelist rejects symlinked Markdown files before exposing any rule document.
+- Reason: review 发现当前实现虽然在本地源码目录下可用，但在标准后端镜像中读不到 `docs/rules`，并且 `glob("*.md") + is_file()` 会把 symlink 文件纳入白名单，破坏路径隔离承诺。
+- Risk: 当前修复依赖部署产物中继续携带 `docs/rules`；如果未来要扩展到更大的 `docs/**` 范围，仍需要重新审视镜像体积、同步策略和更严格的文件暴露边界。
+- Date: 2026-03-31
+- Scope: rules viewer mvp
+- Decision: Added `docs/specs/rules-viewer-mvp/`, introduced authenticated backend endpoints for `GET /api/v1/docs/rules` and `GET /api/v1/docs/rules/{slug}`, regenerated the OpenAPI client, and added a protected `/rules` page plus sidebar entry so logged-in users can browse `docs/rules/*.md` in the app.
+- Reason: 当前仓库已经把 `docs/rules/*.md` 作为项目规则来源之一，但此前只能在仓库文件系统中离线查看；这不利于登录后的使用者直接查阅，也不利于后续把更多 `docs/**` 内容逐步纳入统一的在线文档入口。
+- Risk: 当前版本只覆盖 `docs/rules/*.md` 且正文按纯文本展示；如果后续扩展到 `docs/specs/**`、增加 Markdown 渲染或搜索能力，需要重新明确目录白名单、渲染安全和导航结构，避免把 MVP 直接膨胀成通用文档中心。
+- Date: 2026-03-31
 - Scope: imported rules adaptation
 - Decision: Added `docs/specs/imported-rules-adaptation/` and rewrote `docs/rules/数据库规则.md`、`docs/rules/需求宪章.md`、`docs/rules/需求规则.md`、`docs/rules/需求文档编号规范示例.md`、`docs/rules/项目宪章.md` so they now follow the current repository's `docs/specs/<feature>/01~04` workflow and real stack baseline instead of the imported project's MySQL / SQLAlchemy / Ant Design / React Router / `/speckit` / `/Doc/dataDict` assumptions.
 - Reason: 这些文档来自另一套文档驱动项目，但长期放在当前仓库的 `docs/rules/` 下，容易被误认为是本仓库的正式规则；而它们实际上与当前仓库的 FastAPI + SQLModel + PostgreSQL + Vite + React 19 + TanStack Router/Query + 生成式 OpenAPI client 流程存在明显冲突。

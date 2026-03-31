@@ -1,3 +1,4 @@
+from .docs import RuleDocumentPublic, RuleDocumentsPublic, RuleDocumentSummary
 from .item import ItemBase, ItemCreate, ItemPublic, ItemsPublic, ItemUpdate
 from .security import Message, NewPassword, Token, TokenPayload
 from .user import (
@@ -17,6 +18,9 @@ __all__ = [
     "ItemPublic",
     "ItemsPublic",
     "ItemUpdate",
+    "RuleDocumentPublic",
+    "RuleDocumentsPublic",
+    "RuleDocumentSummary",
     "Message",
     "NewPassword",
     "Token",

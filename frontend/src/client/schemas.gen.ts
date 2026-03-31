@@ -251,6 +251,69 @@ export const PrivateUserCreateSchema = {
     title: 'PrivateUserCreate'
 } as const;
 
+export const RuleDocumentPublicSchema = {
+    properties: {
+        slug: {
+            type: 'string',
+            title: 'Slug'
+        },
+        title: {
+            type: 'string',
+            title: 'Title'
+        },
+        path: {
+            type: 'string',
+            title: 'Path'
+        },
+        content: {
+            type: 'string',
+            title: 'Content'
+        }
+    },
+    type: 'object',
+    required: ['slug', 'title', 'path', 'content'],
+    title: 'RuleDocumentPublic'
+} as const;
+
+export const RuleDocumentSummarySchema = {
+    properties: {
+        slug: {
+            type: 'string',
+            title: 'Slug'
+        },
+        title: {
+            type: 'string',
+            title: 'Title'
+        },
+        path: {
+            type: 'string',
+            title: 'Path'
+        }
+    },
+    type: 'object',
+    required: ['slug', 'title', 'path'],
+    title: 'RuleDocumentSummary'
+} as const;
+
+export const RuleDocumentsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/RuleDocumentSummary'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'RuleDocumentsPublic'
+} as const;
+
 export const TokenSchema = {
     properties: {
         access_token: {

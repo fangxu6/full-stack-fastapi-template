@@ -52,6 +52,24 @@ export type PrivateUserCreate = {
     is_verified?: boolean;
 };
 
+export type RuleDocumentPublic = {
+    slug: string;
+    title: string;
+    path: string;
+    content: string;
+};
+
+export type RuleDocumentsPublic = {
+    data: Array<RuleDocumentSummary>;
+    count: number;
+};
+
+export type RuleDocumentSummary = {
+    slug: string;
+    title: string;
+    path: string;
+};
+
 export type Token = {
     access_token: string;
     token_type?: string;
@@ -112,6 +130,14 @@ export type ValidationError = {
         [key: string]: unknown;
     };
 };
+
+export type DocsReadRuleDocumentsResponse = (RuleDocumentsPublic);
+
+export type DocsReadRuleDocumentData = {
+    slug: string;
+};
+
+export type DocsReadRuleDocumentResponse = (RuleDocumentPublic);
 
 export type ItemsReadItemsData = {
     limit?: number;

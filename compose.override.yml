@@ -78,6 +78,9 @@ services:
             - .venv
         - path: ./backend/pyproject.toml
           action: rebuild
+        - path: ./docs/rules
+          action: sync
+          target: /app/docs/rules
     # TODO: remove once coverage is done locally
     volumes:
       - ./backend/htmlcov:/app/backend/htmlcov

@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel
 
+from app.schemas.docs import RuleDocumentPublic, RuleDocumentsPublic, RuleDocumentSummary
 from app.schemas.item import ItemBase, ItemCreate, ItemPublic, ItemsPublic, ItemUpdate
 from app.schemas.security import Message, NewPassword, Token, TokenPayload
 from app.schemas.user import (
@@ -27,6 +28,9 @@ __all__ = [
     "ItemPublic",
     "ItemsPublic",
     "ItemUpdate",
+    "RuleDocumentPublic",
+    "RuleDocumentsPublic",
+    "RuleDocumentSummary",
     "NewPassword",
     "Token",
     "TokenPayload",
