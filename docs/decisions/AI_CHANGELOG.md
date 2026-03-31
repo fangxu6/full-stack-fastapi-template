@@ -19,38 +19,43 @@ In most cases, updating `AI_CHANGELOG.md` alone is enough.
 - Date: YYYY-MM-DD
 - Scope: feature or area
 - Decision: what changed
-- Reason: why
-- Risk: trade-offs or follow-ups
+- Reason: 变更原因
+- Risk: 风险、权衡或后续事项
 
 ## Entries
 - YYYY-MM-DD: (placeholder)
 - Date: 2026-03-31
+- Scope: imported rules adaptation
+- Decision: Added `docs/specs/imported-rules-adaptation/` and rewrote `docs/rules/数据库规则.md`、`docs/rules/需求宪章.md`、`docs/rules/需求规则.md`、`docs/rules/需求文档编号规范示例.md`、`docs/rules/项目宪章.md` so they now follow the current repository's `docs/specs/<feature>/01~04` workflow and real stack baseline instead of the imported project's MySQL / SQLAlchemy / Ant Design / React Router / `/speckit` / `/Doc/dataDict` assumptions.
+- Reason: 这些文档来自另一套文档驱动项目，但长期放在当前仓库的 `docs/rules/` 下，容易被误认为是本仓库的正式规则；而它们实际上与当前仓库的 FastAPI + SQLModel + PostgreSQL + Vite + React 19 + TanStack Router/Query + 生成式 OpenAPI client 流程存在明显冲突。
+- Risk: 本批次之外的其他导入文档仍可能保留外来项目假设；如果后续技术栈继续演进，也需要持续同步这些已适配文档与 `AGENTS.md`、`docs/specs/` 和运行时代码。
+- Date: 2026-03-31
 - Scope: decision record workflow
 - Decision: Converted `docs/decisions/ADR-xxxx.md` from an empty placeholder into a reusable ADR template, clarified in `AI_CHANGELOG.md` that normal changes should default here, and updated `AGENTS.md` so major architecture decisions can additionally use ADRs.
-- Reason: The repository had an empty ADR placeholder but no clear workflow boundary, which made it unclear whether contributors should use ADRs, `AI_CHANGELOG`, or both.
-- Risk: If contributors create ADRs for ordinary feature changes, decision records will become noisy; if they ignore ADRs for true architecture choices, long-term rationale can still be lost.
+- Reason: 仓库里原本只有一个空的 ADR 占位文件，却没有明确说明什么时候该写 ADR、什么时候只更新 `AI_CHANGELOG`，导致贡献者很难判断应该使用哪种记录方式。
+- Risk: 如果把普通功能改动都写成 ADR，会让决策记录过于嘈杂；如果真正的架构取舍又不写 ADR，长期原因仍然会丢失。
 - Date: 2026-03-31
 - Scope: frontend React guidance
 - Decision: Updated the repo React guidance so `docs/rules/前端开发规范.md` is the primary source of truth, `react-best-practices` is the first performance reference for regular Vite SPA work, and `vercel-react-best-practices` is only supplemental unless Next.js or server/client boundary concerns are actually in play.
-- Reason: The repo uses a Vite SPA architecture with TanStack Query, TanStack Router, and a generated OpenAPI client, so defaulting to Next.js-oriented guidance would create avoidable review noise and mismatched recommendations.
-- Risk: Some contributors may still reach for `vercel-react-best-practices` by habit; repo-local rules and review comments need to keep reinforcing the new priority order.
+- Reason: 当前仓库是基于 Vite SPA、TanStack Query、TanStack Router 和生成式 OpenAPI client 的前后端分离结构，默认套用偏 Next.js 的规则会带来不必要的 review 噪音和错误建议。
+- Risk: 一些贡献者仍可能因为习惯优先引用 `vercel-react-best-practices`；后续仍需要依靠仓库本地规则和 review 意见持续强化新的优先级。
 - Date: 2026-03-27
 - Scope: frontend styling guidance
 - Decision: Updated `docs/skills/tailwind-best-practices-guide.md` and refined `docs/rules/前端开发规范.md` to treat `tailwind-best-practices` as a repo-adapted review reference instead of a directly enforceable rule set.
-- Reason: The original skill targets Mastra Playground and assumes a different component system, token source, and stricter prohibitions on arbitrary Tailwind values and `className` overrides than this repository's Tailwind v4 + shadcn/ui setup actually uses.
-- Risk: If readers only skim the original skill and ignore the repo adaptation, they may still over-apply Mastra-specific constraints during reviews; future frontend guidance should keep pointing back to the repo-local documents as the source of truth.
+- Reason: 原始 skill 面向的是 Mastra Playground，假设了不同的组件体系、token 来源，以及比当前仓库更严格的 arbitrary values 与 `className` 覆盖限制；这些前提与本仓库的 Tailwind v4 + shadcn/ui 现状并不一致。
+- Risk: 如果读者只看原始 skill 而忽略仓库内的适配说明，评审时仍可能过度套用 Mastra 专属限制；后续前端规范需要继续明确以仓库本地文档为准。
 - Date: 2026-03-27
 - Scope: frontend standards documentation
 - Decision: Updated `docs/rules/前端开发规范.md` to explicitly incorporate the applicable rules from `.agents/skills/react-best-practices/`, including waterfall prevention, bundle constraints, TanStack Query deduplication, React 19 effect/state guidance, and hot-path JavaScript rules.
-- Reason: The previous standards captured project structure and common frontend patterns, but did not clearly encode the React performance practices expected during new feature work and reviews.
-- Risk: Some existing frontend code may not fully satisfy the new performance-oriented guidance yet; enforcement should focus first on new or modified code and avoid cargo-cult optimization in non-hot paths.
+- Reason: 旧版规范已经覆盖了项目结构和常见前端模式，但还没有把新功能开发和评审中应关注的 React 性能实践明确写成可执行规则。
+- Risk: 现有前端代码未必完全满足这套性能导向规范；执行时应优先约束新增或修改代码，避免在非热点路径上机械优化。
 - Date: 2026-03-25
 - Scope: frontend standards documentation
 - Decision: Added `docs/rules/前端开发规范.md` and supporting spec docs based on the current frontend codebase, with a small set of strengthened constraints for future development.
-- Reason: The frontend already has stable patterns for routing, querying, forms, styling, and generated client usage, but those rules were implicit and scattered across code and config.
-- Risk: Some existing files may not fully comply with the strengthened guidance yet; enforcement should be incremental and prioritize new or modified frontend code.
+- Reason: 当前前端在路由、请求、表单、样式和生成 client 使用上已经形成了稳定模式，但这些规则此前分散在代码和配置里，没有被显式沉淀成统一规范。
+- Risk: 一些已有文件可能暂时还不能完全满足增强后的规则；执行时应以增量方式推进，优先要求新改动对齐规范。
 - Date: 2026-03-25
 - Scope: frontend CRUD template documentation
 - Decision: Added `docs/rules/前端 CRUD 开发模板.md` and supporting spec docs to standardize conventional CRUD page structure, query invalidation, modal forms, and state handling based on existing `items` and `admin/users` patterns.
-- Reason: The repository will continue to add many CRUD pages, and a concrete template is more effective than principle-only guidance for keeping layout, interaction, and data flow consistent.
-- Risk: The template intentionally favors standard CRUD pages; complex workflow pages should not be forced into it without adjustment.
+- Reason: 仓库后续仍会持续增加大量 CRUD 页面，仅靠原则性规范不足以稳定约束布局、交互和数据流；基于现有 `items` 和 `admin/users` 模式沉淀模板更容易直接复用。
+- Risk: 这份模板有意偏向标准 CRUD 页面；复杂工作流页面不应被强行套入模板，而应在实际场景下做针对性调整。
