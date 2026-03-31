@@ -2,6 +2,19 @@
 
 Record significant AI-assisted decisions and rationale.
 
+## When To Use
+
+Use this file as the default lightweight decision log for:
+
+- feature work
+- bugfixes
+- rule or doc refinements
+- implementation-level trade-offs
+
+Use `docs/decisions/ADR-xxxx.md` only when the decision is architectural, cross-cutting, long-lived, and expensive to reverse.
+
+In most cases, updating `AI_CHANGELOG.md` alone is enough.
+
 ## Template
 - Date: YYYY-MM-DD
 - Scope: feature or area
@@ -11,6 +24,16 @@ Record significant AI-assisted decisions and rationale.
 
 ## Entries
 - YYYY-MM-DD: (placeholder)
+- Date: 2026-03-31
+- Scope: decision record workflow
+- Decision: Converted `docs/decisions/ADR-xxxx.md` from an empty placeholder into a reusable ADR template, clarified in `AI_CHANGELOG.md` that normal changes should default here, and updated `AGENTS.md` so major architecture decisions can additionally use ADRs.
+- Reason: The repository had an empty ADR placeholder but no clear workflow boundary, which made it unclear whether contributors should use ADRs, `AI_CHANGELOG`, or both.
+- Risk: If contributors create ADRs for ordinary feature changes, decision records will become noisy; if they ignore ADRs for true architecture choices, long-term rationale can still be lost.
+- Date: 2026-03-31
+- Scope: frontend React guidance
+- Decision: Updated the repo React guidance so `docs/rules/前端开发规范.md` is the primary source of truth, `react-best-practices` is the first performance reference for regular Vite SPA work, and `vercel-react-best-practices` is only supplemental unless Next.js or server/client boundary concerns are actually in play.
+- Reason: The repo uses a Vite SPA architecture with TanStack Query, TanStack Router, and a generated OpenAPI client, so defaulting to Next.js-oriented guidance would create avoidable review noise and mismatched recommendations.
+- Risk: Some contributors may still reach for `vercel-react-best-practices` by habit; repo-local rules and review comments need to keep reinforcing the new priority order.
 - Date: 2026-03-27
 - Scope: frontend styling guidance
 - Decision: Updated `docs/skills/tailwind-best-practices-guide.md` and refined `docs/rules/前端开发规范.md` to treat `tailwind-best-practices` as a repo-adapted review reference instead of a directly enforceable rule set.

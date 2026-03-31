@@ -9,6 +9,7 @@ Read only what you need, when you need it.
 - If frontend work: `frontend/README.md`, `frontend/package.json`, `frontend/biome.json`.
 - If specs exist: load `docs/specs/<feature>/01_requirement.md` before coding.
 - For decisions/guardrails: check `docs/decisions/AI_CHANGELOG.md` and `docs/skills/SKILL.md` if present.
+- For architecture-level, long-lived, or cross-cutting decisions, also check `docs/decisions/ADR-*.md` if present.
 
 ## Docs Index
 - Feature specs: `docs/specs/feature-template/01_requirement.md`
@@ -16,6 +17,7 @@ Read only what you need, when you need it.
 - Implementation: `docs/specs/feature-template/03_implementation.md`
 - Test spec: `docs/specs/feature-template/04_test_spec.md`
 - Decisions log: `docs/decisions/AI_CHANGELOG.md`
+- ADR template: `docs/decisions/ADR-xxxx.md`
 - Team rules: `docs/skills/SKILL.md`
 
 ## Doc-Driven Workflow (Lite)
@@ -29,6 +31,7 @@ Use small, reliable docs as context anchors.
 3. Implement to spec, then keep spec in sync with code.
 4. If requirements change, update spec first, then adjust code.
 5. For significant changes, record decisions in `docs/decisions/AI_CHANGELOG.md`.
+   - If the decision is architecture-level, long-lived, cross-cutting, or expensive to reverse, also create or update an ADR in `docs/decisions/ADR-*.md`.
 
 ## Build / Lint / Test
 Run from repo root unless noted.

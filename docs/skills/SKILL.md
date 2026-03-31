@@ -31,5 +31,6 @@ Lightweight skill activation rules to reduce repeated mistakes.
 ## Usage Notes
 - Only use skills that are actually relevant to the current task.
 - Python tasks default to `python-patterns`.
-- React/Next.js tasks default to `vercel-react-best-practices`.
+- In this repo, regular Vite SPA React tasks should prefer `react-best-practices` as the first React performance reference, and only use `vercel-react-best-practices` when Next.js or server/client boundary rules are actually relevant.
+- Next.js-specific or server/client boundary-heavy React tasks should default to `vercel-react-best-practices`.
 - If a task spans both stacks, apply both skills to their respective parts.
