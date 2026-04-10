@@ -1,0 +1,144 @@
+extends:
+  - spectral:oas
+
+formats:
+  - oas3
+  - oas3_1
+
+rules:
+  oas3-api-servers: off
+  info-contact: off
+  info-description: off
+  operation-tag-defined: off
+  path-keys-no-trailing-slash: off
+  operation-description: off
+
+  fs-path-segment-kebab-case:
+    description: Path 固定段应使用 kebab-case，路径参数应使用 snake_case（{param_name}）。
+    message: "Path '{{value}}' must use kebab-case segments and snake_case path params"
+    severity: error
+    given: "$.paths[*]~"
+    then:
+      function: pattern
+      functionOptions:
+        match: '^(/([a-z0-9]+(?:-[a-z0-9]+)*|\{[a-z][a-z0-9_]*\}))*/*$'
+
+  fs-operation-id-format:
+    description: operationId 应符合 <tag>-<route_name>，其中 route_name 为 snake_case。
+    severity: error
+    given: "$.paths[*][*].operationId"
+    then:
+      function: pattern
+      functionOptions:
+        match: '^[a-z][a-z0-9]*-[a-z][a-z0-9_]*$'
+
+  fs-parameter-name-snake-case:
+    description: path/query/header 参数名应使用 snake_case。
+    severity: error
+    given: "$.paths[*][*].parameters[?(@ && (@.in=='path' || @.in=='query' || @.in=='header'))].name"
+    then:
+      function: pattern
+      functionOptions:
+        match: '^[a-z][a-z0-9_]*$'
+
+  fs-schema-name-convention:
+    description: 业务 schema 使用 PascalCase；允许 FastAPI 自动生成的 Body_<tag>-<route_name>。
+    severity: error
+    given: "$.components.schemas.*~"
+    then:
+      function: pattern
+      functionOptions:
+        match: '^(?:[A-Z][A-Za-z0-9]*|Body_[a-z0-9]+-[a-z][a-z0-9_]*|HTTPValidationError|ValidationError)$'
+
+  fs-schema-property-snake-case:
+    description: schema 字段名应使用 snake_case。
+    severity: error
+    given: "$.components.schemas.*.properties.*~"
+    then:
+      function: pattern
+      functionOptions:
+        match: '^[a-z][a-z0-9_]*$'
+
+  fs-http-validation-schema-exists:
+    description: 必须定义 HTTPValidationError schema（用于 422）。
+    severity: error
+    given: "$.components.schemas"
+    then:
+      field: HTTPValidationError
+      function: truthy
+
+  fs-validation-error-schema-exists:
+    description: 必须定义 ValidationError schema（用于 422 detail 项）。
+    severity: error
+    given: "$.components.schemas"
+    then:
+      field: ValidationError
+      function: truthy
+
+  fs-422-response-ref:
+    description: 422 响应应引用 #/components/schemas/HTTPValidationError。
+    severity: error
+    given: "$.paths[*][*].responses['422'].content.application/json.schema.$ref"
+    then:
+      function: pattern
+      functionOptions:
+        match: '^#/components/schemas/HTTPValidationError$'
+
+  fs-http-validation-detail-array:
+    description: HTTPValidationError.detail.type 必须是 array。
+    severity: error
+    given: "$.components.schemas.HTTPValidationError.properties.detail.type"
+    then:
+      function: pattern
+      functionOptions:
+        match: '^array$'
+
+  fs-http-validation-detail-items-ref:
+    description: HTTPValidationError.detail.items 必须引用 ValidationError。
+    severity: error
+    given: "$.components.schemas.HTTPValidationError.properties.detail.items.$ref"
+    then:
+      function: pattern
+      functionOptions:
+        match: '^#/components/schemas/ValidationError$'
+
+  fs-validation-error-required-fields:
+    description: ValidationError.required 至少包含 loc/msg/type。
+    severity: error
+    given: "$.components.schemas.ValidationError.required"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: array
+          allOf:
+            - contains:
+                const: loc
+            - contains:
+                const: msg
+            - contains:
+                const: type
+
+  fs-business-error-detail-convention:
+    description: 若定义了 400/401/403/404/409/500 JSON 错误响应，建议包含 detail 字段（字符串或可解析结构）。
+    severity: warn
+    given: "$.paths[*][*].responses[?(@property.match(/^(400|401|403|404|409|500)$/))].content.application/json.schema"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          oneOf:
+            - type: object
+              required:
+                - "$ref"
+            - type: object
+              required:
+                - type
+                - properties
+              properties:
+                type:
+                  const: object
+                properties:
+                  type: object
+                  required:
+                    - detail

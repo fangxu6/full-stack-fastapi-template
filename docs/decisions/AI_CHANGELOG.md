@@ -29,6 +29,11 @@ In most cases, updating `AI_CHANGELOG.md` alone is enough.
 - Decision: Refactored backend imports so `app.models` now exports only ORM/SQLModel entities (`SQLModel`, `User`, `Item`), and all schema types are imported from `app.schemas`/`app.schemas.*`; added the same rule to `docs/rules/项目宪章.md`.
 - Reason: 之前 `app.models` 通过聚合导出 schema，导致分层语义混淆（models 与 schemas 职责边界不清）并引入混用导入风格，增加维护和 review 成本。
 - Risk: 现有与未来代码若继续沿用旧习惯可能回归混用；需要在后续 review 中持续检查导入边界，确保该规则稳定执行。
+- Date: 2026-04-10
+- Scope: PostgreSQL database standards
+- Decision: Rewrote `docs/rules/数据库规则.md` into a PostgreSQL-specific database standard, added `docs/specs/postgresql-database-rules/`, and explicitly separated the default recommendation of `BIGINT GENERATED ALWAYS AS IDENTITY` for new tables from the current repository's existing `UUID` compatibility constraints.
+- Reason: 原有数据库规则已经适配了当前仓库流程，但对 PostgreSQL 的类型、约束、索引、JSONB、分区、RLS 与安全演进要求覆盖不足；同时用户明确提供了 PostgreSQL 设计基线，需要把这些规则沉淀为可执行规范，又不能与现有 `user`/`item` 的 UUID 主键实现直接冲突。
+- Risk: 文档已明确“新表默认推荐”和“现有 UUID 兼容例外”的边界，但如果后续有人只看局部条目，仍可能误判当前仓库必须立即统一主键类型；真正执行主键体系迁移时仍需单独立项、评估数据迁移和接口兼容风险。
 - Date: 2026-03-31
 - Scope: rules viewer hardening
 - Decision: Updated the rules viewer backend so the backend image now includes `docs/rules`, local compose development can sync that directory into the container, and the backend whitelist rejects symlinked Markdown files before exposing any rule document.
