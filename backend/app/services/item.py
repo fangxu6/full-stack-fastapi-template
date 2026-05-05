@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from sqlmodel import Session
 
 from app import crud
-from app.models import Item, ItemCreate, ItemsPublic, ItemUpdate, Message, User
+from app.models import Item, ItemCreate, ItemPublic, ItemsPublic, ItemUpdate, Message, User
 
 
 def read_items(
@@ -14,7 +14,8 @@ def read_items(
     count = crud.count_items(session=session, owner_id=owner_id)
     items = crud.get_items(session=session, skip=skip, limit=limit, owner_id=owner_id)
 
-    return ItemsPublic(data=items, count=count)
+    items_public = [ItemPublic.model_validate(item) for item in items]
+    return ItemsPublic(data=items_public, count=count)
 
 
 def read_item(*, session: Session, current_user: User, id: uuid.UUID) -> Item:
