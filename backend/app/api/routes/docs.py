@@ -4,7 +4,7 @@ from fastapi import APIRouter
 
 from app import services
 from app.api.deps import CurrentUser
-from app.models import RuleDocumentPublic, RuleDocumentsPublic
+from app.schemas.docs import RuleDocumentPublic, RuleDocumentsPublic
 
 router = APIRouter(prefix="/docs", tags=["docs"])
 

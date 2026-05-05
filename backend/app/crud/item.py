@@ -2,7 +2,8 @@ import uuid
 
 from sqlmodel import Session, col, delete, func, select
 
-from app.models import Item, ItemCreate, ItemUpdate
+from app.models import Item
+from app.schemas.item import ItemCreate, ItemUpdate
 
 
 def count_items(*, session: Session, owner_id: uuid.UUID | None = None) -> int:

@@ -9,7 +9,8 @@ from sqlmodel import Session
 
 from app.core import security
 from app.core.config import settings
-from app.models import TokenPayload, User
+from app.models import User
+from app.schemas.security import TokenPayload
 
 from .database import get_db
 

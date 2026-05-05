@@ -5,7 +5,8 @@ from fastapi import APIRouter
 
 from app import services
 from app.api.deps import CurrentUser, SessionDep
-from app.models import ItemCreate, ItemPublic, ItemsPublic, ItemUpdate, Message
+from app.schemas.item import ItemCreate, ItemPublic, ItemsPublic, ItemUpdate
+from app.schemas.security import Message
 
 router = APIRouter(prefix="/items", tags=["items"])
 

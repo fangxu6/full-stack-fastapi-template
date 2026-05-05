@@ -4,7 +4,9 @@ from fastapi import HTTPException
 from sqlmodel import Session
 
 from app import crud
-from app.models import Item, ItemCreate, ItemPublic, ItemsPublic, ItemUpdate, Message, User
+from app.models import Item, User
+from app.schemas.item import ItemCreate, ItemPublic, ItemsPublic, ItemUpdate
+from app.schemas.security import Message
 
 
 def read_items(

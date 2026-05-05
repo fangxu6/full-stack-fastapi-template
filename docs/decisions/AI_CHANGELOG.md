@@ -24,6 +24,11 @@ In most cases, updating `AI_CHANGELOG.md` alone is enough.
 
 ## Entries
 - YYYY-MM-DD: (placeholder)
+- Date: 2026-05-05
+- Scope: backend import boundary (models vs schemas)
+- Decision: Refactored backend imports so `app.models` now exports only ORM/SQLModel entities (`SQLModel`, `User`, `Item`), and all schema types are imported from `app.schemas`/`app.schemas.*`; added the same rule to `docs/rules/项目宪章.md`.
+- Reason: 之前 `app.models` 通过聚合导出 schema，导致分层语义混淆（models 与 schemas 职责边界不清）并引入混用导入风格，增加维护和 review 成本。
+- Risk: 现有与未来代码若继续沿用旧习惯可能回归混用；需要在后续 review 中持续检查导入边界，确保该规则稳定执行。
 - Date: 2026-03-31
 - Scope: rules viewer hardening
 - Decision: Updated the rules viewer backend so the backend image now includes `docs/rules`, local compose development can sync that directory into the container, and the backend whitelist rejects symlinked Markdown files before exposing any rule document.

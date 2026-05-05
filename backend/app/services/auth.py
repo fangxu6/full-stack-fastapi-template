@@ -7,7 +7,8 @@ from sqlmodel import Session
 from app import crud
 from app.core import security
 from app.core.config import settings
-from app.models import Message, NewPassword, Token, UserUpdate
+from app.schemas.security import Message, NewPassword, Token
+from app.schemas.user import UserUpdate
 from app.utils import (
     generate_password_reset_token,
     generate_reset_password_email,
