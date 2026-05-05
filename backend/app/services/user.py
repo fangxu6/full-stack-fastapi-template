@@ -14,7 +14,7 @@ from app.schemas.user import (
     UserRegister,
     UsersPublic,
     UserUpdate,
-    UserUpdateMe,
+    UserUpdateMe, UserPublic,
 )
 from app.utils import generate_new_account_email, send_email
 
@@ -28,7 +28,8 @@ def read_users(*, session: Session, skip: int = 0, limit: int = 100) -> UsersPub
     )
     users = session.exec(statement).all()
 
-    return UsersPublic(data=users, count=count)
+    users_public = [UserPublic.model_validate(user) for user in users]
+    return UsersPublic(data=users_public, count=count)
 
 
 def create_user(*, session: Session, user_in: UserCreate) -> User:
