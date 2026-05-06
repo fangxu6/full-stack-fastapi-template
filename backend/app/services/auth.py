@@ -1,12 +1,16 @@
 from datetime import timedelta
 
-from fastapi import HTTPException
 from fastapi.responses import HTMLResponse
 from sqlmodel import Session
 
 from app import crud
 from app.core import security
 from app.core.config import settings
+from app.core.exceptions import (
+    AuthenticationError,
+    BadRequestError,
+    UserNotFoundError,
+)
 from app.schemas.security import Message, NewPassword, Token
 from app.schemas.user import UserUpdate
 from app.utils import (
@@ -20,9 +24,9 @@ from app.utils import (
 def login_access_token(*, session: Session, username: str, password: str) -> Token:
     user = crud.authenticate(session=session, email=username, password=password)
     if not user:
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
-    elif not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
+        raise BadRequestError("Incorrect email or password")
+    if not user.is_active:
+        raise BadRequestError("Inactive user")
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return Token(
         access_token=security.create_access_token(
@@ -54,13 +58,13 @@ def recover_password(*, session: Session, email: str) -> Message:
 def reset_password(*, session: Session, body: NewPassword) -> Message:
     email = verify_password_reset_token(token=body.token)
     if not email:
-        raise HTTPException(status_code=400, detail="Invalid token")
+        raise BadRequestError("Invalid token")
     user = crud.get_user_by_email(session=session, email=email)
     if not user:
         # Don't reveal that the user doesn't exist - use same error as invalid token
-        raise HTTPException(status_code=400, detail="Invalid token")
-    elif not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
+        raise BadRequestError("Invalid token")
+    if not user.is_active:
+        raise BadRequestError("Inactive user")
     user_in_update = UserUpdate(password=body.new_password)
     crud.update_user(
         session=session,
@@ -74,9 +78,8 @@ def recover_password_html_content(*, session: Session, email: str) -> HTMLRespon
     user = crud.get_user_by_email(session=session, email=email)
 
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="The user with this username does not exist in the system.",
+        raise UserNotFoundError(
+            "The user with this username does not exist in the system."
         )
     password_reset_token = generate_password_reset_token(email=email)
     email_data = generate_reset_password_email(

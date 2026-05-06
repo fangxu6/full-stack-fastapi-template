@@ -3,7 +3,7 @@ import uuid
 from sqlmodel import Session
 
 from app import crud
-from app.models import ItemCreate, ItemUpdate
+from app.schemas.item import ItemCreate, ItemUpdate
 from tests.utils.item import create_random_item
 from tests.utils.user import create_random_user
 from tests.utils.utils import random_lower_string

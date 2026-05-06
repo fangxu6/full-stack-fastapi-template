@@ -1,10 +1,15 @@
 import uuid
 
-from fastapi import HTTPException
 from sqlmodel import Session, col, func, select
 
 from app import crud
 from app.core.config import settings
+from app.core.exceptions import (
+    BadRequestError,
+    ConflictError,
+    PermissionDeniedError,
+    UserNotFoundError,
+)
 from app.core.security import get_password_hash, verify_password
 from app.models import User
 from app.schemas.security import Message
@@ -35,9 +40,8 @@ def read_users(*, session: Session, skip: int = 0, limit: int = 100) -> UsersPub
 def create_user(*, session: Session, user_in: UserCreate) -> User:
     user = crud.get_user_by_email(session=session, email=user_in.email)
     if user:
-        raise HTTPException(
-            status_code=400,
-            detail="The user with this email already exists in the system.",
+        raise BadRequestError(
+            "The user with this email already exists in the system."
         )
 
     user = crud.create_user(session=session, user_create=user_in)
@@ -56,7 +60,7 @@ def create_user(*, session: Session, user_in: UserCreate) -> User:
 def _get_required_user(*, session: Session, user_id: uuid.UUID) -> User:
     user = crud.get_user_by_id(session=session, user_id=user_id)
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise UserNotFoundError()
     return user
 
 
@@ -70,12 +74,11 @@ def read_user_by_id(
     if user == current_user:
         return user
     if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=403,
-            detail="The user doesn't have enough privileges",
+        raise PermissionDeniedError(
+            "The user doesn't have enough privileges"
         )
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise UserNotFoundError()
     return user
 
 
@@ -85,9 +88,7 @@ def update_user_me(
     if user_in.email:
         existing_user = crud.get_user_by_email(session=session, email=user_in.email)
         if existing_user and existing_user.id != current_user.id:
-            raise HTTPException(
-                status_code=409, detail="User with this email already exists"
-            )
+            raise ConflictError("User with this email already exists")
     user_data = user_in.model_dump(exclude_unset=True)
     current_user.sqlmodel_update(user_data)
     session.add(current_user)
@@ -101,10 +102,10 @@ def update_password_me(
 ) -> Message:
     verified, _ = verify_password(body.current_password, current_user.hashed_password)
     if not verified:
-        raise HTTPException(status_code=400, detail="Incorrect password")
+        raise BadRequestError("Incorrect password")
     if body.current_password == body.new_password:
-        raise HTTPException(
-            status_code=400, detail="New password cannot be the same as the current one"
+        raise BadRequestError(
+            "New password cannot be the same as the current one"
         )
     hashed_password = get_password_hash(body.new_password)
     current_user.hashed_password = hashed_password
@@ -116,9 +117,8 @@ def update_password_me(
 def register_user(*, session: Session, user_in: UserRegister) -> User:
     user = crud.get_user_by_email(session=session, email=user_in.email)
     if user:
-        raise HTTPException(
-            status_code=400,
-            detail="The user with this email already exists in the system",
+        raise BadRequestError(
+            "The user with this email already exists in the system"
         )
     user_create = UserCreate.model_validate(user_in)
     user = crud.create_user(session=session, user_create=user_create)
@@ -126,13 +126,13 @@ def register_user(*, session: Session, user_in: UserRegister) -> User:
 
 
 def update_user(*, session: Session, user_id: uuid.UUID, user_in: UserUpdate) -> User:
-    db_user = _get_required_user(session=session, user_id=user_id)
+    db_user = crud.get_user_by_id(session=session, user_id=user_id)
+    if db_user is None:
+        raise UserNotFoundError("The user with this id does not exist in the system")
     if user_in.email:
         existing_user = crud.get_user_by_email(session=session, email=user_in.email)
         if existing_user and existing_user.id != user_id:
-            raise HTTPException(
-                status_code=409, detail="User with this email already exists"
-            )
+            raise ConflictError("User with this email already exists")
 
     db_user = crud.update_user(session=session, db_user=db_user, user_in=user_in)
     return db_user
@@ -140,10 +140,8 @@ def update_user(*, session: Session, user_id: uuid.UUID, user_in: UserUpdate) ->
 
 def delete_user(*, session: Session, current_user: User, user_id: uuid.UUID) -> Message:
     user = _get_required_user(session=session, user_id=user_id)
-    if user == current_user:
-        raise HTTPException(
-            status_code=403, detail="Super users are not allowed to delete themselves"
-        )
+    if user == current_user and current_user.is_superuser:
+        raise PermissionDeniedError("Super users are not allowed to delete themselves")
     crud.delete_items_by_owner(session=session, owner_id=user_id)
     crud.delete_user(session=session, db_user=user)
     return Message(message="User deleted successfully")

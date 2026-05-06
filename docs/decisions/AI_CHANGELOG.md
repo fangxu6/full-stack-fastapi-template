@@ -25,6 +25,31 @@ In most cases, updating `AI_CHANGELOG.md` alone is enough.
 ## Entries
 - YYYY-MM-DD: (placeholder)
 - Date: 2026-05-06
+- Scope: enterprise scaffold batch 0 shared-components barrel convention
+- Decision: Added explicit group barrels for `frontend/src/shared/components/{branding,feedback,layout,table,theme}/index.ts` and a top-level namespace index at `frontend/src/shared/components/index.ts`, then updated existing consumers to import shared UI through group directories such as `@/shared/components/branding`, `@/shared/components/layout`, and `@/shared/components/theme` instead of file-level paths.
+- Reason: 用户要求进一步把 `shared/components` 的边界规则固化到代码结构里，避免新代码重新回到平铺目录或继续直接引用具体文件；分组 barrel 比单一大平铺 barrel 更能保留 shared 层内部的分类语义。
+- Risk: 顶层 `shared/components/index.ts` 当前只做 namespace 聚合，如果后续有人开始直接从根 barrel 拉取所有符号，仍可能重新走向扁平化依赖；后续应继续优先使用“按分组目录导入”的约定，而不是把根 barrel 当成默认入口。
+- Date: 2026-05-06
+- Scope: enterprise scaffold batch 0 shared UI common-component migration
+- Decision: Migrated the remaining shared UI primitives out of `frontend/src/components/Common/*` into `frontend/src/shared/components/*`, including branding (`Logo`), theme controls (`Appearance`, `SidebarAppearance`), layout footer, feedback views (`ErrorComponent`, `NotFound`), and the actual `DataTable` implementation. Updated `app/*`, `platform/auth/*`, and shared wrapper imports to point at the new shared locations, then deleted the old `components/Common/*` files.
+- Reason: 用户要求继续把仍被 `app/*` 直接依赖的公共 UI 归位到 `shared/components`；此前虽然已经有 `shared/components/feedback` 和 `shared/components/table` 目录，但很多实现仍停留在旧 `Common` 下，仅靠 re-export 不足以形成清晰的共享层边界。
+- Risk: 当前 `shared/components` 已承接真实实现，但如果后续继续把业务专属样式或上下文耦合直接塞进这些共享组件，仍会重新污染共享层；后续应继续保持“纯共享 UI 放 shared，业务组装留在 app/platform/features”的分层纪律。
+- Date: 2026-05-06
+- Scope: enterprise scaffold batch 0 sidebar and menu permission boundary migration
+- Decision: Moved the application sidebar implementation out of `frontend/src/components/Sidebar/*` into `frontend/src/app/navigation/*`, including explicit navigation item typing, the sidebar menu renderer, and the user dropdown menu, while centralizing the current menu permission rule in `frontend/src/shared/permissions/index.ts`. The admin route now reuses `requireSuperuser` from `app/router/guards.ts`, and old `components/Sidebar/*` files were deleted after the new app/shared boundaries took over.
+- Reason: 用户要求继续把 `AppSidebar / 菜单权限` 这一层从旧 `components/Sidebar/*` 往 `app/platform/shared` 边界推进；仅保留 `app/navigation/AppSidebar` 作为旧实现薄包装不足以形成稳定边界，因此这轮把实际实现和当前唯一权限判定一起迁到了新层。
+- Risk: 当前菜单权限仍只有 `is_superuser -> admin` 这一条最小规则，结构已经归位但能力还未升级为真正的 RBAC 菜单点权限；后续进入批次 1 时，应在保持 `shared/permissions` 入口稳定的前提下，把具体判定从超管布尔值替换为角色/权限集合。
+- Date: 2026-05-06
+- Scope: enterprise scaffold batch 0 auth exception migration and page boundary downshift
+- Decision: Finished the current backend auth exception migration by replacing remaining `HTTPException` usage in `app.services.auth` and `app.api.dependencies.auth` with the shared `AppError` hierarchy, including a new `AuthenticationError`, and locked the behavior with route tests that now require `request_id` on login, reset-password, and invalid-token failures. In the frontend, moved the `admin` page family into `platform/system/pages + components/users/*` and the `items` page family into `features/items/pages + components/*`, leaving the route files as thin wrappers around the new boundaries and deleting the old `components/Admin/*` and `components/Items/*` implementations.
+- Reason: 用户要求继续收口两件事：先把后端统一异常迁移推进到 auth 相关真实链路，再把 `items/admin` 页面继续往 `features/platform/shared` 的目标边界下沉；这轮选择真实用户可见且已建立新骨架的两条路径做闭环，而不是继续增加空目录或停留在包装层。
+- Risk: 后端仍有少量非服务层 `HTTPException` 可能存在于更外层路由/框架适配点，后续如果要做到“全仓库统一错误形状”还需继续审视；前端 `admin/items` 已迁到新边界，但其他页面族如果继续直接生长在 `routes` 或旧 `components/*` 下，会再次拉回结构一致性。
+- Date: 2026-05-06
+- Scope: enterprise scaffold batch 0 auth boundary consolidation
+- Decision: Completed the current batch 0 frontend auth consolidation by switching `recover-password` and `reset-password` routes to direct page-module imports, changing auth pages to depend on concrete `platform/auth/components/*` files instead of the `platform/auth` barrel, and deleting the old `components/Common/AuthLayout.tsx` plus legacy `components/UserSettings/*` wrappers after their logic had been moved into `platform/auth`.
+- Reason: 用户要求继续把本批的 `1` 和 `2` 收口，重点是让新 `platform/auth` 边界真正承接页面与组件实现，而不是继续保留 barrel 反向依赖和旧目录包装层；这样可以降低 chunk 循环风险，也让 `routes -> pages -> components` 的层次更稳定。
+- Risk: `platform/auth/index.ts` 目前仍保留 barrel 入口，后续如果新增页面再次从 page 模块反向导入该 barrel，仍可能重新引入边界模糊或打包耦合；后续应继续优先使用直接模块导入，并在更大范围迁移时同步清理其他过渡性 barrel。
+- Date: 2026-05-06
 - Scope: enterprise scaffold assessment document
 - Decision: Expanded `docs/enterprise-scaffold-assessment.md` from a high-level evaluation into a repo-grounded platformization blueprint, adding target backend/frontend directory structures, current-to-target path mappings, module responsibility tables, feature/page/component ownership mappings, required platform module tiers, and a staged evolution roadmap.
 - Reason: 用户明确要求先把“企业脚手架适配性评估”继续扩成更落地的版本，并进一步细化到“后端目录拆分方案（到文件夹和职责表级）”与“前端 feature 拆分方案（到页面和组件级）”；仅保留抽象建议不足以指导当前仓库的实际演进。
@@ -39,6 +64,26 @@ In most cases, updating `AI_CHANGELOG.md` alone is enough.
 - Decision: Split the enterprise scaffold assessment/rollout blueprint into repo-standard spec artifacts under `docs/specs/enterprise-scaffold-1-0/01_requirement.md` through `04_test_spec.md`, so the platformization work can follow the same doc-driven workflow used elsewhere in the repository.
 - Reason: 用户明确选择把实施计划进一步拆成独立的 `docs/specs/<feature>/01~04` 规范文档，而不是只保留在总览 Markdown 中；这使后续实施能直接挂接到仓库既有的 spec -> code -> changelog 流程。
 - Risk: 现在同时存在总览文档 `docs/enterprise-scaffold-assessment.md` 与 `docs/specs/enterprise-scaffold-1-0/` 规范文档；如果后续只更新其中一处，容易出现双份文档漂移，因此后续应把 spec 目录视为实施主文档，总览文档视为管理层视角概述。
+- Date: 2026-05-06
+- Scope: enterprise scaffold batch 0 baseline
+- Decision: Implemented the first code slice of Enterprise Scaffold batch 0 by adding backend platform skeleton directories (`core`/`infra`/`modules` placeholders), a modules router aggregation entrypoint, request-id middleware, a unified unhandled-exception response with `request_id`, frontend `app/*` shell scaffolding (`AppLayout`, `AppHeader`, `AppFooter`, router guard, menu config), and migrated the protected layout route to the new shell entrypoints without changing page behavior.
+- Reason: 用户确认开始按 `enterprise-scaffold-1-0` spec 实施 `批次 0`，因此先落“结构骨架 + 治理基线”的最小可运行改动，而不是直接进入 IAM 或大规模模块迁移。
+- Risk: 当前前端 `app/navigation/AppSidebar.tsx` 仍是对旧侧边栏组件的薄包装，后端 `modules/*` 也仍以骨架为主；这意味着目录边界已经建立，但真正的平台模块职责尚未完全落入新结构，后续批次仍需继续推进，否则会停留在“骨架已建、实现仍旧”的过渡状态。
+- Date: 2026-05-06
+- Scope: enterprise scaffold batch 0 boundary reinforcement
+- Decision: Extended the batch 0 slice by introducing reusable backend `AppError`/`PermissionDeniedError` handling with structured JSON responses plus `request_id`, and by creating formal frontend `shared/components/*` and `platform/auth/*` entrypoints that now back existing admin/items/settings routes through the new layer boundaries.
+- Reason: 用户要求继续推进两件事：一是把现有前端组件继续往 `shared/platform` 归位，二是把后端异常体系从单纯 500 兜底扩展成可复用的业务异常基类与统一 handler，因此本轮在不改变页面行为的前提下先强化边界与复用入口。
+- Risk: 当前前端新入口多数仍是对旧组件的 re-export 包装，后端 `AppError` 体系也只覆盖了基础结构与 `PermissionDeniedError` 示例；如果后续不继续把真实业务代码迁入这些入口，就会形成“新目录存在、旧实现仍主导”的双层结构。
+- Date: 2026-05-06
+- Scope: enterprise scaffold batch 0 real usage adoption
+- Decision: Switched real backend business branches in `app.services.docs` and `app.services.item` from ad-hoc `HTTPException` usage to the shared `AppError` hierarchy (`RuleDocumentNotFoundError`, `ItemNotFoundError`, `PermissionDeniedError`), and further moved real frontend consumption to new layer entrypoints by routing `__root`, `login`, and `signup` through `shared/components/feedback` and `platform/auth` exports.
+- Reason: 用户要求继续把这批收口，重点不是再建更多空目录，而是让新边界开始承接真实业务使用；因此本轮选了最清晰的两类路径：后端 `docs/items` 的错误分支和前端根路由/认证页入口。
+- Risk: 目前仍只有部分后端服务使用 `AppError`，其他业务分支还保留 `HTTPException`；前端也还有不少旧目录组件通过 re-export 方式被新入口消费，后续若不继续迁移页面实现与业务组件，结构边界会持续处于半过渡态。
+- Date: 2026-05-06
+- Scope: enterprise scaffold batch 0 user service and auth page downshift
+- Decision: Migrated key `app.services.user` failure branches to the shared `AppError` hierarchy (`UserNotFoundError`, `BadRequestError`, `ConflictError`, `PermissionDeniedError`), corrected the normal-user self-delete path so only superusers are blocked from deleting themselves, and moved `login` / `signup` / `settings` page implementations into `frontend/src/platform/auth/pages/` so the route files are now thin wrappers around page modules.
+- Reason: 用户要求继续完成两项收口工作：让 `user` 相关真实业务分支进入统一异常体系，并继续把认证/设置页面实现从 `routes/*.tsx` 下沉到 `platform/auth/pages`，避免路由层继续承担页面实现责任。
+- Risk: `platform/auth/pages/*` 已经承接页面实现，但 `platform/auth/index.ts` 与页面模块之间需要继续避免形成新的 chunk 级循环依赖；后端 `user/docs/items` 已经对齐异常体系，但其他服务层仍需继续迁移，否则全仓库错误返回不会完全一致。
 - Date: 2026-05-05
 - Scope: backend import boundary (models vs schemas)
 - Decision: Refactored backend imports so `app.models` now exports only ORM/SQLModel entities (`SQLModel`, `User`, `Item`), and all schema types are imported from `app.schemas`/`app.schemas.*`; added the same rule to `docs/rules/项目宪章.md`.

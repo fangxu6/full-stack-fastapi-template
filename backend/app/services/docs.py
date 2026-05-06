@@ -1,7 +1,6 @@
 from pathlib import Path
 
-from fastapi import HTTPException
-
+from app.core.exceptions import RuleDocumentNotFoundError
 from app.schemas.docs import RuleDocumentPublic, RuleDocumentsPublic, RuleDocumentSummary
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -71,10 +70,10 @@ def read_rule_document(*, slug: str) -> RuleDocumentPublic:
     rules_directory = _get_resolved_rules_directory()
     file_path = _get_rule_documents_index().get(slug)
     if rules_directory is None or file_path is None:
-        raise HTTPException(status_code=404, detail="Rule document not found")
+        raise RuleDocumentNotFoundError()
 
     if not _is_allowed_rule_file(file_path=file_path, rules_directory=rules_directory):
-        raise HTTPException(status_code=404, detail="Rule document not found")
+        raise RuleDocumentNotFoundError()
 
     summary = _build_rule_document_summary(file_path=file_path)
     content = file_path.read_text(encoding="utf-8")

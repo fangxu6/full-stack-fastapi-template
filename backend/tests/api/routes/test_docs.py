@@ -71,7 +71,9 @@ def test_read_rule_document_not_found(
     )
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Rule document not found"
+    payload = response.json()
+    assert payload["detail"] == "Rule document not found"
+    assert payload["request_id"]
 
 
 def test_read_rule_document_rejects_path_traversal(

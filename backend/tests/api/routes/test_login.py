@@ -7,7 +7,8 @@ from sqlmodel import Session
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
 from app.crud import create_user
-from app.models import User, UserCreate
+from app.models import User
+from app.schemas.user import UserCreate
 from app.utils import generate_password_reset_token
 from tests.utils.user import user_authentication_headers
 from tests.utils.utils import random_email, random_lower_string
@@ -32,6 +33,9 @@ def test_get_access_token_incorrect_password(client: TestClient) -> None:
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
     assert r.status_code == 400
+    payload = r.json()
+    assert payload["detail"] == "Incorrect email or password"
+    assert payload["request_id"]
 
 
 def test_use_access_token(
@@ -124,6 +128,19 @@ def test_reset_password_invalid_token(
     assert "detail" in response
     assert r.status_code == 400
     assert response["detail"] == "Invalid token"
+    assert response["request_id"]
+
+
+def test_use_access_token_invalid_token_returns_request_id(client: TestClient) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/login/test-token",
+        headers={"Authorization": "Bearer invalid-token"},
+    )
+
+    assert r.status_code == 403
+    payload = r.json()
+    assert payload["detail"] == "Could not validate credentials"
+    assert payload["request_id"]
 
 
 def test_login_with_bcrypt_password_upgrades_to_argon2(

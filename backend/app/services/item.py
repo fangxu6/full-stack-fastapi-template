@@ -1,9 +1,9 @@
 import uuid
 
-from fastapi import HTTPException
 from sqlmodel import Session
 
 from app import crud
+from app.core.exceptions import ItemNotFoundError, PermissionDeniedError
 from app.models import Item, User
 from app.schemas.item import ItemCreate, ItemPublic, ItemsPublic, ItemUpdate
 from app.schemas.security import Message
@@ -23,9 +23,9 @@ def read_items(
 def read_item(*, session: Session, current_user: User, id: uuid.UUID) -> Item:
     item = crud.get_item_by_id(session=session, item_id=id)
     if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
+        raise ItemNotFoundError()
     if not current_user.is_superuser and (item.owner_id != current_user.id):
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+        raise PermissionDeniedError("Not enough permissions")
     return item
 
 
@@ -38,17 +38,17 @@ def update_item(
 ) -> Item:
     item = crud.get_item_by_id(session=session, item_id=id)
     if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
+        raise ItemNotFoundError()
     if not current_user.is_superuser and (item.owner_id != current_user.id):
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+        raise PermissionDeniedError("Not enough permissions")
     return crud.update_item(session=session, db_item=item, item_in=item_in)
 
 
 def delete_item(*, session: Session, current_user: User, id: uuid.UUID) -> Message:
     item = crud.get_item_by_id(session=session, item_id=id)
     if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
+        raise ItemNotFoundError()
     if not current_user.is_superuser and (item.owner_id != current_user.id):
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+        raise PermissionDeniedError("Not enough permissions")
     crud.delete_item(session=session, db_item=item)
     return Message(message="Item deleted successfully")

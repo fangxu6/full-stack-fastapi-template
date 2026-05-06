@@ -7,7 +7,8 @@ from sqlmodel import Session, select
 from app import crud
 from app.core.config import settings
 from app.core.security import verify_password
-from app.models import User, UserCreate
+from app.models import User
+from app.schemas.user import UserCreate
 from tests.utils.user import create_random_user
 from tests.utils.utils import random_email, random_lower_string
 
@@ -84,7 +85,9 @@ def test_get_non_existing_user_as_superuser(
         headers=superuser_token_headers,
     )
     assert r.status_code == 404
-    assert r.json() == {"detail": "User not found"}
+    payload = r.json()
+    assert payload["detail"] == "User not found"
+    assert payload["request_id"]
 
 
 def test_get_existing_user_current_user(client: TestClient, db: Session) -> None:
@@ -126,7 +129,9 @@ def test_get_existing_user_permissions_error(
         headers=normal_user_token_headers,
     )
     assert r.status_code == 403
-    assert r.json() == {"detail": "The user doesn't have enough privileges"}
+    payload = r.json()
+    assert payload["detail"] == "The user doesn't have enough privileges"
+    assert payload["request_id"]
 
 
 def test_get_non_existing_user_permissions_error(
@@ -140,7 +145,9 @@ def test_get_non_existing_user_permissions_error(
         headers=normal_user_token_headers,
     )
     assert r.status_code == 403
-    assert r.json() == {"detail": "The user doesn't have enough privileges"}
+    payload = r.json()
+    assert payload["detail"] == "The user doesn't have enough privileges"
+    assert payload["request_id"]
 
 
 def test_create_user_existing_username(
@@ -277,6 +284,7 @@ def test_update_password_me_incorrect_password(
     assert r.status_code == 400
     updated_user = r.json()
     assert updated_user["detail"] == "Incorrect password"
+    assert updated_user["request_id"]
 
 
 def test_update_user_me_email_exists(
@@ -294,7 +302,9 @@ def test_update_user_me_email_exists(
         json=data,
     )
     assert r.status_code == 409
-    assert r.json()["detail"] == "User with this email already exists"
+    payload = r.json()
+    assert payload["detail"] == "User with this email already exists"
+    assert payload["request_id"]
 
 
 def test_update_password_me_same_password_error(
@@ -314,6 +324,7 @@ def test_update_password_me_same_password_error(
     assert (
         updated_user["detail"] == "New password cannot be the same as the current one"
     )
+    assert updated_user["request_id"]
 
 
 def test_register_user(client: TestClient, db: Session) -> None:
@@ -352,7 +363,9 @@ def test_register_user_already_exists_error(client: TestClient) -> None:
         json=data,
     )
     assert r.status_code == 400
-    assert r.json()["detail"] == "The user with this email already exists in the system"
+    payload = r.json()
+    assert payload["detail"] == "The user with this email already exists in the system"
+    assert payload["request_id"]
 
 
 def test_update_user(
