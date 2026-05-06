@@ -24,6 +24,21 @@ In most cases, updating `AI_CHANGELOG.md` alone is enough.
 
 ## Entries
 - YYYY-MM-DD: (placeholder)
+- Date: 2026-05-06
+- Scope: enterprise scaffold assessment document
+- Decision: Expanded `docs/enterprise-scaffold-assessment.md` from a high-level evaluation into a repo-grounded platformization blueprint, adding target backend/frontend directory structures, current-to-target path mappings, module responsibility tables, feature/page/component ownership mappings, required platform module tiers, and a staged evolution roadmap.
+- Reason: 用户明确要求先把“企业脚手架适配性评估”继续扩成更落地的版本，并进一步细化到“后端目录拆分方案（到文件夹和职责表级）”与“前端 feature 拆分方案（到页面和组件级）”；仅保留抽象建议不足以指导当前仓库的实际演进。
+- Risk: 该文档目前是针对当前仓库结构给出的目标蓝图，不代表已经完成代码迁移；如果后续代码与目录真实演进路径不同，文档需要持续同步，否则会从“实施蓝图”退化为“过期建议”。
+- Date: 2026-05-06
+- Scope: enterprise scaffold 1.0 implementation planning
+- Decision: Further extended `docs/enterprise-scaffold-assessment.md` with an executable Enterprise Scaffold 1.0 rollout plan, including batch-based implementation sequencing, per-batch backend/frontend directory changes, proposed APIs/pages, test focus, outputs, and acceptance criteria.
+- Reason: 用户确认在完成目录与 feature 级拆分方案后，继续推进第 2 部分，需要一份能直接指导实施的批次化计划，而不是停留在结构建议层。
+- Risk: 该计划为当前仓库的推荐实施顺序，不等于唯一正确顺序；如果团队资源、业务优先级或现有分支状态变化，批次边界和先后顺序可能需要调整，否则可能出现“计划正确但执行上下文不匹配”的问题。
+- Date: 2026-05-06
+- Scope: enterprise scaffold spec split
+- Decision: Split the enterprise scaffold assessment/rollout blueprint into repo-standard spec artifacts under `docs/specs/enterprise-scaffold-1-0/01_requirement.md` through `04_test_spec.md`, so the platformization work can follow the same doc-driven workflow used elsewhere in the repository.
+- Reason: 用户明确选择把实施计划进一步拆成独立的 `docs/specs/<feature>/01~04` 规范文档，而不是只保留在总览 Markdown 中；这使后续实施能直接挂接到仓库既有的 spec -> code -> changelog 流程。
+- Risk: 现在同时存在总览文档 `docs/enterprise-scaffold-assessment.md` 与 `docs/specs/enterprise-scaffold-1-0/` 规范文档；如果后续只更新其中一处，容易出现双份文档漂移，因此后续应把 spec 目录视为实施主文档，总览文档视为管理层视角概述。
 - Date: 2026-05-05
 - Scope: backend import boundary (models vs schemas)
 - Decision: Refactored backend imports so `app.models` now exports only ORM/SQLModel entities (`SQLModel`, `User`, `Item`), and all schema types are imported from `app.schemas`/`app.schemas.*`; added the same rule to `docs/rules/项目宪章.md`.
