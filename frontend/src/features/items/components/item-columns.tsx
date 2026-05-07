@@ -3,8 +3,8 @@ import { Check, Copy } from "lucide-react"
 
 import type { ItemPublic } from "@/client"
 import { Button } from "@/components/ui/button"
-import { useCopyToClipboard } from "@/hooks/useCopyToClipboard"
 import { ItemActionsMenu } from "@/features/items/components/ItemActionsMenu"
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard"
 import { cn } from "@/lib/utils"
 
 function CopyId({ id }: { id: string }) {

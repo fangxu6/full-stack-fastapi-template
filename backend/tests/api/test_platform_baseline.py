@@ -1,7 +1,15 @@
+from unittest.mock import patch
+
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
-from starlette.status import HTTP_403_FORBIDDEN, HTTP_500_INTERNAL_SERVER_ERROR
+from starlette.status import (
+    HTTP_401_UNAUTHORIZED,
+    HTTP_403_FORBIDDEN,
+    HTTP_422_UNPROCESSABLE_ENTITY,
+    HTTP_500_INTERNAL_SERVER_ERROR,
+)
 
+from app.core.config import settings
 from app.core.exceptions import PermissionDeniedError
 from app.main import app
 
@@ -31,6 +39,59 @@ def test_unhandled_exceptions_return_request_id() -> None:
         "detail": "Internal Server Error",
         "request_id": response.headers["X-Request-ID"],
     }
+
+
+def test_framework_http_exceptions_return_structured_json(client: TestClient) -> None:
+    response = client.get(f"{settings.API_V1_STR}/users/me")
+
+    assert response.status_code == HTTP_401_UNAUTHORIZED
+    assert response.headers["X-Request-ID"]
+    assert response.json() == {
+        "detail": "Not authenticated",
+        "request_id": response.headers["X-Request-ID"],
+    }
+
+
+def test_validation_errors_return_structured_json() -> None:
+    router = APIRouter()
+
+    @router.get("/__test/validation")
+    def validate_input(value: int) -> dict[str, int]:
+        return {"value": value}
+
+    app.include_router(router)
+
+    with TestClient(app, raise_server_exceptions=False) as test_client:
+        response = test_client.get("/__test/validation")
+
+    assert response.status_code == HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.headers["X-Request-ID"]
+    payload = response.json()
+    assert payload["request_id"] == response.headers["X-Request-ID"]
+    assert isinstance(payload["detail"], list)
+    assert payload["detail"]
+
+
+def test_unhandled_exceptions_are_logged() -> None:
+    router = APIRouter()
+
+    @router.get("/__test/logged-error")
+    def raise_error() -> None:
+        raise RuntimeError("boom")
+
+    app.include_router(router)
+
+    with patch("app.core.exceptions.logger") as mock_logger:
+        with TestClient(app, raise_server_exceptions=False) as test_client:
+            response = test_client.get("/__test/logged-error")
+
+    assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR
+    mock_logger.error.assert_called_once()
+    _, kwargs = mock_logger.error.call_args
+    exc_info = kwargs["exc_info"]
+    assert exc_info[0] is RuntimeError
+    assert str(exc_info[1]) == "boom"
+    assert exc_info[2] is not None
 
 
 def test_modules_router_is_registered(client: TestClient) -> None:

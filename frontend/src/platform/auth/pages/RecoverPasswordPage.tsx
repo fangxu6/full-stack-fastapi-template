@@ -1,10 +1,10 @@
-import { Link as RouterLink } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation } from "@tanstack/react-query"
+import { Link as RouterLink } from "@tanstack/react-router"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
 
-import { LoginService } from "@/client";
+import { LoginService } from "@/client"
 import {
   Form,
   FormControl,
@@ -12,18 +12,18 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { LoadingButton } from "@/components/ui/loading-button";
-import useCustomToast from "@/hooks/useCustomToast";
-import AuthPageLayout from "@/platform/auth/components/AuthPageLayout";
-import { handleError } from "@/utils";
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { LoadingButton } from "@/components/ui/loading-button"
+import useCustomToast from "@/hooks/useCustomToast"
+import AuthPageLayout from "@/platform/auth/components/AuthPageLayout"
+import { handleError } from "@/utils"
 
 const formSchema = z.object({
   email: z.email(),
-});
+})
 
-type FormData = z.infer<typeof formSchema>;
+type FormData = z.infer<typeof formSchema>
 
 export function RecoverPasswordPage() {
   const form = useForm<FormData>({
@@ -31,28 +31,28 @@ export function RecoverPasswordPage() {
     defaultValues: {
       email: "",
     },
-  });
-  const { showSuccessToast, showErrorToast } = useCustomToast();
+  })
+  const { showSuccessToast, showErrorToast } = useCustomToast()
 
   const recoverPassword = async (data: FormData) => {
     await LoginService.recoverPassword({
       email: data.email,
-    });
-  };
+    })
+  }
 
   const mutation = useMutation({
     mutationFn: recoverPassword,
     onSuccess: () => {
-      showSuccessToast("Password recovery email sent successfully");
-      form.reset();
+      showSuccessToast("Password recovery email sent successfully")
+      form.reset()
     },
     onError: handleError.bind(showErrorToast),
-  });
+  })
 
   const onSubmit = async (data: FormData) => {
-    if (mutation.isPending) return;
-    mutation.mutate(data);
-  };
+    if (mutation.isPending) return
+    mutation.mutate(data)
+  }
 
   return (
     <AuthPageLayout>
@@ -103,5 +103,5 @@ export function RecoverPasswordPage() {
         </form>
       </Form>
     </AuthPageLayout>
-  );
+  )
 }

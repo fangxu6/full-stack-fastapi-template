@@ -1,11 +1,11 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
 
-import { UsersService, type UserUpdateMe } from "@/client";
-import { Button } from "@/components/ui/button";
+import { UsersService, type UserUpdateMe } from "@/client"
+import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
@@ -13,26 +13,26 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { LoadingButton } from "@/components/ui/loading-button";
-import useAuth from "@/hooks/useAuth";
-import useCustomToast from "@/hooks/useCustomToast";
-import { cn } from "@/lib/utils";
-import { handleError } from "@/utils";
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { LoadingButton } from "@/components/ui/loading-button"
+import useAuth from "@/hooks/useAuth"
+import useCustomToast from "@/hooks/useCustomToast"
+import { cn } from "@/lib/utils"
+import { handleError } from "@/utils"
 
 const formSchema = z.object({
   full_name: z.string().max(30).optional(),
   email: z.email({ message: "Invalid email address" }),
-});
+})
 
-type FormData = z.infer<typeof formSchema>;
+type FormData = z.infer<typeof formSchema>
 
 export default function UserProfileCard() {
-  const queryClient = useQueryClient();
-  const { showSuccessToast, showErrorToast } = useCustomToast();
-  const [editMode, setEditMode] = useState(false);
-  const { user: currentUser } = useAuth();
+  const queryClient = useQueryClient()
+  const { showSuccessToast, showErrorToast } = useCustomToast()
+  const [editMode, setEditMode] = useState(false)
+  const { user: currentUser } = useAuth()
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -42,42 +42,42 @@ export default function UserProfileCard() {
       full_name: currentUser?.full_name ?? undefined,
       email: currentUser?.email,
     },
-  });
+  })
 
   const toggleEditMode = () => {
-    setEditMode(!editMode);
-  };
+    setEditMode(!editMode)
+  }
 
   const mutation = useMutation({
     mutationFn: (data: UserUpdateMe) =>
       UsersService.updateUserMe({ requestBody: data }),
     onSuccess: () => {
-      showSuccessToast("User updated successfully");
-      toggleEditMode();
+      showSuccessToast("User updated successfully")
+      toggleEditMode()
     },
     onError: handleError.bind(showErrorToast),
     onSettled: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries()
     },
-  });
+  })
 
   const onSubmit = (data: FormData) => {
-    const updateData: UserUpdateMe = {};
+    const updateData: UserUpdateMe = {}
 
     if (data.full_name !== currentUser?.full_name) {
-      updateData.full_name = data.full_name;
+      updateData.full_name = data.full_name
     }
     if (data.email !== currentUser?.email) {
-      updateData.email = data.email;
+      updateData.email = data.email
     }
 
-    mutation.mutate(updateData);
-  };
+    mutation.mutate(updateData)
+  }
 
   const onCancel = () => {
-    form.reset();
-    toggleEditMode();
-  };
+    form.reset()
+    toggleEditMode()
+  }
 
   return (
     <div className="max-w-md">
@@ -164,5 +164,5 @@ export default function UserProfileCard() {
         </form>
       </Form>
     </div>
-  );
+  )
 }

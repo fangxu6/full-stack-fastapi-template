@@ -5,7 +5,7 @@
 
 ## Planned Changes
 - 新增规格目录 `docs/specs/frontend-crud-template/`。
-- 新增 `docs/rules/前端 CRUD 开发模板.md`。
+- 新增 `docs/rules/前端CRUD开发模板.md`。
 - 更新 `docs/rules/前端开发规范.md`，增加对 CRUD 模板的引用。
 - 更新 `docs/decisions/AI_CHANGELOG.md`，记录本次决策。
 

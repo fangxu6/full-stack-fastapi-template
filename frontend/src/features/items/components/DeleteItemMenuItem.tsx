@@ -34,7 +34,8 @@ export default function DeleteItemMenuItem({
   const { handleSubmit } = useForm()
 
   const mutation = useMutation({
-    mutationFn: async (itemId: string) => ItemsService.deleteItem({ id: itemId }),
+    mutationFn: async (itemId: string) =>
+      ItemsService.deleteItem({ id: itemId }),
     onSuccess: () => {
       showSuccessToast("The item was deleted successfully")
       setIsOpen(false)

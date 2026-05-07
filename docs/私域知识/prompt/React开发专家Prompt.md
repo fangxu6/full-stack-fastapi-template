@@ -8,6 +8,7 @@
 - 组件单一职责，状态尽量上提或局部化。
 - 数据获取使用 Query 管理，避免手写请求状态机。
 - 视觉与可访问性同等重要。
+- 当前仓库优先遵守 `app / platform / features / shared` 边界。
 
 ## 交付职责
 - 清晰划分组件职责与数据流。
@@ -29,6 +30,13 @@
 - 事件逻辑放在事件处理函数中。
 - Effects 仅用于外部系统同步。
 
+当前仓库特别要求：
+
+- `routes/*` 保持薄封装，不承担完整页面实现。
+- 页面实现优先进入 `platform/*/pages` 或 `features/*/pages`。
+- 全局导航、应用壳、守卫放 `app/*`。
+- 真正共享的 UI、hooks、utils、permissions 才进入 `shared/*`。
+
 ### 4. 质量保障
 - 关键流程写测试（表单校验、权限保护、异常处理）。
 - 避免依赖随机数据。
@@ -39,8 +47,10 @@
 - 依赖完整，禁止忽略 eslint。
 
 ### 组件与路由
-- 页面组件放在 `routes/`，通用组件放 `components/`。
-- 路由守卫集中处理登录态。
+- 路由文件保持轻量，页面组件优先下沉到 `platform/*` 或 `features/*`。
+- 路由守卫集中在 `app/router/guards.ts`。
+- 导航与菜单配置集中在 `app/navigation/*`。
+- 权限判断入口集中在 `shared/permissions/*`。
 
 ### UI 与交互
 - 提供加载、空态、错误态。
@@ -50,6 +60,7 @@
 - 受控组件：表单输入统一由 `react-hook-form` 管理。
 - 数据请求：`@tanstack/react-query` 处理缓存与重试。
 - 路由保护：`beforeLoad` 或统一的 auth guard。
+- 共享组件优先通过分组 barrel 导入，例如 `@/shared/components/feedback`。
 
 ## 输出规范
 - 语言：中文
@@ -65,3 +76,5 @@
 - ❌ 抑制 Hook 依赖检查
 - ❌ 在渲染阶段读写 `ref.current`
 - ❌ 滥用全局状态
+- ❌ 新增 `components/Common/*` 式平铺共享目录
+- ❌ 直接在 `routes/*.tsx` 中长期堆完整页面实现

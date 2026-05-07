@@ -24,6 +24,11 @@ In most cases, updating `AI_CHANGELOG.md` alone is enough.
 
 ## Entries
 - YYYY-MM-DD: (placeholder)
+- Date: 2026-05-07
+- Scope: frontend rules documentation alignment with scaffold batch 0 boundaries
+- Decision: Rewrote `docs/rules/前端开发规范.md` and `docs/rules/前端CRUD开发模板.md` to match the live frontend architecture after batch-0 boundary migration, replacing the old `routes + components/Common + components/Items/Admin` narrative with the current `app / platform / features / shared` layering, thin-route rule, grouped shared-component imports, and platform-vs-feature CRUD placement guidance.
+- Reason: 用户明确指出规则文档可能已落后于当前代码结构；实际仓库已经把 `items` 下沉到 `features/items/*`，`admin/users` 下沉到 `platform/system/*`，`DataTable/ErrorState` 等共享实现迁入 `shared/components/*`，继续保留旧模板会直接误导后续开发和 AI 输出。
+- Risk: 当前规则文档已与现有边界对齐，但前端仍处于渐进迁移阶段；如果未来更多页面族、hooks 位置或 permissions 结构继续演进，而规则文档不跟进，同样会再次漂移。
 - Date: 2026-05-06
 - Scope: enterprise scaffold batch 0 shared-components barrel convention
 - Decision: Added explicit group barrels for `frontend/src/shared/components/{branding,feedback,layout,table,theme}/index.ts` and a top-level namespace index at `frontend/src/shared/components/index.ts`, then updated existing consumers to import shared UI through group directories such as `@/shared/components/branding`, `@/shared/components/layout`, and `@/shared/components/theme` instead of file-level paths.
@@ -136,6 +141,6 @@ In most cases, updating `AI_CHANGELOG.md` alone is enough.
 - Risk: 一些已有文件可能暂时还不能完全满足增强后的规则；执行时应以增量方式推进，优先要求新改动对齐规范。
 - Date: 2026-03-25
 - Scope: frontend CRUD template documentation
-- Decision: Added `docs/rules/前端 CRUD 开发模板.md` and supporting spec docs to standardize conventional CRUD page structure, query invalidation, modal forms, and state handling based on existing `items` and `admin/users` patterns.
+- Decision: Added `docs/rules/前端CRUD开发模板.md` and supporting spec docs to standardize conventional CRUD page structure, query invalidation, modal forms, and state handling based on existing `items` and `admin/users` patterns.
 - Reason: 仓库后续仍会持续增加大量 CRUD 页面，仅靠原则性规范不足以稳定约束布局、交互和数据流；基于现有 `items` 和 `admin/users` 模式沉淀模板更容易直接复用。
 - Risk: 这份模板有意偏向标准 CRUD 页面；复杂工作流页面不应被强行套入模板，而应在实际场景下做针对性调整。

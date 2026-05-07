@@ -38,7 +38,9 @@ def test_read_rule_documents_requires_auth(client: TestClient) -> None:
     response = client.get(f"{settings.API_V1_STR}/docs/rules")
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Not authenticated"
+    payload = response.json()
+    assert payload["detail"] == "Not authenticated"
+    assert payload["request_id"] == response.headers["X-Request-ID"]
 
 
 def test_read_rule_document(
@@ -85,7 +87,9 @@ def test_read_rule_document_rejects_path_traversal(
     )
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Not Found"
+    payload = response.json()
+    assert payload["detail"] == "Not Found"
+    assert payload["request_id"] == response.headers["X-Request-ID"]
 
 
 def test_read_rule_documents_returns_empty_list_for_missing_directory(

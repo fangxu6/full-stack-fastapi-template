@@ -1,5 +1,5 @@
-import { Footer } from "@/shared/components/layout";
+import { Footer } from "@/shared/components/layout"
 
 export function AppFooter() {
-  return <Footer />;
+  return <Footer />
 }

@@ -1,19 +1,19 @@
-import { getMenuItemsForUser } from "@/app/navigation/menu-config";
-import { AppSidebarMenu } from "@/app/navigation/AppSidebarMenu";
-import { AppSidebarUserMenu } from "@/app/navigation/AppSidebarUserMenu";
+import { AppSidebarMenu } from "@/app/navigation/AppSidebarMenu"
+import { AppSidebarUserMenu } from "@/app/navigation/AppSidebarUserMenu"
+import { getMenuItemsForUser } from "@/app/navigation/menu-config"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-} from "@/components/ui/sidebar";
-import useAuth from "@/hooks/useAuth";
-import { Logo } from "@/shared/components/branding";
-import { SidebarAppearance } from "@/shared/components/theme";
+} from "@/components/ui/sidebar"
+import useAuth from "@/hooks/useAuth"
+import { Logo } from "@/shared/components/branding"
+import { SidebarAppearance } from "@/shared/components/theme"
 
 export function AppSidebar() {
-  const { user: currentUser } = useAuth();
-  const items = getMenuItemsForUser(currentUser);
+  const { user: currentUser } = useAuth()
+  const items = getMenuItemsForUser(currentUser)
 
   return (
     <Sidebar collapsible="icon">
@@ -28,5 +28,5 @@ export function AppSidebar() {
         <AppSidebarUserMenu user={currentUser} />
       </SidebarFooter>
     </Sidebar>
-  );
+  )
 }

@@ -1,10 +1,10 @@
-import { Link as RouterLink, useNavigate } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation } from "@tanstack/react-query"
+import { Link as RouterLink, useNavigate } from "@tanstack/react-router"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
 
-import { LoginService } from "@/client";
+import { LoginService } from "@/client"
 import {
   Form,
   FormControl,
@@ -12,12 +12,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { LoadingButton } from "@/components/ui/loading-button";
-import { PasswordInput } from "@/components/ui/password-input";
-import useCustomToast from "@/hooks/useCustomToast";
-import AuthPageLayout from "@/platform/auth/components/AuthPageLayout";
-import { handleError } from "@/utils";
+} from "@/components/ui/form"
+import { LoadingButton } from "@/components/ui/loading-button"
+import { PasswordInput } from "@/components/ui/password-input"
+import useCustomToast from "@/hooks/useCustomToast"
+import AuthPageLayout from "@/platform/auth/components/AuthPageLayout"
+import { handleError } from "@/utils"
 
 const formSchema = z
   .object({
@@ -32,13 +32,13 @@ const formSchema = z
   .refine((data) => data.new_password === data.confirm_password, {
     message: "The passwords don't match",
     path: ["confirm_password"],
-  });
+  })
 
-type FormData = z.infer<typeof formSchema>;
+type FormData = z.infer<typeof formSchema>
 
 export function ResetPasswordPage({ token }: { token: string }) {
-  const { showSuccessToast, showErrorToast } = useCustomToast();
-  const navigate = useNavigate();
+  const { showSuccessToast, showErrorToast } = useCustomToast()
+  const navigate = useNavigate()
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -48,22 +48,22 @@ export function ResetPasswordPage({ token }: { token: string }) {
       new_password: "",
       confirm_password: "",
     },
-  });
+  })
 
   const mutation = useMutation({
     mutationFn: (data: { new_password: string; token: string }) =>
       LoginService.resetPassword({ requestBody: data }),
     onSuccess: () => {
-      showSuccessToast("Password updated successfully");
-      form.reset();
-      navigate({ to: "/login" });
+      showSuccessToast("Password updated successfully")
+      form.reset()
+      navigate({ to: "/login" })
     },
     onError: handleError.bind(showErrorToast),
-  });
+  })
 
   const onSubmit = (data: FormData) => {
-    mutation.mutate({ new_password: data.new_password, token });
-  };
+    mutation.mutate({ new_password: data.new_password, token })
+  }
 
   return (
     <AuthPageLayout>
@@ -131,5 +131,5 @@ export function ResetPasswordPage({ token }: { token: string }) {
         </form>
       </Form>
     </AuthPageLayout>
-  );
+  )
 }

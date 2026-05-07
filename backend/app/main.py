@@ -1,6 +1,8 @@
 import sentry_sdk
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
+from starlette.exceptions import HTTPException
 from starlette.middleware.cors import CORSMiddleware
 
 from app.api.main import api_router
@@ -9,6 +11,8 @@ from app.core.exceptions import (
     AppError,
     RequestIdMiddleware,
     app_exception_handler,
+    http_exception_handler,
+    request_validation_exception_handler,
     unhandled_exception_handler,
 )
 
@@ -28,6 +32,8 @@ app = FastAPI(
 )
 app.add_middleware(RequestIdMiddleware)
 app.add_exception_handler(AppError, app_exception_handler)
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, request_validation_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
 # Set all CORS enabled origins

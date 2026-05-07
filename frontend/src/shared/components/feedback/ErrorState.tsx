@@ -1,3 +1,3 @@
-import ErrorComponent from "@/shared/components/feedback/ErrorComponent";
+import ErrorComponent from "@/shared/components/feedback/ErrorComponent"
 
-export default ErrorComponent;
+export default ErrorComponent

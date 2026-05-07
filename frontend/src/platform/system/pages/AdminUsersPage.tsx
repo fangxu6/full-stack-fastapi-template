@@ -5,8 +5,8 @@ import { type UserPublic, UsersService } from "@/client"
 import useAuth from "@/hooks/useAuth"
 import AddUserDialog from "@/platform/system/components/users/AddUserDialog"
 import {
-  userColumns,
   type UserTableData,
+  userColumns,
 } from "@/platform/system/components/users/user-columns"
 import { UsersTableSkeleton } from "@/shared/components/feedback"
 import { DataTable } from "@/shared/components/table"

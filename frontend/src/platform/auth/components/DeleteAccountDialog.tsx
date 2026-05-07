@@ -1,4 +1,4 @@
-import DeleteAccountConfirm from "@/platform/auth/components/DeleteAccountConfirm";
+import DeleteAccountConfirm from "@/platform/auth/components/DeleteAccountConfirm"
 
 export default function DeleteAccountDialog() {
   return (
@@ -9,5 +9,5 @@ export default function DeleteAccountDialog() {
       </p>
       <DeleteAccountConfirm />
     </div>
-  );
+  )
 }

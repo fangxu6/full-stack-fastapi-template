@@ -1,8 +1,11 @@
+import logging
 from collections.abc import Awaitable, Callable
 from uuid import uuid4
 
 from fastapi import Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from starlette.status import (
@@ -10,10 +13,12 @@ from starlette.status import (
     HTTP_403_FORBIDDEN,
     HTTP_404_NOT_FOUND,
     HTTP_409_CONFLICT,
+    HTTP_422_UNPROCESSABLE_ENTITY,
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
 REQUEST_ID_HEADER = "X-Request-ID"
+logger = logging.getLogger(__name__)
 
 
 class AppError(Exception):
@@ -81,6 +86,12 @@ async def unhandled_exception_handler(
 ) -> JSONResponse:
     request_id = getattr(request.state, "request_id", str(uuid4()))
     request.state.request_id = request_id
+    logger.error(
+        "Unhandled exception for request_id=%s path=%s",
+        request_id,
+        request.url.path,
+        exc_info=(type(exc), exc, exc.__traceback__),
+    )
     return JSONResponse(
         status_code=HTTP_500_INTERNAL_SERVER_ERROR,
         content={
@@ -98,6 +109,36 @@ async def app_exception_handler(request: Request, exc: AppError) -> JSONResponse
         status_code=exc.status_code,
         content={
             "detail": exc.detail,
+            "request_id": request_id,
+        },
+        headers={REQUEST_ID_HEADER: request_id},
+    )
+
+
+async def http_exception_handler(
+    request: Request, exc: StarletteHTTPException
+) -> JSONResponse:
+    request_id = getattr(request.state, "request_id", str(uuid4()))
+    request.state.request_id = request_id
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "detail": exc.detail,
+            "request_id": request_id,
+        },
+        headers={REQUEST_ID_HEADER: request_id, **(exc.headers or {})},
+    )
+
+
+async def request_validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    request_id = getattr(request.state, "request_id", str(uuid4()))
+    request.state.request_id = request_id
+    return JSONResponse(
+        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "detail": exc.errors(),
             "request_id": request_id,
         },
         headers={REQUEST_ID_HEADER: request_id},

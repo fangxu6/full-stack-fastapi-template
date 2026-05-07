@@ -1,5 +1,5 @@
-export * as branding from "./branding";
-export * as feedback from "./feedback";
-export * as layout from "./layout";
-export * as table from "./table";
-export * as theme from "./theme";
+export * as branding from "./branding"
+export * as feedback from "./feedback"
+export * as layout from "./layout"
+export * as table from "./table"
+export * as theme from "./theme"

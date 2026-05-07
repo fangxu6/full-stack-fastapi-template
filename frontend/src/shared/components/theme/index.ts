@@ -1,1 +1,1 @@
-export { Appearance, SidebarAppearance } from "./Appearance";
+export { Appearance, SidebarAppearance } from "./Appearance"

@@ -1,3 +1,3 @@
-import PendingItems from "@/components/Pending/PendingItems";
+import PendingItems from "@/components/Pending/PendingItems"
 
-export default PendingItems;
+export default PendingItems

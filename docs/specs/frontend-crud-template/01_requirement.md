@@ -11,7 +11,7 @@
 
 ## Scope
 - In scope:
-  - 新增 `docs/rules/前端 CRUD 开发模板.md`
+  - 新增 `docs/rules/前端CRUD开发模板.md`
   - 明确典型 CRUD 页面目录结构与代码骨架
   - 明确列表、弹窗表单、空态、加载态、错误态、自检清单
 - Out of scope:

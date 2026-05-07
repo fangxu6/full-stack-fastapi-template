@@ -1,3 +1,3 @@
-import PendingUsers from "@/components/Pending/PendingUsers";
+import PendingUsers from "@/components/Pending/PendingUsers"
 
-export default PendingUsers;
+export default PendingUsers

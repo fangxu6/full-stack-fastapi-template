@@ -1,9 +1,9 @@
-import { Logo } from "@/shared/components/branding";
-import { Footer } from "@/shared/components/layout";
-import { Appearance } from "@/shared/components/theme";
+import { Logo } from "@/shared/components/branding"
+import { Footer } from "@/shared/components/layout"
+import { Appearance } from "@/shared/components/theme"
 
 interface AuthLayoutProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 export default function AuthPageLayout({ children }: AuthLayoutProps) {
@@ -22,5 +22,5 @@ export default function AuthPageLayout({ children }: AuthLayoutProps) {
         <Footer />
       </div>
     </div>
-  );
+  )
 }
