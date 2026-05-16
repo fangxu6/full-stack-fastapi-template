@@ -6,46 +6,50 @@
 
 ## Overview
 
-<!--
-Document your project's error handling conventions here.
-
-Questions to answer:
-- What error types do you define?
-- How are errors propagated?
-- How are errors logged?
-- How are errors returned to clients?
--->
-
-(To be filled by the team)
+The backend uses a small custom exception hierarchy in `app/core/exceptions.py`, then converts those exceptions into JSON responses containing `detail` and `request_id`. Route handlers generally let service-layer exceptions bubble up instead of wrapping them locally.
 
 ---
 
 ## Error Types
 
-<!-- Custom error classes/types -->
+- Base application error: `AppError`
+- Common HTTP-shaped subclasses:
+  - `NotFoundError`
+  - `PermissionDeniedError`
+  - `AuthenticationError`
+  - `BadRequestError`
+  - `ConflictError`
+- Resource-specific variants include `UserNotFoundError`, `ItemNotFoundError`, and `RuleDocumentNotFoundError`.
 
-(To be filled by the team)
+See [`backend/app/core/exceptions.py`](../../../backend/app/core/exceptions.py).
 
 ---
 
 ## Error Handling Patterns
 
-<!-- Try-catch patterns, error propagation -->
-
-(To be filled by the team)
+- Raise domain errors from services when a business rule fails, for example duplicate email, missing user, or forbidden self-delete in [`backend/app/services/user.py`](../../../backend/app/services/user.py).
+- Keep route handlers thin and let exceptions bubble to the registered app handlers rather than swallowing them in each route.
+- Use `RequestIdMiddleware` so every response, including errors, carries `X-Request-ID`.
+- Let unexpected exceptions fall through to `unhandled_exception_handler`, which logs the traceback and returns a generic 500 payload.
 
 ---
 
 ## API Error Responses
 
-<!-- Standard error response format -->
+- Custom application errors return:
+  - `detail`
+  - `request_id`
+- Starlette/FastAPI `HTTPException` responses are normalized to the same shape.
+- Validation errors return:
+  - `detail` as the validation error list
+  - `request_id`
 
-(To be filled by the team)
+The response normalization is implemented in [`backend/app/core/exceptions.py`](../../../backend/app/core/exceptions.py).
 
 ---
 
 ## Common Mistakes
 
-<!-- Error handling mistakes your team has made -->
-
-(To be filled by the team)
+- Returning ad hoc dict error payloads from routes instead of raising an exception handled by the app.
+- Hiding business-rule failures in CRUD helpers instead of surfacing them clearly from services.
+- Logging and re-raising the same expected application error repeatedly when the global handlers already shape the response.
