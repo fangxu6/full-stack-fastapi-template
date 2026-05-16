@@ -10,3 +10,4 @@ node_modules/
 /upstream_prs.json
 
 .venv/
+/.specify/scripts/powershell/create-new-feature.ps1
