@@ -23,6 +23,7 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
 | [Directory Structure](./directory-structure.md) | Frontend layer ownership and thin-route rules | Customized |
 | [Component Guidelines](./component-guidelines.md) | Shared-vs-domain component placement rules | Customized |
 | [Hook Guidelines](./hook-guidelines.md) | Auth, server-state, and hook-boundary rules | Customized |
+| [Route Permission Navigation Contract](./route-permission-navigation-contract.md) | Route, guard, menu, and page-placement synchronization contract | Customized |
 | [State Management](./state-management.md) | Query state, auth persistence, and route-driven state | Customized |
 | [Quality Guidelines](./quality-guidelines.md) | Review guardrails, generated-file rules, regression checks | Customized |
 | [Type Safety](./type-safety.md) | Generated client usage, Zod, alias rules | Customized |
@@ -33,8 +34,9 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
 
 1. Read [Directory Structure](./directory-structure.md) before placing files.
 2. Read [Component Guidelines](./component-guidelines.md) before moving code into `shared/*` or building new page components.
-3. Read [Hook Guidelines](./hook-guidelines.md) and [State Management](./state-management.md) before changing auth, query, or route-driven state.
-4. Use [Type Safety](./type-safety.md) and [Quality Guidelines](./quality-guidelines.md) as the final review checklist.
+3. Read [Route Permission Navigation Contract](./route-permission-navigation-contract.md) when adding pages, changing route guards, changing menu visibility, or moving page boundaries.
+4. Read [Hook Guidelines](./hook-guidelines.md) and [State Management](./state-management.md) before changing auth, query, or route-driven state.
+5. Use [Type Safety](./type-safety.md) and [Quality Guidelines](./quality-guidelines.md) as the final review checklist.
 
 ---
 
@@ -61,6 +63,7 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
 - Put new cross-business capabilities under `platform/*` and new business workflows under `features/*`.
 - Only promote code into `shared/*` once it is genuinely cross-domain and not page-specific.
 - Continue using the generated OpenAPI client rather than inventing parallel hand-written request types.
+- Treat route access, menu visibility, permission helpers, and page placement as one linked contract rather than four independent edits.
 
 ---
 
@@ -80,6 +83,17 @@ Assume local frontend verification uses `http://127.0.0.1:5173` unless the task 
 
 - When backend API schemas change, regenerate the frontend client with `bash ./scripts/generate-client.sh`.
 - Frontend changes that affect routes, permissions, or error surfaces should preserve the current app-shell and guard structure.
+
+## Trigger Reminder
+
+Read [Route Permission Navigation Contract](./route-permission-navigation-contract.md) before changing any of:
+
+- new pages
+- protected routes
+- menu items
+- `app/router/guards.ts`
+- `shared/permissions/*`
+- page moves between `routes/*`, `platform/*`, and `features/*`
 
 ---
 
