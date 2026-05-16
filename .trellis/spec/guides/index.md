@@ -26,6 +26,50 @@ These guides help you **ask the right questions before coding**.
 
 ---
 
+## Project Navigation
+
+Use this directory as the shared entry point for project-local navigation that used to live in the root `AGENTS.md`.
+
+### Lazy Context Loading
+
+Read only what you need, when you need it.
+
+- First pass: `README.md` and `development.md`.
+- If backend work: `backend/README.md`, `backend/pyproject.toml`, `backend/scripts/*`.
+- If frontend work: `frontend/README.md`, `frontend/package.json`, `frontend/biome.json`.
+- If specs exist: load `docs/specs/<feature>/01_requirement.md` before coding.
+- For decisions and guardrails: check `docs/decisions/AI_CHANGELOG.md` and `docs/skills/SKILL.md` if present.
+- For architecture-level, long-lived, or cross-cutting decisions, also check `docs/decisions/ADR-*.md` if present.
+
+### Docs Index
+
+- Feature specs: `docs/specs/feature-template/01_requirement.md`
+- Interfaces: `docs/specs/feature-template/02_interface.md`
+- Implementation: `docs/specs/feature-template/03_implementation.md`
+- Test spec: `docs/specs/feature-template/04_test_spec.md`
+- Decisions log: `docs/decisions/AI_CHANGELOG.md`
+- ADR template: `docs/decisions/ADR-xxxx.md`
+- Team rules: `docs/skills/SKILL.md`
+
+### Doc-Driven Workflow
+
+Use small, reliable docs as context anchors.
+
+1. Clarify intent and acceptance criteria.
+2. If the task is non-trivial, write or update a minimal spec in `docs/specs/<feature>/`.
+3. Implement to spec, then keep spec in sync with code.
+4. If requirements change, update spec first, then adjust code.
+5. For significant changes, record decisions in `docs/decisions/AI_CHANGELOG.md`.
+
+The standard spec file set is:
+
+- `01_requirement.md` for intent, scope, and acceptance criteria
+- `02_interface.md` for API or contract details
+- `03_implementation.md` for files and steps
+- `04_test_spec.md` for tests to add or adjust
+
+---
+
 ## Quick Reference: Thinking Triggers
 
 ### When to Think About Cross-Layer Issues
