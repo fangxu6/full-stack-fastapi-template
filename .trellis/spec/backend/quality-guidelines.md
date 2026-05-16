@@ -1,47 +1,78 @@
 # Quality Guidelines
 
-> Code quality standards for backend development.
+> Backend review and regression guardrails for this repository.
 
 ---
 
 ## Overview
 
-Backend work in this repo must stay type-safe, layered, and narrowly scoped. Prefer small changes that align with the existing FastAPI + SQLModel structure instead of introducing parallel patterns.
+Backend quality in this repo is mostly about preserving architectural direction:
 
----
-
-## Forbidden Patterns
-
-- Do not modify `.env` files or secrets as part of normal task work.
-- Do not use `print`; use logging when output is needed.
-- Do not bypass the service layer by putting business orchestration straight into route handlers.
-- Do not make unrelated mass-formatting changes while touching backend files.
-- Do not forget frontend client regeneration when an API schema change affects generated client code.
+- keep routes thin
+- keep services explicit
+- preserve unified errors and request correlation
+- keep model/schema/API changes synchronized with frontend contract regeneration
 
 ---
 
 ## Required Patterns
 
-- Type hints everywhere; backend mypy runs in strict mode.
-- Use `model_validate` / `model_dump` and `sqlmodel_update` patterns where partial update flows already rely on them.
-- Raise `HTTPException` with explicit `status_code` and `detail`.
 - Keep layering explicit: `api -> services -> crud -> models/schemas`.
-- Activate `python-patterns` before Python implementation, refactor, or review work.
+- Use semantic application exceptions for expected business failures.
+- Keep new platform-wide behavior in `core/*`.
+- Keep model/schema changes paired with migration thinking and frontend client impact review.
+- Use explicit typing and current SQLModel update/validation patterns.
 
 ---
 
-## Testing Requirements
+## Strong Review Rules
 
-- Prefer the smallest meaningful verification step for the change: local pytest, docker test flow, or targeted running-stack tests.
-- If a change touches API contract shape, verify whether generated frontend client impact exists.
-- If tests are skipped, call that out explicitly in the final handoff.
+- New module work should attach to the existing platform skeleton rather than expanding one large shared file forever.
+- If a feature suggests a bounded business slice, prefer a deliberate path through `modules/*` over uncontrolled growth in route files or a giant `crud.py`.
+- API contract changes require checking whether `bash ./scripts/generate-client.sh` must be run.
+- New or changed error branches should preserve the `detail + request_id` response contract.
 
 ---
 
-## Code Review Checklist
+## Minimum Validation Expectations
 
-- Is the change limited to the intended backend slice?
-- Are types explicit and consistent with current backend patterns?
-- Is business logic placed in services instead of routes?
-- Are error responses clear and intentional?
-- If API schema changed, was client regeneration handled?
+- If a backend change affects error behavior, verify at least one path that exercises the unified error shape.
+- If auth, permission, or validation behavior changes, verify the relevant `401`, `403`, or `422` contract path.
+- If request/response models change, review frontend generated-client impact before closing the task.
+- If tests are skipped, say so explicitly in the handoff.
+
+---
+
+## Forbidden Patterns
+
+- Thick route handlers with business orchestration
+- New ad hoc error payload shapes
+- Model or schema changes without migration review
+- Backend contract changes that ignore frontend SDK regeneration needs
+- Unrelated mass formatting while touching backend files
+
+---
+
+## Current Reality vs Recommended Direction
+
+### Current reality
+
+- Real business behavior is concentrated in:
+  - [`backend/app/services/user.py`](../../../backend/app/services/user.py)
+  - [`backend/app/services/item.py`](../../../backend/app/services/item.py)
+- Unified error behavior is already implemented through:
+  - [`backend/app/main.py`](../../../backend/app/main.py)
+  - [`backend/app/core/exceptions.py`](../../../backend/app/core/exceptions.py)
+
+### Recommended direction
+
+- Continue migrating toward explicit module boundaries without pretending `modules/*` is already mature.
+- Use review pressure to stop regression back into the looser template-era structure.
+
+---
+
+## Code Anchors
+
+- Service-first behavior: [`backend/app/services/user.py`](../../../backend/app/services/user.py), [`backend/app/services/item.py`](../../../backend/app/services/item.py)
+- Error baseline: [`backend/app/main.py`](../../../backend/app/main.py), [`backend/app/core/exceptions.py`](../../../backend/app/core/exceptions.py)
+- Model/schema contract examples: [`backend/app/models/user.py`](../../../backend/app/models/user.py), [`backend/app/schemas/user.py`](../../../backend/app/schemas/user.py)

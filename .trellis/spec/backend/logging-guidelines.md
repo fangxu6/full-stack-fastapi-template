@@ -1,41 +1,74 @@
 # Logging Guidelines
 
-> How logging is done in this project.
+> Logging expectations for backend operational and debugging paths.
 
 ---
 
 ## Overview
 
-This backend currently uses the standard `logging` module instead of a custom structured logger. Logging is concentrated in startup helpers, utility functions, and the global exception handlers.
+This repo does not yet have a rich structured-logging stack. The practical baseline today is smaller and stricter: whenever a failure needs debugging, logs must preserve enough context to correlate with the request ID returned to the client.
 
 ---
 
-## Log Levels
+## Current Reality
 
-- `info` for normal operational milestones such as service initialization and email send results.
-- `error` for unexpected failures and unhandled exceptions.
-- Retry and prestart scripts also use warn/error-style logging through standard logging helpers.
-
----
-
-## Structured Logging
-
-- There is a placeholder central entrypoint at [`backend/app/core/logging.py`](../../../backend/app/core/logging.py), but the current codebase still relies mostly on plain module loggers.
-- The strongest consistency rule today is request correlation via `request_id`, which is attached to error responses and logged on unhandled exceptions in [`backend/app/core/exceptions.py`](../../../backend/app/core/exceptions.py).
-- If you add new logging around request failures, include enough context to correlate with `request_id` and the request path.
-
----
-
-## What to Log
-
-- Service startup and initialization checkpoints, as in `backend_pre_start.py`, `tests_pre_start.py`, and `initial_data.py`.
-- Unhandled exception traces via the centralized exception handler.
-- Important side effects such as email delivery outcomes in [`backend/app/utils.py`](../../../backend/app/utils.py).
+- Standard Python `logging` is used.
+- The most important logging contract is in the unhandled exception flow:
+  - request id
+  - request path
+  - traceback
+  - [`backend/app/core/exceptions.py`](../../../backend/app/core/exceptions.py)
+- Utility and lifecycle paths also log operational events:
+  - [`backend/app/utils.py`](../../../backend/app/utils.py)
+  - [`backend/app/backend_pre_start.py`](../../../backend/app/backend_pre_start.py)
+  - [`backend/app/initial_data.py`](../../../backend/app/initial_data.py)
 
 ---
 
-## What NOT to Log
+## Minimum Logging Rules
 
-- Do not log passwords, raw auth tokens, or secret configuration values.
-- Avoid dumping entire request bodies for auth and user-management flows unless there is a very specific debugging need.
-- Do not add noisy per-request info logging without a clear operational purpose; the current backend is relatively sparse on routine request logs.
+- Log unhandled exceptions with traceback.
+- Include `request_id` when logging request-scoped failures.
+- Include path or action context when a request failed.
+- Include resource identifiers or business identifiers when they materially help debugging.
+
+---
+
+## When to Log
+
+- Unexpected exceptions
+- External side-effect failures that need investigation
+- Important startup or initialization checkpoints
+- Important state transitions that are otherwise hard to reconstruct
+
+---
+
+## What Not to Log
+
+- Passwords
+- Raw auth tokens
+- Secret configuration values
+- Context-free noise such as `"error happened"` with no request or business correlation
+- `print(...)` debugging in normal backend code paths
+
+---
+
+## Current Reality vs Recommended Direction
+
+### Current reality
+
+- Logging is light and mostly centralized around failures and startup.
+- `request_id` correlation is the strongest repo-wide operational guarantee.
+
+### Recommended direction
+
+- If the repo later adopts more structured logging, keep `request_id` as the first-class correlation field.
+- When adding logs around new modules or external integrations, preserve the same minimum correlation set instead of inventing a different format.
+
+---
+
+## Code Anchors
+
+- Unhandled exception correlation: [`backend/app/core/exceptions.py`](../../../backend/app/core/exceptions.py)
+- Operational helper logging: [`backend/app/utils.py`](../../../backend/app/utils.py)
+- Startup logging: [`backend/app/backend_pre_start.py`](../../../backend/app/backend_pre_start.py), [`backend/app/initial_data.py`](../../../backend/app/initial_data.py)

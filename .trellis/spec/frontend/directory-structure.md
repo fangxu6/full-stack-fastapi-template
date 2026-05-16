@@ -1,70 +1,84 @@
 # Directory Structure
 
-> How frontend code is organized in this project.
+> Frontend file-placement rules for this repository.
 
 ---
 
 ## Overview
 
-Frontend code lives under `frontend/src` and is split by role: app shell, routes, feature modules, platform-specific areas, shared utilities, and reusable UI primitives.
+The frontend structure is no longer a loose collection of routes and components. It has an intended layered boundary model, and future changes should preserve it aggressively.
 
 ---
 
-## Directory Layout
+## Current Reality
 
 ```text
 frontend/src/
 ├── app/
-│   ├── layout/
-│   ├── navigation/
-│   └── router/
 ├── client/
 ├── components/
-│   ├── theme-provider.tsx
-│   └── ui/
 ├── features/
-│   └── items/
 ├── hooks/
+├── lib/
 ├── platform/
-│   ├── auth/
-│   ├── docs/
-│   └── system/
 ├── routes/
-├── shared/
-│   ├── components/
-│   ├── hooks/
-│   ├── permissions/
-│   └── utils/
-├── index.css
-└── main.tsx
+└── shared/
 ```
 
----
-
-## Module Organization
-
-- File-based routes live in `src/routes/**` and should mostly wire route metadata, route guards, and page entrypoints.
-- App shell, layout chrome, and navigation live under `src/app/**`.
-- User-facing feature code should prefer `src/features/**` when it belongs to a business area such as items.
-- Cross-cutting product areas that feel more like application subsystems can live under `src/platform/**`, for example auth, docs, and system pages.
-- Shared reusable view helpers, feedback states, tables, and permission helpers belong under `src/shared/**`.
-- Generated API client code lives in `src/client/**` and should only change through regeneration.
-
----
-
-## Naming Conventions
-
-- Use PascalCase for React component files such as `AppLayout.tsx`, `ItemsPage.tsx`, and `AddItemDialog.tsx`.
-- Use lowercase route filenames that match route intent, such as `login.tsx`, `_layout.tsx`, and `_layout/items.tsx`.
-- Hook files use `use*` naming, for example `useAuth.ts` and `useCustomToast.ts`.
-- Prefer descriptive folder names by role or feature instead of generic buckets like `misc`.
+- `routes/*` already acts mostly as route entry wiring:
+  - [`frontend/src/routes/login.tsx`](../../../frontend/src/routes/login.tsx)
+  - [`frontend/src/routes/_layout/items.tsx`](../../../frontend/src/routes/_layout/items.tsx)
+- `app/*` owns shell and navigation concerns:
+  - [`frontend/src/app/layout/AppLayout.tsx`](../../../frontend/src/app/layout/AppLayout.tsx)
+  - [`frontend/src/app/navigation/AppSidebar.tsx`](../../../frontend/src/app/navigation/AppSidebar.tsx)
+  - [`frontend/src/app/router/guards.ts`](../../../frontend/src/app/router/guards.ts)
+- `platform/*` owns cross-business application areas such as auth and system:
+  - [`frontend/src/platform/auth/pages/LoginPage.tsx`](../../../frontend/src/platform/auth/pages/LoginPage.tsx)
+  - [`frontend/src/platform/system/pages/AdminUsersPage.tsx`](../../../frontend/src/platform/system/pages/AdminUsersPage.tsx)
+- `features/*` owns business feature slices:
+  - [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx)
+- `shared/*` owns reusable feedback, table, layout, theme, and permission helpers:
+  - [`frontend/src/shared/components/feedback/ErrorState.tsx`](../../../frontend/src/shared/components/feedback/ErrorState.tsx)
+  - [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)
 
 ---
 
-## Examples
+## Layer Ownership Rules
 
-- Root app bootstrap: [`frontend/src/main.tsx`](../../../frontend/src/main.tsx)
-- Layout shell: [`frontend/src/app/layout/AppLayout.tsx`](../../../frontend/src/app/layout/AppLayout.tsx)
-- Route entrypoint: [`frontend/src/routes/_layout/items.tsx`](../../../frontend/src/routes/_layout/items.tsx)
-- Feature page: [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx)
-- Shared permission helper: [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)
+- `routes/*`: route declarations, `beforeLoad`, metadata, and page entry imports only.
+- `app/*`: global shell, app layout, menu config, router guards, and other application-frame concerns.
+- `platform/*`: reusable platform subsystems such as auth, docs, or system administration.
+- `features/*`: feature-specific business domains.
+- `shared/*`: only code that is truly reusable across domains without carrying business-page assumptions.
+
+---
+
+## Strong Constraints
+
+- Do not build full pages directly inside `routes/*.tsx`.
+- Do not use `shared/*` as the default destination for code that only one platform domain or feature needs.
+- Keep navigation logic centralized in `app/navigation/*`.
+- Keep route protection centralized in `app/router/guards.ts`.
+- Keep permission-entry helpers centralized in `shared/permissions/*`.
+
+---
+
+## Current Reality vs Recommended Direction
+
+### Current reality
+
+- The repo already follows thin-route placement in multiple places.
+- Auth and admin behavior already show the intended boundary split.
+
+### Recommended direction
+
+- Treat `app/platform/features/shared` as a hard architecture rail for new code.
+- Continue moving any lingering page logic out of routes if new touchpoints expose thicker route files.
+
+---
+
+## Code Anchors
+
+- Thin routes: [`frontend/src/routes/login.tsx`](../../../frontend/src/routes/login.tsx), [`frontend/src/routes/_layout/items.tsx`](../../../frontend/src/routes/_layout/items.tsx)
+- App shell and guards: [`frontend/src/app/layout/AppLayout.tsx`](../../../frontend/src/app/layout/AppLayout.tsx), [`frontend/src/app/router/guards.ts`](../../../frontend/src/app/router/guards.ts)
+- Platform and feature pages: [`frontend/src/platform/auth/pages/LoginPage.tsx`](../../../frontend/src/platform/auth/pages/LoginPage.tsx), [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx)

@@ -1,12 +1,22 @@
 # Quality Guidelines
 
-> Code quality standards for frontend development.
+> Frontend review and regression guardrails for this repository.
 
 ---
 
 ## Overview
 
-Frontend work in this repo must preserve the existing React + Vite + TanStack structure, avoid churn in generated files, and keep changes focused on the intended user-facing behavior.
+Frontend quality in this repo is mostly about preserving structural boundaries and generated-contract discipline while protecting core user states such as route access, empty states, and error handling.
+
+---
+
+## Required Patterns
+
+- Keep route files thin.
+- Keep shell, navigation, and guards in `app/*`.
+- Keep domain pages in `platform/*` or `features/*`.
+- Keep genuinely shared UI and helpers in `shared/*`.
+- Use `@/` aliases and generated client types consistently.
 
 ---
 
@@ -16,34 +26,52 @@ Frontend work in this repo must preserve the existing React + Vite + TanStack st
   - `frontend/src/client/**`
   - `frontend/src/routeTree.gen.ts`
   - `frontend/src/components/ui/**`
-- Do not mass-format unrelated frontend files.
-- Do not introduce relative import sprawl when the app already supports `@/` aliases.
-- Do not change `.env` or secrets as part of normal task work.
+- Do not push page implementations back into `routes/*`.
+- Do not use `shared/*` as a first-stop bucket for domain-specific code.
+- Do not mass-format unrelated files while touching frontend code.
 
 ---
 
-## Required Patterns
+## Cross-Layer Review Rules
 
-- Use `type` imports where appropriate.
-- Respect Biome formatting and lint rules, including double quotes and semicolons-as-needed behavior.
-- Keep frontend changes aligned with existing app folders under `frontend/src/**`.
-- Use project-local React guidance first; pull in `vercel-react-best-practices` when the task benefits from it.
-
----
-
-## Testing Requirements
-
-- Use `bun run lint` as the default frontend quality gate.
-- Use `bun run build` when the change affects routing, type flow, or bundle-time correctness.
-- Use Playwright when the task changes critical user flows or explicitly requires UI verification.
-- If backend schema changes affect generated client usage, regenerate the client before validation.
+- If backend schema changed, regenerate the frontend client.
+- If route or permission behavior changed, verify route guards, navigation visibility, and redirect behavior together.
+- If a page changed, check for regressions in:
+  - empty state
+  - error state
+  - permission state
+  - loading state
 
 ---
 
-## Code Review Checklist
+## Current Reality vs Recommended Direction
 
-- Is the change limited to the intended frontend area?
-- Were generated files left untouched unless regeneration was explicitly required?
-- Are imports, types, and aliases consistent with repo conventions?
-- Was the appropriate level of lint/build/test verification run?
-- If backend schema changed, was client regeneration handled?
+### Current reality
+
+- The repo already has thin routes and split page placement:
+  - [`frontend/src/routes/login.tsx`](../../../frontend/src/routes/login.tsx)
+  - [`frontend/src/platform/auth/pages/LoginPage.tsx`](../../../frontend/src/platform/auth/pages/LoginPage.tsx)
+  - [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx)
+- Guard and permission entrypoints are centralized:
+  - [`frontend/src/app/router/guards.ts`](../../../frontend/src/app/router/guards.ts)
+  - [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)
+
+### Recommended direction
+
+- Use review pressure to stop future regressions back into route-heavy pages or overstuffed shared folders.
+- Treat generated-client discipline and frontend boundary placement as part of the same quality gate.
+
+---
+
+## Minimum Validation Expectations
+
+- Use `bun run lint` as the default frontend gate.
+- Use `bun run build` when routing, imports, types, or bundle-time correctness may be affected.
+- Use Playwright or equivalent UI verification when critical flows change.
+
+---
+
+## Code Anchors
+
+- Thin routes and page placement: [`frontend/src/routes/login.tsx`](../../../frontend/src/routes/login.tsx), [`frontend/src/routes/_layout/items.tsx`](../../../frontend/src/routes/_layout/items.tsx), [`frontend/src/platform/auth/pages/LoginPage.tsx`](../../../frontend/src/platform/auth/pages/LoginPage.tsx)
+- Guard and permission flow: [`frontend/src/app/router/guards.ts`](../../../frontend/src/app/router/guards.ts), [`frontend/src/app/navigation/menu-config.ts`](../../../frontend/src/app/navigation/menu-config.ts), [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)

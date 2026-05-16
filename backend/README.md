@@ -16,7 +16,8 @@ By default, the dependencies are managed with [uv](https://docs.astral.sh/uv/), 
 From `./backend/` you can install all the dependencies with:
 
 ```console
-$ uv sync
+
+$ uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 Then you can activate the virtual environment with:

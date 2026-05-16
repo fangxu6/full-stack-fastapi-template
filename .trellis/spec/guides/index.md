@@ -1,19 +1,19 @@
 # Thinking Guides
 
-> **Purpose**: Expand your thinking to catch things you might not have considered.
+> Expand your thinking enough to preserve repo-specific contracts before you write code.
 
 ---
 
 ## Why Thinking Guides?
 
-**Most bugs and tech debt come from "didn't think of that"**, not from lack of skill:
+Most avoidable bugs in this repo come from missing boundary or contract thinking:
 
-- Didn't think about what happens at layer boundaries → cross-layer bugs
-- Didn't think about code patterns repeating → duplicated code everywhere
-- Didn't think about edge cases → runtime errors
-- Didn't think about future maintainers → unreadable code
+- forgetting cross-layer effects after backend contract changes
+- bypassing the unified error contract
+- drifting frontend pages back into thick route files
+- moving code into `shared/*` before it is actually shared
 
-These guides help you **ask the right questions before coding**.
+These guides are the "what should I think about?" entry point. The detailed "how do I implement it?" rules still live in `backend/*` and `frontend/*`.
 
 ---
 
@@ -26,9 +26,20 @@ These guides help you **ask the right questions before coding**.
 
 ---
 
+## Cross-Layer Entry Rules
+
+- Unified backend errors must keep returning `detail` and `request_id`.
+- The backend must keep logging enough failure context to correlate with that `request_id`.
+- Backend request/response contract changes require frontend client regeneration via `bash ./scripts/generate-client.sh`.
+- Private-knowledge docs under `docs/私域知识/` and `docs/私域知识工程体系产出/` are supporting context, not replacements for `.trellis/spec/`.
+
+If a private doc and current code disagree, record current code as `Current reality` and use the private doc as `Recommended direction` only when the target state is not yet implemented.
+
+---
+
 ## Project Navigation
 
-Use this directory as the shared entry point for project-local navigation that used to live in the root `AGENTS.md`.
+Use this directory as the shared navigation entry point that used to live in the root `AGENTS.md`.
 
 ### Lazy Context Loading
 
@@ -37,9 +48,9 @@ Read only what you need, when you need it.
 - First pass: `README.md` and `development.md`.
 - If backend work: `backend/README.md`, `backend/pyproject.toml`, `backend/scripts/*`.
 - If frontend work: `frontend/README.md`, `frontend/package.json`, `frontend/biome.json`.
-- If specs exist: load `docs/specs/<feature>/01_requirement.md` before coding.
-- For decisions and guardrails: check `docs/decisions/AI_CHANGELOG.md` and `docs/skills/SKILL.md` if present.
-- For architecture-level, long-lived, or cross-cutting decisions, also check `docs/decisions/ADR-*.md` if present.
+- If task-specific specs exist: load `docs/specs/<feature>/01_requirement.md` before coding.
+- For long-lived project rules: check `.trellis/spec/**` first, then supporting private docs if needed.
+- For architecture and platform rationale: check `docs/私域知识/01_架构概览.md` and `docs/私域知识工程体系产出/系统架构分析.md`.
 
 ### Docs Index
 
@@ -47,26 +58,20 @@ Read only what you need, when you need it.
 - Interfaces: `docs/specs/feature-template/02_interface.md`
 - Implementation: `docs/specs/feature-template/03_implementation.md`
 - Test spec: `docs/specs/feature-template/04_test_spec.md`
-- Decisions log: `docs/decisions/AI_CHANGELOG.md`
-- ADR template: `docs/decisions/ADR-xxxx.md`
-- Team rules: `docs/skills/SKILL.md`
+- Private architecture notes: `docs/私域知识/01_架构概览.md`
+- Private development rules: `docs/私域知识/05_开发规范.md`
+- Private exception rules: `docs/私域知识/07_异常与模块扩展规范.md`
+- Synthesized architecture notes: `docs/私域知识工程体系产出/系统架构分析.md`
 
 ### Doc-Driven Workflow
 
 Use small, reliable docs as context anchors.
 
 1. Clarify intent and acceptance criteria.
-2. If the task is non-trivial, write or update a minimal spec in `docs/specs/<feature>/`.
-3. Implement to spec, then keep spec in sync with code.
-4. If requirements change, update spec first, then adjust code.
-5. For significant changes, record decisions in `docs/decisions/AI_CHANGELOG.md`.
-
-The standard spec file set is:
-
-- `01_requirement.md` for intent, scope, and acceptance criteria
-- `02_interface.md` for API or contract details
-- `03_implementation.md` for files and steps
-- `04_test_spec.md` for tests to add or adjust
+2. Read the relevant Trellis spec files before editing.
+3. If private knowledge is needed, use it to sharpen rules, not to bypass current code reality.
+4. Implement to the current spec, then update spec when you learn something durable.
+5. If requirements change, update planning docs first, then adjust code and spec.
 
 ---
 
@@ -74,50 +79,36 @@ The standard spec file set is:
 
 ### When to Think About Cross-Layer Issues
 
-- [ ] Feature touches 3+ layers (API, Service, Component, Database)
-- [ ] Data format changes between layers
-- [ ] Multiple consumers need the same data
-- [ ] You're not sure where to put some logic
+- [ ] Backend request/response shape changed
+- [ ] Error handling behavior changed
+- [ ] Auth, permissions, or route access changed
+- [ ] Generated frontend client may now be stale
 
 → Read [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md)
 
 ### When to Think About Code Reuse
 
-- [ ] You're writing similar code to something that exists
-- [ ] You see the same pattern repeated 3+ times
-- [ ] You're adding a new field to multiple places
-- [ ] **You're modifying any constant or config**
-- [ ] **You're creating a new utility/helper function** ← Search first!
+- [ ] You see the same component or helper pattern repeating
+- [ ] You're about to move code into `shared/*`
+- [ ] You're adding one more helper to a large common file
+- [ ] You're creating a new utility/helper function
 
 → Read [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md)
 
 ---
 
-## Pre-Modification Rule (CRITICAL)
+## Pre-Modification Rule
 
-> **Before changing ANY value, ALWAYS search first!**
+Before changing a value, contract, or placement rule, search for the current usage first.
+
+Prefer `rg` in this repo, for example:
 
 ```bash
-# Search for the value you're about to change
-grep -r "value_to_change" .
+rg "request_id" backend/app frontend/src .trellis/spec
 ```
 
-This single habit prevents most "forgot to update X" bugs.
-
 ---
 
-## How to Use This Directory
+## Core Principle
 
-1. **Before coding**: Skim the relevant thinking guide
-2. **During coding**: If something feels repetitive or complex, check the guides
-3. **After bugs**: Add new insights to the relevant guide (learn from mistakes)
-
----
-
-## Contributing
-
-Found a new "didn't think of that" moment? Add it to the relevant guide.
-
----
-
-**Core Principle**: 30 minutes of thinking saves 3 hours of debugging.
+Preserve executable repo memory in `.trellis/spec/`, and use private docs to sharpen that memory instead of replacing it.
