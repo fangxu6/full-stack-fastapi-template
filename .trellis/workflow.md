@@ -588,6 +588,13 @@ Load the `trellis-update-spec` skill and review whether this task produced new k
 
 Update the docs under `.trellis/spec/` accordingly. Even if the conclusion is "nothing to update", walk through the judgment.
 
+Also review whether the task produced durable cross-task knowledge that belongs in `docs/llm-wiki/`:
+- Architecture, workflow, domain, troubleshooting, or evaluation lessons that future agents should discover through `docs/llm-wiki/index.md`
+- Stable conclusions from `.trellis/tasks/**`, research notes, reviews, or repeated debugging
+- New or changed relationships between Trellis, project specs, backend/frontend architecture, and project skills
+
+If YES, use `kb-ingest` rules to update the relevant wiki page(s), `docs/llm-wiki/index.md`, and `docs/llm-wiki/log.md`. If NO, state that no LLM-Wiki update is needed and why.
+
 #### 3.4 Commit changes `[required · once]`
 
 The AI drives a batched commit of this task's code changes so `/finish-work` can run cleanly afterwards. Goal: produce work commits FIRST, then bookkeeping (archive + journal) commits land after — never interleaved.
