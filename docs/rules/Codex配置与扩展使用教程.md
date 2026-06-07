@@ -2,6 +2,8 @@
 
 本教程面向项目维护者和开发者，说明如何在当前仓库理解和使用 Codex 的配置、Hooks、Subagents 和 Rules。
 
+如果你想先了解 Codex 在 App、CLI、IDE、Worktree、Automation、Review、MCP、Skills 等日常开发场景中的用法，先读总览篇：[Codex使用教程.md](./Codex使用教程.md)。
+
 如果你只是想让 Codex 临时按某个要求做事，直接在当前对话里说清楚即可。只有当规则需要长期保留、自动执行、约束命令，或复用到多个任务时，才需要改配置或新增扩展。
 
 ## 1. 先判断该用哪个位置
@@ -279,6 +281,7 @@ Rules 解决“这个命令能不能在沙箱外运行”的问题。Hooks 解�
 
 ## 10. 参考资料
 
+- 人读总览教程：`docs/rules/Codex使用教程.md`
 - AI 可检索摘要：`docs/llm-wiki/sources/codex-official-configuration.md`
 - Codex 实体页：`docs/llm-wiki/entities/codex.md`
 - Trellis/Codex hooks 决策：`docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode.md`

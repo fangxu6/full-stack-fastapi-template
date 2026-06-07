@@ -1,7 +1,7 @@
 ---
 title: LLM-Wiki Index
 created: 2026-06-04
-updated: 2026-06-04
+updated: 2026-06-07
 type: index
 tags:
   - llm-wiki
@@ -25,11 +25,13 @@ This is the entrypoint for repository-aware AI work. Read this file before answe
 - [[docs/llm-wiki/sources/frontend-architecture|Frontend architecture source]]: React frontend layering, route boundaries, navigation, and shared component strategy.
 - [[docs/llm-wiki/sources/trellis-workflow|Trellis workflow source]]: Task lifecycle, planning artifacts, implementation/check phases, and finish workflow.
 - [[docs/llm-wiki/sources/private-knowledge-architecture|Private knowledge architecture source]]: Chinese internal architecture analysis and existing knowledge-maintenance rules.
+- [[docs/llm-wiki/sources/codex-official-configuration|Codex official configuration source]]: Local OpenAI Codex documentation summary for config, hooks, subagents, and command rules.
 
 ## Entities
 
 - [[docs/llm-wiki/entities/full-stack-fastapi-template|full-stack-fastapi-template]]: Repository entity and current system boundary summary.
 - [[docs/llm-wiki/entities/trellis|Trellis]]: Task workflow and spec-memory system used by this repository.
+- [[docs/llm-wiki/entities/codex|Codex]]: Coding-agent runtime and project customization surfaces for config, hooks, subagents, rules, skills, and plugins.
 - [[docs/llm-wiki/entities/fastapi-backend|FastAPI backend]]: Backend application boundary and platform baseline.
 - [[docs/llm-wiki/entities/react-frontend|React frontend]]: Frontend application boundary and platform/feature/shared layering.
 
@@ -44,7 +46,7 @@ This is the entrypoint for repository-aware AI work. Read this file before answe
 
 ## Queries
 
-- No durable query pages yet.
+- [[docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode|Trellis Codex hooks and dispatch mode]]: Codex hook mapping, `SubagentStart`/`SubagentStop` responsibilities, and Trellis `codex.dispatch_mode` defaults.
 
 ## Evaluation
 

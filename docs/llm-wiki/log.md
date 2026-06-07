@@ -1,7 +1,7 @@
 ---
 title: LLM-Wiki Log
 created: 2026-06-04
-updated: 2026-06-04
+updated: 2026-06-07
 type: log
 tags:
   - llm-wiki
@@ -29,3 +29,14 @@ Append new records at the end. Do not rewrite historical entries except for obvi
 
 - Added [[docs/llm-wiki/usage-guide|usage guide]] to explain the new LLM-Wiki directories, seeded pages, project skills, common workflows, and maintenance rules.
 - Updated [[docs/llm-wiki/index|index]] so users can discover the guide from the wiki entrypoint.
+
+## [2026-06-07] ingest | Trellis Codex hooks and dispatch mode
+
+- Added [[docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode|Trellis Codex hooks and dispatch mode]] as a durable query page for Codex hook mapping, subagent lifecycle boundaries, and Trellis `codex.dispatch_mode` defaults.
+- Updated [[docs/llm-wiki/index|index]] and [[docs/llm-wiki/entities/trellis|Trellis]] so future wiki-aware work can discover the Codex/Trellis integration decision.
+
+## [2026-06-07] ingest | Codex official configuration docs
+
+- Ingested local Codex documentation clippings under `docs/llm-wiki/sources/codex/` into [[docs/llm-wiki/sources/codex-official-configuration|Codex official configuration source]].
+- Added [[docs/llm-wiki/entities/codex|Codex]] as the durable entity page for repository-relevant Codex surfaces: config, hooks, subagents, rules, skills, and plugins.
+- Updated [[docs/llm-wiki/index|index]] and [[docs/llm-wiki/entities/trellis|Trellis]] so future wiki-aware work can discover Codex integration guidance.
