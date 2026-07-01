@@ -22,6 +22,7 @@ The main frontend risk in this repo is false sharing: pushing page-specific or b
 - Truly reusable UI already exists under grouped shared folders:
   - [`frontend/src/shared/components/feedback/ErrorState.tsx`](../../../frontend/src/shared/components/feedback/ErrorState.tsx)
   - [`frontend/src/shared/components/table/index.ts`](../../../frontend/src/shared/components/table/index.ts)
+- UI primitives live under `frontend/src/components/ui/**` and are treated as vendor-style generated primitives for normal feature work.
 
 ---
 
@@ -54,6 +55,8 @@ If the answer is no, keep it in the domain.
 - Do not recreate a flat `Common` dumping ground.
 - Do not move page orchestration components into shared just to shorten imports.
 - Do not edit generated UI primitives under `frontend/src/components/ui/**` directly when composition or wrapping is enough.
+- Do not make a page-private component shared because it may be reused someday;
+  wait until another page or domain actually needs it.
 
 ---
 
@@ -62,3 +65,4 @@ If the answer is no, keep it in the domain.
 - Domain-local components: [`frontend/src/features/items/components/AddItemDialog.tsx`](../../../frontend/src/features/items/components/AddItemDialog.tsx), [`frontend/src/platform/system/components/users/UserActionsMenu.tsx`](../../../frontend/src/platform/system/components/users/UserActionsMenu.tsx)
 - Shared grouped UI: [`frontend/src/shared/components/feedback/ErrorState.tsx`](../../../frontend/src/shared/components/feedback/ErrorState.tsx), [`frontend/src/shared/components/layout/Footer.tsx`](../../../frontend/src/shared/components/layout/Footer.tsx)
 - Page composition examples: [`frontend/src/platform/auth/pages/LoginPage.tsx`](../../../frontend/src/platform/auth/pages/LoginPage.tsx), [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx)
+- Vendor-style UI primitives: [`frontend/src/components/ui/button.tsx`](../../../frontend/src/components/ui/button.tsx)

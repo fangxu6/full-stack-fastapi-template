@@ -62,6 +62,7 @@ The backend uses SQLModel + SQLAlchemy on PostgreSQL. Model and schema conventio
 - Prefer `sqlmodel_update(...)` or `model_dump(exclude_unset=True)` update flows rather than ad hoc patching:
   - [`backend/app/services/user.py`](../../../backend/app/services/user.py)
   - [`backend/app/crud/user.py`](../../../backend/app/crud/user.py)
+- Keep ownership and permission filtering in service orchestration. CRUD helpers should stay database-focused and not become hidden authorization layers.
 
 ---
 
@@ -70,8 +71,9 @@ The backend uses SQLModel + SQLAlchemy on PostgreSQL. Model and schema conventio
 - Keep SQLModel definitions and Alembic revisions in the same logical change.
 - Generate schema changes through Alembic and commit the revision file.
 - Treat migration history as part of the contract:
-  - [`backend/app/alembic/versions/d98dd8ec85a3_edit_replace_id_integers_in_all_models_to_use_uuid.py`](../../../backend/app/alembic/versions/d98dd8ec85a3_edit_replace_id_integers_in_all_models_to_use_uuid.py)
+  - [`backend/app/alembic/versions/d98dd8ec85a3_edit_replace_id_integers_in_all_models_.py`](../../../backend/app/alembic/versions/d98dd8ec85a3_edit_replace_id_integers_in_all_models_.py)
   - [`backend/app/alembic/versions/fe56fa70289e_add_created_at_to_user_and_item.py`](../../../backend/app/alembic/versions/fe56fa70289e_add_created_at_to_user_and_item.py)
+- Review generated frontend impact whenever public schemas or endpoint payloads change.
 
 ---
 
@@ -87,6 +89,7 @@ The backend uses SQLModel + SQLAlchemy on PostgreSQL. Model and schema conventio
 
 - If schema or API payloads change, regenerate the frontend client with `bash ./scripts/generate-client.sh`.
 - Changes to payload shape should be reviewed together with the frontend forms, query consumers, and page states that use the generated client types.
+- Never hand-edit `frontend/src/client/types.gen.ts` as the fix for a backend schema change.
 
 ---
 
@@ -95,3 +98,4 @@ The backend uses SQLModel + SQLAlchemy on PostgreSQL. Model and schema conventio
 - Entity models: [`backend/app/models/user.py`](../../../backend/app/models/user.py), [`backend/app/models/item.py`](../../../backend/app/models/item.py)
 - API schemas: [`backend/app/schemas/user.py`](../../../backend/app/schemas/user.py), [`backend/app/schemas/item.py`](../../../backend/app/schemas/item.py)
 - Service transformations: [`backend/app/services/user.py`](../../../backend/app/services/user.py), [`backend/app/services/item.py`](../../../backend/app/services/item.py)
+- Client regeneration script: [`scripts/generate-client.sh`](../../../scripts/generate-client.sh)

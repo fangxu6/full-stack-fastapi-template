@@ -68,6 +68,8 @@ Future work should preserve that direction instead of drifting back toward route
 - Run tests from `backend/`: `uv run pytest tests/`
 - Lint: `bash backend/scripts/lint.sh`
 - Format: `bash backend/scripts/format.sh`
+- Type checks are configured in [`backend/pyproject.toml`](../../../backend/pyproject.toml):
+  mypy is strict, Ruff targets Python 3.10, and `ty` treats warnings as errors.
 - Full-stack test flow from repo root: `bash ./scripts/test.sh`
 - Running stack tests from repo root: `docker compose exec backend bash scripts/tests-start.sh`
 
@@ -79,6 +81,7 @@ Assume backend verification uses `http://127.0.0.1:8000` unless the task says ot
 
 - If backend request/response contracts change, regenerate the frontend client with `bash ./scripts/generate-client.sh`.
 - Error responses must continue to expose both `detail` and `request_id`, because frontend troubleshooting depends on that contract.
+- Do not manually patch `frontend/src/client/**` to compensate for backend schema changes; regenerate it from OpenAPI.
 
 ---
 
@@ -87,3 +90,5 @@ Assume backend verification uses `http://127.0.0.1:8000` unless the task says ot
 - App setup and exception registration: [`backend/app/main.py`](../../../backend/app/main.py)
 - Unified exception and request-id flow: [`backend/app/core/exceptions.py`](../../../backend/app/core/exceptions.py)
 - Service-layer domain behavior: [`backend/app/services/user.py`](../../../backend/app/services/user.py), [`backend/app/services/item.py`](../../../backend/app/services/item.py)
+- Backend tooling: [`backend/pyproject.toml`](../../../backend/pyproject.toml)
+- Client regeneration: [`scripts/generate-client.sh`](../../../scripts/generate-client.sh)

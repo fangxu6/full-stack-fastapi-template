@@ -23,6 +23,7 @@ Unified error handling is already a real platform baseline in this repo. It is n
 - All of those paths return a JSON body containing:
   - `detail`
   - `request_id`
+- The response header also carries `X-Request-ID`.
 
 ---
 
@@ -59,6 +60,7 @@ This applies to:
 - Raise service-layer domain exceptions and let them bubble to the global handlers:
   - [`backend/app/services/user.py`](../../../backend/app/services/user.py)
   - [`backend/app/services/item.py`](../../../backend/app/services/item.py)
+- Keep route handlers focused on delegating to services; do not catch domain exceptions in each route just to rebuild the same response payload.
 - Do not normalize errors ad hoc in every route.
 
 ---
@@ -96,6 +98,7 @@ This applies to:
 - Do not return temporary route-local error payloads with a different shape.
 - Do not lose `request_id` on `401/404/422/500`.
 - Do not convert 500 responses into opaque generic errors without traceback logging.
+- Do not add frontend-only assumptions that require a different error body shape from the backend baseline.
 
 ---
 
@@ -104,3 +107,4 @@ This applies to:
 - Global registration: [`backend/app/main.py`](../../../backend/app/main.py)
 - Exception hierarchy and handlers: [`backend/app/core/exceptions.py`](../../../backend/app/core/exceptions.py)
 - Service usage: [`backend/app/services/user.py`](../../../backend/app/services/user.py), [`backend/app/services/item.py`](../../../backend/app/services/item.py)
+- Frontend request/error consumer context: [`frontend/src/main.tsx`](../../../frontend/src/main.tsx), [`frontend/src/utils.ts`](../../../frontend/src/utils.ts)

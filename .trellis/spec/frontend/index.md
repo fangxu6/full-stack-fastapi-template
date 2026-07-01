@@ -74,6 +74,15 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
 - Build from `frontend/`: `bun run build`
 - Lint from `frontend/`: `bun run lint`
 - Playwright from `frontend/`: `bunx playwright test`
+- Client generation from repo root after backend contract changes: `bash ./scripts/generate-client.sh`
+- Current configured stack includes React 19, Vite 7, TanStack Router 1.166,
+  React Query 5, Tailwind 4, Biome 2, Playwright, and `@hey-api/openapi-ts`
+  in [`frontend/package.json`](../../../frontend/package.json).
+- Vite owns the `@/` alias, TanStack Router plugin, React SWC plugin, and
+  Tailwind plugin in [`frontend/vite.config.ts`](../../../frontend/vite.config.ts).
+- Biome excludes generated/vendor-style paths such as `src/client/**`,
+  `src/routeTree.gen.ts`, and `src/components/ui/**` in
+  [`frontend/biome.json`](../../../frontend/biome.json).
 
 Assume local frontend verification uses `http://127.0.0.1:5173` unless the task says otherwise.
 
@@ -83,6 +92,7 @@ Assume local frontend verification uses `http://127.0.0.1:5173` unless the task 
 
 - When backend API schemas change, regenerate the frontend client with `bash ./scripts/generate-client.sh`.
 - Frontend changes that affect routes, permissions, or error surfaces should preserve the current app-shell and guard structure.
+- Do not manually patch generated client files to match backend changes.
 
 ## Trigger Reminder
 
@@ -102,3 +112,4 @@ Read [Route Permission Navigation Contract](./route-permission-navigation-contra
 - Thin route examples: [`frontend/src/routes/login.tsx`](../../../frontend/src/routes/login.tsx), [`frontend/src/routes/_layout/items.tsx`](../../../frontend/src/routes/_layout/items.tsx)
 - App-shell boundaries: [`frontend/src/app/layout/AppLayout.tsx`](../../../frontend/src/app/layout/AppLayout.tsx), [`frontend/src/app/router/guards.ts`](../../../frontend/src/app/router/guards.ts)
 - Page placement examples: [`frontend/src/platform/auth/pages/LoginPage.tsx`](../../../frontend/src/platform/auth/pages/LoginPage.tsx), [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx)
+- Tooling: [`frontend/package.json`](../../../frontend/package.json), [`frontend/biome.json`](../../../frontend/biome.json), [`frontend/vite.config.ts`](../../../frontend/vite.config.ts)

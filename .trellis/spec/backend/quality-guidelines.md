@@ -22,6 +22,7 @@ Backend quality in this repo is mostly about preserving architectural direction:
 - Keep new platform-wide behavior in `core/*`.
 - Keep model/schema changes paired with migration thinking and frontend client impact review.
 - Use explicit typing and current SQLModel update/validation patterns.
+- Follow backend tooling configured in [`backend/pyproject.toml`](../../../backend/pyproject.toml): strict mypy, Ruff, `ty`, and pytest.
 
 ---
 
@@ -39,6 +40,7 @@ Backend quality in this repo is mostly about preserving architectural direction:
 - If a backend change affects error behavior, verify at least one path that exercises the unified error shape.
 - If auth, permission, or validation behavior changes, verify the relevant `401`, `403`, or `422` contract path.
 - If request/response models change, review frontend generated-client impact before closing the task.
+- If OpenAPI output changes, run `bash ./scripts/generate-client.sh` or explicitly document why regeneration was not required.
 - If tests are skipped, say so explicitly in the handoff.
 
 ---
@@ -50,6 +52,7 @@ Backend quality in this repo is mostly about preserving architectural direction:
 - Model or schema changes without migration review
 - Backend contract changes that ignore frontend SDK regeneration needs
 - Unrelated mass formatting while touching backend files
+- Manual edits under `frontend/src/client/**` to work around backend typing issues
 
 ---
 
@@ -76,3 +79,4 @@ Backend quality in this repo is mostly about preserving architectural direction:
 - Service-first behavior: [`backend/app/services/user.py`](../../../backend/app/services/user.py), [`backend/app/services/item.py`](../../../backend/app/services/item.py)
 - Error baseline: [`backend/app/main.py`](../../../backend/app/main.py), [`backend/app/core/exceptions.py`](../../../backend/app/core/exceptions.py)
 - Model/schema contract examples: [`backend/app/models/user.py`](../../../backend/app/models/user.py), [`backend/app/schemas/user.py`](../../../backend/app/schemas/user.py)
+- Backend and cross-layer tooling: [`backend/pyproject.toml`](../../../backend/pyproject.toml), [`scripts/generate-client.sh`](../../../scripts/generate-client.sh)

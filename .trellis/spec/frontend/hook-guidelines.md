@@ -20,6 +20,10 @@ Hooks in this repo should stay focused. The most important current hook is `useA
   - [`frontend/src/app/router/guards.ts`](../../../frontend/src/app/router/guards.ts)
 - Page-specific query helpers often stay inside the page file:
   - [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx)
+- Mutation flows use React Query and invalidate affected query keys after
+  successful or settled writes:
+  - [`frontend/src/platform/system/components/users/EditUserMenuItem.tsx`](../../../frontend/src/platform/system/components/users/EditUserMenuItem.tsx)
+  - [`frontend/src/platform/system/components/users/DeleteUserMenuItem.tsx`](../../../frontend/src/platform/system/components/users/DeleteUserMenuItem.tsx)
 
 ---
 
@@ -31,6 +35,8 @@ Hooks in this repo should stay focused. The most important current hook is `useA
 - Keep auth-routing logic split cleanly:
   - token presence and user query behavior in `useAuth`
   - route redirects and route-entry protection in `app/router/guards.ts`
+- Keep mutation invalidation close to the mutation unless a repeated server-state
+  pattern justifies extracting a hook.
 
 ---
 
@@ -47,6 +53,7 @@ Hooks in this repo should stay focused. The most important current hook is `useA
 - Duplicating token or current-user logic outside `useAuth` without a good boundary reason.
 - Moving thin route-guard responsibilities into route components or page components.
 - Extracting page-local query logic into hooks too early, which can hide ownership instead of clarifying it.
+- Forgetting to invalidate the query keys that feed list or current-user views after mutations.
 
 ---
 
@@ -55,3 +62,4 @@ Hooks in this repo should stay focused. The most important current hook is `useA
 - Auth hook: [`frontend/src/hooks/useAuth.ts`](../../../frontend/src/hooks/useAuth.ts)
 - Route guards: [`frontend/src/app/router/guards.ts`](../../../frontend/src/app/router/guards.ts)
 - Page-local query pattern: [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx)
+- Mutation invalidation examples: [`frontend/src/platform/system/components/users/EditUserMenuItem.tsx`](../../../frontend/src/platform/system/components/users/EditUserMenuItem.tsx), [`frontend/src/platform/system/components/users/DeleteUserMenuItem.tsx`](../../../frontend/src/platform/system/components/users/DeleteUserMenuItem.tsx)

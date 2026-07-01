@@ -12,6 +12,7 @@ This repo intentionally avoids a separate global store. The practical state mode
 - server state in React Query
 - route state in TanStack Router
 - auth token persistence in `localStorage`
+- generated OpenAPI services as the request boundary
 
 ---
 
@@ -23,6 +24,9 @@ This repo intentionally avoids a separate global store. The practical state mode
 - Query state powers current-user and page data fetching:
   - [`frontend/src/hooks/useAuth.ts`](../../../frontend/src/hooks/useAuth.ts)
   - [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx)
+- Mutations invalidate query state through React Query:
+  - [`frontend/src/platform/system/components/users/EditUserMenuItem.tsx`](../../../frontend/src/platform/system/components/users/EditUserMenuItem.tsx)
+  - [`frontend/src/platform/system/components/users/DeleteUserMenuItem.tsx`](../../../frontend/src/platform/system/components/users/DeleteUserMenuItem.tsx)
 - Navigation and access behavior derives from user state and permission helpers:
   - [`frontend/src/app/navigation/menu-config.ts`](../../../frontend/src/app/navigation/menu-config.ts)
   - [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)
@@ -35,6 +39,8 @@ This repo intentionally avoids a separate global store. The practical state mode
 - Use React Query for server data, mutation lifecycles, and invalidation.
 - Use router guards for access control and redirect behavior.
 - Keep auth token persistence in one clear place and treat it as part of the auth boundary, not a random utility concern.
+- Do not introduce global state for data already owned by React Query, router
+  state, focused hooks, or generated client calls.
 
 ---
 
@@ -51,6 +57,8 @@ This repo intentionally avoids a separate global store. The practical state mode
 - If auth behavior changes, verify token persistence, logout clearing, and redirect behavior.
 - If route-access behavior changes, verify both route guards and menu visibility.
 - If mutations change a list page, verify the relevant query invalidation path still exists.
+- If generated client services or response types change, verify server-state
+  consumers compile against regenerated types.
 
 ---
 
@@ -59,3 +67,4 @@ This repo intentionally avoids a separate global store. The practical state mode
 - Auth state and token persistence: [`frontend/src/hooks/useAuth.ts`](../../../frontend/src/hooks/useAuth.ts), [`frontend/src/main.tsx`](../../../frontend/src/main.tsx)
 - Navigation derived from user state: [`frontend/src/app/navigation/menu-config.ts`](../../../frontend/src/app/navigation/menu-config.ts)
 - Permission entrypoint: [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)
+- Server-state consumers: [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx), [`frontend/src/platform/system/components/users/EditUserMenuItem.tsx`](../../../frontend/src/platform/system/components/users/EditUserMenuItem.tsx)

@@ -29,6 +29,7 @@ backend/app/
 - `api/*` is the HTTP layer:
   - router assembly in [`backend/app/api/main.py`](../../../backend/app/api/main.py)
   - route handlers in [`backend/app/api/routes/users.py`](../../../backend/app/api/routes/users.py) and [`backend/app/api/routes/items.py`](../../../backend/app/api/routes/items.py)
+  - local-only private routes are included conditionally from [`backend/app/api/main.py`](../../../backend/app/api/main.py)
 - `services/*` currently carries most business behavior:
   - [`backend/app/services/user.py`](../../../backend/app/services/user.py)
   - [`backend/app/services/item.py`](../../../backend/app/services/item.py)
@@ -56,6 +57,7 @@ backend/app/
 - Put configuration, security, exception handling, logging, and similar cross-cutting behavior in `core/*`.
 - Put module-boundary entrypoints in `modules/*` when introducing a new business slice that should not remain an unbounded service-only addition.
 - Put infra abstractions in `infra/*` only when they represent reusable infrastructure concerns rather than business logic.
+- Keep startup/lifecycle scripts such as `backend_pre_start.py`, `tests_pre_start.py`, and `initial_data.py` small and operational; do not hide request-time business behavior there.
 
 ---
 
@@ -72,11 +74,13 @@ backend/app/
 - Do not move business orchestration into route handlers.
 - Do not bypass `core/*` for cross-cutting exception or request-tracing behavior.
 - Do not treat `modules/*` as a junk drawer for random files with no boundary story.
+- Do not duplicate service-layer rules in CRUD helpers just because multiple routes need the same check.
 
 ---
 
 ## Code Anchors
 
 - Router assembly: [`backend/app/api/main.py`](../../../backend/app/api/main.py)
-- Real service-first business flow: [`backend/app/services/user.py`](../../../backend/app/services/user.py), [`backend/app/services/item.py`](../../../backend/app/services/item.py)
+- Thin route examples: [`backend/app/api/routes/login.py`](../../../backend/app/api/routes/login.py), [`backend/app/api/routes/items.py`](../../../backend/app/api/routes/items.py), [`backend/app/api/routes/docs.py`](../../../backend/app/api/routes/docs.py)
+- Real service-first business flow: [`backend/app/services/user.py`](../../../backend/app/services/user.py), [`backend/app/services/item.py`](../../../backend/app/services/item.py), [`backend/app/services/docs.py`](../../../backend/app/services/docs.py)
 - Transitional module skeleton: [`backend/app/modules/api.py`](../../../backend/app/modules/api.py), [`backend/app/modules/system/__init__.py`](../../../backend/app/modules/system/__init__.py)

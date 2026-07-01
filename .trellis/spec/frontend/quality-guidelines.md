@@ -17,6 +17,8 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
 - Keep domain pages in `platform/*` or `features/*`.
 - Keep genuinely shared UI and helpers in `shared/*`.
 - Use `@/` aliases and generated client types consistently.
+- Respect Biome exclusions and generated/vendor-style boundaries from
+  [`frontend/biome.json`](../../../frontend/biome.json).
 
 ---
 
@@ -29,6 +31,7 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
 - Do not push page implementations back into `routes/*`.
 - Do not use `shared/*` as a first-stop bucket for domain-specific code.
 - Do not mass-format unrelated files while touching frontend code.
+- Do not hand-write API types that already exist in the generated client.
 
 ---
 
@@ -68,6 +71,8 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
 - Use `bun run lint` as the default frontend gate.
 - Use `bun run build` when routing, imports, types, or bundle-time correctness may be affected.
 - Use Playwright or equivalent UI verification when critical flows change.
+- Use `bash ./scripts/generate-client.sh` from repo root when backend contract
+  changes must flow into frontend types.
 
 ---
 
@@ -75,3 +80,4 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
 
 - Thin routes and page placement: [`frontend/src/routes/login.tsx`](../../../frontend/src/routes/login.tsx), [`frontend/src/routes/_layout/items.tsx`](../../../frontend/src/routes/_layout/items.tsx), [`frontend/src/platform/auth/pages/LoginPage.tsx`](../../../frontend/src/platform/auth/pages/LoginPage.tsx)
 - Guard and permission flow: [`frontend/src/app/router/guards.ts`](../../../frontend/src/app/router/guards.ts), [`frontend/src/app/navigation/menu-config.ts`](../../../frontend/src/app/navigation/menu-config.ts), [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)
+- Tooling and generated boundaries: [`frontend/package.json`](../../../frontend/package.json), [`frontend/biome.json`](../../../frontend/biome.json), [`scripts/generate-client.sh`](../../../scripts/generate-client.sh)

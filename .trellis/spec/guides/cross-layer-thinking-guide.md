@@ -1,17 +1,22 @@
 # Cross-Layer Thinking Guide
 
-> **Purpose**: Think through data flow across layers before implementing.
+> Purpose: think through FastAPI, SQLModel, generated-client, and React
+> boundaries before implementing.
 
 ---
 
 ## The Problem
 
-**Most bugs happen at layer boundaries**, not within layers.
+Most bugs in this repository happen at layer boundaries, not inside one file.
 
-Common cross-layer bugs:
-- API returns format A, frontend expects format B
-- Database stores X, service transforms to Y, but loses data
-- Multiple layers implement the same logic differently
+Common cross-layer bugs in this repo:
+
+- Backend schemas change but `frontend/src/client/**` is not regenerated.
+- Error responses lose `request_id`, so frontend reports cannot be matched to
+  backend logs.
+- Route access, menu visibility, and permission helpers drift apart.
+- SQLModel fields, public schemas, and frontend form/query consumers are changed
+  independently.
 
 ---
 
@@ -21,142 +26,116 @@ Common cross-layer bugs:
 
 Draw out how data moves:
 
-```
-Source → Transform → Store → Retrieve → Transform → Display
+```text
+Request -> API route -> service -> CRUD/model -> schema -> OpenAPI client -> React query/page
 ```
 
 For each arrow, ask:
+
 - What format is the data in?
 - What could go wrong?
 - Who is responsible for validation?
+- Does this boundary require generated-client updates or route/menu checks?
 
 ### Step 2: Identify Boundaries
 
-| Boundary | Common Issues |
-|----------|---------------|
-| API ↔ Service | Type mismatches, missing fields |
-| Service ↔ Database | Format conversions, null handling |
-| Backend ↔ Frontend | Serialization, date formats |
-| Component ↔ Component | Props shape changes |
+| Boundary | Current anchors | Common issues |
+| --- | --- | --- |
+| Route -> service | `backend/app/api/routes/items.py`, `backend/app/services/item.py` | business logic leaking into routes |
+| Service -> CRUD/model | `backend/app/services/user.py`, `backend/app/crud/user.py`, `backend/app/models/user.py` | ownership, null handling, or update semantics drifting |
+| Schema -> OpenAPI client | `backend/app/schemas/*`, `scripts/generate-client.sh`, `frontend/src/client/**` | stale generated types after backend contract changes |
+| Auth -> route/menu | `frontend/src/hooks/useAuth.ts`, `frontend/src/app/router/guards.ts`, `frontend/src/app/navigation/menu-config.ts` | menu shows a page the guard blocks, or hides a page the route allows |
+| Error -> UI/debugging | `backend/app/core/exceptions.py`, `frontend/src/main.tsx`, `frontend/src/utils.ts` | missing `request_id` or inconsistent error normalization |
 
 ### Step 3: Define Contracts
 
 For each boundary:
+
 - What is the exact input format?
 - What is the exact output format?
 - What errors can occur?
+- Which file owns the contract?
+- Which validation or regeneration command proves it still works?
+
+---
+
+## Repository Contracts
+
+### Backend To Frontend API Contracts
+
+- Backend response payloads are defined through SQLModel/Pydantic schemas under
+  `backend/app/schemas/**`.
+- The generated frontend client under `frontend/src/client/**` is the frontend
+  API type source.
+- When backend OpenAPI contracts change, run `bash ./scripts/generate-client.sh`
+  before treating the work as complete. That script exports OpenAPI from
+  `backend/app/main.py`, moves it to `frontend/openapi.json`, runs the frontend
+  generator, then runs `bun run lint`.
+
+### Error And Request Correlation
+
+- Backend error bodies must keep `detail` and `request_id`.
+- Backend responses must keep the `X-Request-ID` header.
+- Unexpected exceptions must still log traceback, path, and request id through
+  `backend/app/core/exceptions.py`.
+- Frontend error handling should assume that request id is meaningful debugging
+  context, not optional decoration.
+
+### Route, Permission, And Navigation
+
+- Protected route behavior belongs in `frontend/src/app/router/guards.ts`.
+- Permission truth belongs in `frontend/src/shared/permissions/index.ts`.
+- Menu visibility belongs in `frontend/src/app/navigation/menu-config.ts` and is
+  rendered through `AppSidebar`.
+- When one of these changes, verify the other two paths in the same review.
 
 ---
 
 ## Common Cross-Layer Mistakes
 
-### Mistake 1: Implicit Format Assumptions
+- Changing `backend/app/schemas/user.py` and then manually patching frontend
+  types instead of regenerating `frontend/src/client/**`.
+- Adding a route guard for an admin page but forgetting to update menu visibility
+  through the shared permission helper.
+- Returning a route-local error payload that does not include `request_id`.
+- Moving a backend rule into both a service and a frontend page, then letting the
+  two implementations diverge.
+- Treating generated files as normal hand-edited source.
 
-**Bad**: Assuming date format without checking
-
-**Good**: Explicit format conversion at boundaries
-
-### Mistake 2: Scattered Validation
-
-**Bad**: Validating the same thing in multiple layers
-
-**Good**: Validate once at the entry point
-
-### Mistake 3: Leaky Abstractions
-
-**Bad**: Component knows about database schema
-
-**Good**: Each layer only knows its neighbors
+Good cross-layer work keeps each layer responsible for its neighbor-facing
+contract and uses the generated client to carry backend contracts into the
+frontend.
 
 ---
 
 ## Checklist for Cross-Layer Features
 
 Before implementation:
+
 - [ ] Mapped the complete data flow
 - [ ] Identified all layer boundaries
 - [ ] Defined format at each boundary
 - [ ] Decided where validation happens
+- [ ] Identified whether `scripts/generate-client.sh` is required
+- [ ] Identified whether route guards, menu config, and permissions must change
+      together
 
 After implementation:
-- [ ] Tested with edge cases (null, empty, invalid)
-- [ ] Verified error handling at each boundary
-- [ ] Checked data survives round-trip
+
+- [ ] Tested with edge cases: null, empty, invalid, unauthorized, forbidden
+- [ ] Verified error handling at each changed boundary
+- [ ] Checked data survives round-trip when persistence is involved
+- [ ] Verified generated client/types are not stale when backend contracts changed
+- [ ] Verified `detail + request_id` still holds for changed error paths
+- [ ] Verified protected route access and menu visibility remain aligned
 
 ---
 
-## Cross-Platform Template Consistency
-
-In Trellis, command templates (e.g., `record-session.md`) exist in **multiple platforms** with identical or near-identical content. This is a cross-layer boundary.
-
-### Checklist: After Modifying Any Command Template
-
-- [ ] Find all platforms with the same command: `find src/templates/*/commands/trellis/ -name "<command>.*"`
-- [ ] Update all platform copies (Markdown `.md` and TOML `.toml`)
-- [ ] For Gemini TOML: adapt line continuations (`\\` vs `\`) and triple-quoted strings
-- [ ] Run `/trellis:check-cross-layer` to verify nothing was missed
-
-**Real-world example**: Updated `record-session.md` in Claude to use `--mode record`, but forgot iFlow, Kilo, OpenCode, and Gemini — caught by cross-layer check.
-
----
-
-## Generated Runtime Template Upgrade Consistency
-
-Some generated files are both documentation and runtime input. In Trellis,
-`.trellis/workflow.md` is parsed by `get_context.py`, `workflow_phase.py`,
-SessionStart filters, and per-turn hooks. Template changes must be validated
-against both fresh init and upgrade paths.
-
-### Checklist: After Modifying A Runtime-Parsed Template
-
-- [ ] Identify every runtime parser that reads the template, not just the file
-  writer that installs it
-- [ ] Check whether relevant syntax lives outside obvious managed regions
-  such as tag blocks
-- [ ] Verify fresh `init` output and a versioned `update` scenario that writes
-  the older `.trellis/.version`
-- [ ] Add an upgrade regression using an older pristine template fixture, then
-  assert the installed file reaches the current packaged shape
-- [ ] Update the backend spec that owns the runtime contract
-
-**Real-world example**: Codex inline mode changed workflow platform markers from
-`[Codex]` / `[Kilo, Antigravity, Windsurf]` to `[codex-sub-agent]` /
-`[codex-inline, Kilo, Antigravity, Windsurf]`. Fresh init was correct, but
-`trellis update` only merged `[workflow-state:*]` blocks and preserved stale
-markers outside those blocks. Result: upgraded projects got new hook scripts
-but old workflow routing, so `get_context.py --mode phase --platform codex`
-could return empty Phase 2.1 detail.
-
----
-
-## Mode-Detection Probe Checklist
-
-When a CLI auto-detects a mode by probing a remote resource (e.g., checking if `index.json` exists to decide marketplace vs direct download):
-
-### Before implementing:
-- [ ] Probe runs in **ALL** code paths that use the result (interactive, `-y`, `--flag` combos)
-- [ ] 404 vs transient error are distinguished — don't treat both as "not found"
-- [ ] Transient errors **abort or retry**, never silently switch modes
-- [ ] Shared state (caches, prefetched data) is **reset** when context changes (e.g., user switches source)
-- [ ] **Shortcut paths** (e.g., `--template` skipping picker) must have the same error-handling quality as the probed path — check that downstream functions don't call catch-all wrappers
-
-### After implementing:
-- [ ] Trace every path from probe result to the mode-decision branch — no fallthrough
-- [ ] External format contracts (giget URI, raw URLs) are tested or at least documented as comments
-- [ ] Metadata reads consume a complete response or use a streaming parser — never parse a fixed-size prefix as full JSON
-- [ ] When reconstructing a composite identifier from parsed parts, verify **all** fields are included and in the **correct position** (e.g., `provider:repo/path#ref` not `provider:repo#ref/path`)
-- [ ] Verify that **action functions** called after a shortcut don't internally use the old catch-all fetch — they must use the probe-quality variant when error distinction matters
-
-**Real-world example**: Custom registry flow had 8 bugs across 3 review rounds: (1) probe only ran in interactive mode, (2) transient errors fell through to wrong mode, (3) giget URI had `#ref` in wrong position, (4) prefetched templates leaked across source switches, (5) `--template` shortcut bypassed probe but `downloadTemplateById` internally used catch-all `fetchTemplateIndex`, turning timeouts into "Template not found".
-
-**Real-world example**: Agent-session update hints fetched npm `latest` metadata with `response.read(4096)` and then parsed it as complete JSON. The `@mindfoldhq/trellis` package metadata exceeded 4 KB, so the JSON was truncated, parse failed silently, and the first session injection showed no update hint. Fix: read the complete response before parsing, and add a regression where `version` is followed by an 8 KB metadata tail.
-
----
-
-## When to Create Flow Documentation
+## When To Create Flow Documentation
 
 Create detailed flow docs when:
-- Feature spans 3+ layers
-- Multiple teams are involved
-- Data format is complex
-- Feature has caused bugs before
+
+- A feature spans backend schema, generated client, and frontend pages.
+- A change touches auth, permissions, route guards, and navigation.
+- Error handling behavior changes.
+- A data format is complex, versioned, or has caused bugs before.
