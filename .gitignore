@@ -11,3 +11,4 @@ node_modules/
 
 .venv/
 /.specify/scripts/powershell/create-new-feature.ps1
+.trellis-other/
