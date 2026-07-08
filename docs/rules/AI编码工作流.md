@@ -81,11 +81,18 @@ AGENTS.md
 .trellis/spec/frontend/hook-guidelines.md
 ```
 
-常用验证：
+可写 lint/fix（会自动改文件，运行后必须复核 `git diff`）：
 
 ```powershell
 cd frontend
 bun run lint
+```
+
+只读 Review gate：
+
+```powershell
+cd frontend
+bunx biome ci --no-errors-on-unmatched --files-ignore-unknown=true ./
 bun run build
 bunx playwright test
 ```
@@ -252,4 +259,3 @@ git diff --check
 - 引入新的 Codex hooks、subagents、skills 或 MCP 工具。
 - 前端/后端目录边界发生正式调整。
 - `/last30days` 或其他外部调研发现的趋势被验证为本仓库有效实践。
-
