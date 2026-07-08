@@ -32,16 +32,34 @@ Backend quality in this repo is mostly about preserving architectural direction:
 - If a feature suggests a bounded business slice, prefer a deliberate path through `modules/*` over uncontrolled growth in route files or a giant `crud.py`.
 - API contract changes require checking whether `bash ./scripts/generate-client.sh` must be run.
 - New or changed error branches should preserve the `detail + request_id` response contract.
+- Large files are a review smell. If a route, service, or helper grows because it owns several unrelated responsibilities, split by boundary before adding more behavior.
+- Comments should explain why, invariants, compatibility constraints, rollback notes, or side effects. Do not add comments that merely restate the next line of code.
+- Reads that will later feed pagination, counts, or bulk mutation should be reviewed for N+1 queries and Python-side filtering of full tables.
+- Public schema changes should include a documentation/client-sync decision: generated client, frontend consumers, and feature docs are either updated or explicitly not affected.
 
 ---
 
 ## Minimum Validation Expectations
 
+- Preferred backend gate: `bash backend/scripts/lint.sh` from the repo root, which runs strict mypy, `ty check app`, Ruff, and Ruff format check.
+- Preferred backend test command from `backend/`: `bash scripts/test.sh` or a focused `uv run pytest ...` when the full suite is not appropriate.
 - If a backend change affects error behavior, verify at least one path that exercises the unified error shape.
 - If auth, permission, or validation behavior changes, verify the relevant `401`, `403`, or `422` contract path.
 - If request/response models change, review frontend generated-client impact before closing the task.
 - If OpenAPI output changes, run `bash ./scripts/generate-client.sh` or explicitly document why regeneration was not required.
 - If tests are skipped, say so explicitly in the handoff.
+
+---
+
+## Delivery Gate Checklist
+
+- [ ] Route handlers remain thin and delegate business behavior to services.
+- [ ] Expected failures use semantic application exceptions or framework errors that still pass through the unified handlers.
+- [ ] Error responses still include `detail` and `request_id`.
+- [ ] New logs avoid secrets and preserve enough context to correlate with `request_id`.
+- [ ] Model/schema changes include Alembic and generated-client review.
+- [ ] Bulk/list behavior is checked for N+1 and full-table-in-Python filtering.
+- [ ] Documentation or `.trellis/spec/**` updates are considered when a reusable rule or gotcha was learned.
 
 ---
 

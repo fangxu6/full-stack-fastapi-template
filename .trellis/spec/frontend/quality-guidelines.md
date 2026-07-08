@@ -39,11 +39,14 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
 
 - If backend schema changed, regenerate the frontend client.
 - If route or permission behavior changed, verify route guards, navigation visibility, and redirect behavior together.
+- If generated client output changed, verify consumers import generated services/types instead of recreating local API contracts.
+- If route tree generation changed, verify route files remain thin and `frontend/src/routeTree.gen.ts` is generated output, not hand-edited business code.
 - If a page changed, check for regressions in:
   - empty state
   - error state
   - permission state
   - loading state
+- If a UI flow changed, check success, failed mutation, pending/loading, and no-data states instead of only the happy path.
 
 ---
 
@@ -68,11 +71,23 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
 
 ## Minimum Validation Expectations
 
-- Use `bun run lint` as the default frontend gate.
+- Use `bun run lint` as the default frontend gate, but remember it runs Biome with `--write --unsafe`; review the diff after running it.
 - Use `bun run build` when routing, imports, types, or bundle-time correctness may be affected.
 - Use Playwright or equivalent UI verification when critical flows change.
 - Use `bash ./scripts/generate-client.sh` from repo root when backend contract
   changes must flow into frontend types.
+
+---
+
+## Delivery Gate Checklist
+
+- [ ] Route files remain thin and delegate to `platform/*/pages` or `features/*/pages`.
+- [ ] Route guard, menu visibility, and shared permission helpers agree.
+- [ ] API request/response types come from `frontend/src/client/**`.
+- [ ] UI changes cover loading, empty, error, permission, and success states when applicable.
+- [ ] `shared/*` additions pass the shared admission test in [Component Guidelines](./component-guidelines.md).
+- [ ] Any generated files changed by tooling are expected and reviewed.
+- [ ] If `bun run lint` was run, its auto-fixes are included intentionally or reverted.
 
 ---
 

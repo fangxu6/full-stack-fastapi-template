@@ -30,12 +30,20 @@ Draw out how data moves:
 Request -> API route -> service -> CRUD/model -> schema -> OpenAPI client -> React query/page
 ```
 
+For flows that do not fit that exact API path, use the more general shape:
+
+```text
+Source -> Transform -> Store -> Retrieve -> Transform -> Display
+```
+
 For each arrow, ask:
 
 - What format is the data in?
 - What could go wrong?
 - Who is responsible for validation?
 - Does this boundary require generated-client updates or route/menu checks?
+- Which file owns the contract at this boundary?
+- Which validation command proves this boundary still works?
 
 ### Step 2: Identify Boundaries
 
@@ -46,6 +54,19 @@ For each arrow, ask:
 | Schema -> OpenAPI client | `backend/app/schemas/*`, `scripts/generate-client.sh`, `frontend/src/client/**` | stale generated types after backend contract changes |
 | Auth -> route/menu | `frontend/src/hooks/useAuth.ts`, `frontend/src/app/router/guards.ts`, `frontend/src/app/navigation/menu-config.ts` | menu shows a page the guard blocks, or hides a page the route allows |
 | Error -> UI/debugging | `backend/app/core/exceptions.py`, `frontend/src/main.tsx`, `frontend/src/utils.ts` | missing `request_id` or inconsistent error normalization |
+
+### Step 2.5: Check Generated And Configured Boundaries
+
+Some boundaries are not direct imports:
+
+- OpenAPI output is generated from backend app state and then transformed into
+  `frontend/src/client/**` by `scripts/generate-client.sh`.
+- TanStack Router reads route files and generates `frontend/src/routeTree.gen.ts`.
+- Navigation visibility is centralized in `frontend/src/app/navigation/menu-config.ts`
+  but depends on `frontend/src/shared/permissions/index.ts`.
+
+Treat these as contract boundaries even when the current edit does not directly
+import the paired file.
 
 ### Step 3: Define Contracts
 
@@ -119,6 +140,7 @@ Before implementation:
 - [ ] Identified whether `scripts/generate-client.sh` is required
 - [ ] Identified whether route guards, menu config, and permissions must change
       together
+- [ ] Identified generated/configured companion files that may need review
 
 After implementation:
 
@@ -128,6 +150,7 @@ After implementation:
 - [ ] Verified generated client/types are not stale when backend contracts changed
 - [ ] Verified `detail + request_id` still holds for changed error paths
 - [ ] Verified protected route access and menu visibility remain aligned
+- [ ] Verified docs, `.trellis/spec/**`, or `docs/llm-wiki/**` were updated when the change produced a reusable rule
 
 ---
 

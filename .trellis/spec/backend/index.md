@@ -23,6 +23,7 @@ Future work should preserve that direction instead of drifting back toward route
 | [Directory Structure](./directory-structure.md) | Layer ownership, placement rules, transitional structure | Customized |
 | [Database Guidelines](./database-guidelines.md) | SQLModel entities, API schemas, Alembic workflow | Customized |
 | [Error Handling](./error-handling.md) | Unified error contract and exception usage | Customized |
+| [Type Safety](./type-safety.md) | Python 3.14, SQLModel/Pydantic, service signatures, and generated-client impact | Customized |
 | [Quality Guidelines](./quality-guidelines.md) | Review rules, forbidden regressions, validation expectations | Customized |
 | [Logging Guidelines](./logging-guidelines.md) | Request correlation and operational logging minimums | Customized |
 
@@ -32,8 +33,19 @@ Future work should preserve that direction instead of drifting back toward route
 
 1. Read [Directory Structure](./directory-structure.md) before choosing file placement.
 2. Read [Database Guidelines](./database-guidelines.md) before touching models, schemas, or migrations.
-3. Read [Error Handling](./error-handling.md) and [Logging Guidelines](./logging-guidelines.md) before changing API or service behavior.
-4. Use [Quality Guidelines](./quality-guidelines.md) as the final backend review checklist.
+3. Read [Type Safety](./type-safety.md) before changing public schemas, service signatures, UUID/datetime behavior, or OpenAPI-visible payloads.
+4. Read [Error Handling](./error-handling.md) and [Logging Guidelines](./logging-guidelines.md) before changing API or service behavior.
+5. Use [Quality Guidelines](./quality-guidelines.md) as the final backend review checklist.
+
+### Trigger-Based Routing
+
+| Trigger | Required Reads |
+| --- | --- |
+| New route or route behavior change | [Directory Structure](./directory-structure.md), [Error Handling](./error-handling.md), [Quality Guidelines](./quality-guidelines.md) |
+| Model, schema, or migration change | [Database Guidelines](./database-guidelines.md), [Type Safety](./type-safety.md) |
+| Expected error or auth/permission failure change | [Error Handling](./error-handling.md), [Logging Guidelines](./logging-guidelines.md), [Quality Guidelines](./quality-guidelines.md) |
+| Public API payload or OpenAPI output change | [Type Safety](./type-safety.md), [Database Guidelines](./database-guidelines.md), [../guides/cross-layer-thinking-guide.md](../guides/cross-layer-thinking-guide.md) |
+| New bounded backend capability | [Directory Structure](./directory-structure.md), [../guides/code-reuse-thinking-guide.md](../guides/code-reuse-thinking-guide.md) |
 
 ---
 
@@ -69,7 +81,9 @@ Future work should preserve that direction instead of drifting back toward route
 - Lint: `bash backend/scripts/lint.sh`
 - Format: `bash backend/scripts/format.sh`
 - Type checks are configured in [`backend/pyproject.toml`](../../../backend/pyproject.toml):
-  mypy is strict, Ruff targets Python 3.10, and `ty` treats warnings as errors.
+  Python is `>=3.14,<4.0`, mypy is strict, Ruff targets `py314`, and `ty`
+  treats warnings as errors.
+- Preferred backend quality gate from repo root: `bash backend/scripts/lint.sh`.
 - Full-stack test flow from repo root: `bash ./scripts/test.sh`
 - Running stack tests from repo root: `docker compose exec backend bash scripts/tests-start.sh`
 

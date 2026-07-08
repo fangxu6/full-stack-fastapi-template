@@ -31,6 +31,7 @@ These guides are the "what should I think about?" entry point. The detailed "how
 - Unified backend errors must keep returning `detail` and `request_id`.
 - The backend must keep logging enough failure context to correlate with that `request_id`.
 - Backend request/response contract changes require frontend client regeneration via `bash ./scripts/generate-client.sh`.
+- Technical plan or spec reviews should start from `docs/llm-wiki/index.md` when durable repository knowledge matters, then verify the claim against current code before accepting it.
 - Private-knowledge docs under `docs/私域知识/` and `docs/私域知识工程体系产出/` are supporting context, not replacements for `.trellis/spec/`.
 
 If a private doc and current code disagree, record current code as `Current reality` and use the private doc as `Recommended direction` only when the target state is not yet implemented.
@@ -50,6 +51,7 @@ Read only what you need, when you need it.
 - If frontend work: `frontend/README.md`, `frontend/package.json`, `frontend/biome.json`.
 - If task-specific specs exist: load `docs/specs/<feature>/01_requirement.md` before coding.
 - For long-lived project rules: check `.trellis/spec/**` first, then supporting private docs if needed.
+- For repository-aware reviews or architecture questions: check `docs/llm-wiki/index.md` and relevant wiki pages before final judgment.
 - For architecture and platform rationale: check `docs/私域知识/01_架构概览.md` and `docs/私域知识工程体系产出/系统架构分析.md`.
 
 ### Docs Index

@@ -136,6 +136,43 @@ live in services or a deliberate module boundary, not in persistence helpers.
 
 ---
 
+## Gotcha: Batch-Change Backcheck
+
+When you change a repeated pattern in more than one file, do a second search
+after the first edit. Batch edits often miss the one variant that uses a
+different name or import path.
+
+Examples:
+
+- If a service error contract changes, search for the same `detail` text,
+  exception class, and status code in routes, services, tests, and frontend
+  consumers.
+- If a frontend table/action/menu pattern changes, search for both component
+  names and route/menu labels.
+- If a generated-client consumer changes, search for both the service name and
+  the generated type name.
+
+---
+
+## Gotcha: Asymmetric Mechanism Drift
+
+This repo has several pairs where one side is generated or centralized and the
+other side is hand-authored. A directory or contract change can easily update
+one mechanism but not the other.
+
+High-risk pairs:
+
+- backend OpenAPI schemas -> generated `frontend/src/client/**`
+- TanStack route files -> generated `frontend/src/routeTree.gen.ts`
+- route guards -> menu visibility -> shared permission helpers
+- `.trellis/spec/**` files -> `.trellis/spec/index.md` catalog
+- docs indexes such as `docs/README.md` -> newly added docs
+
+When touching one side, explicitly check whether the paired side should be
+regenerated, edited, or documented as intentionally unchanged.
+
+---
+
 ## Checklist Before Commit
 
 - [ ] Searched for existing similar code
@@ -143,3 +180,5 @@ live in services or a deliberate module boundary, not in persistence helpers.
 - [ ] Permission and route logic still have one source of truth
 - [ ] API contracts come from generated client types, not local rewrites
 - [ ] Similar patterns follow the same structure
+- [ ] Batch-change backcheck ran for repeated patterns
+- [ ] Generated/centralized companion files were reviewed

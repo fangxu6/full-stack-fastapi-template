@@ -38,6 +38,16 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
 4. Read [Hook Guidelines](./hook-guidelines.md) and [State Management](./state-management.md) before changing auth, query, or route-driven state.
 5. Use [Type Safety](./type-safety.md) and [Quality Guidelines](./quality-guidelines.md) as the final review checklist.
 
+### Trigger-Based Routing
+
+| Trigger | Required Reads |
+| --- | --- |
+| New page or page move | [Directory Structure](./directory-structure.md), [Component Guidelines](./component-guidelines.md), [Route Permission Navigation Contract](./route-permission-navigation-contract.md) |
+| Route guard, menu, or permission change | [Route Permission Navigation Contract](./route-permission-navigation-contract.md), [State Management](./state-management.md), [Quality Guidelines](./quality-guidelines.md) |
+| Auth, current-user, logout, or token behavior | [Hook Guidelines](./hook-guidelines.md), [State Management](./state-management.md), [Route Permission Navigation Contract](./route-permission-navigation-contract.md) |
+| Generated client or API consumer change | [Type Safety](./type-safety.md), [State Management](./state-management.md), [../guides/cross-layer-thinking-guide.md](../guides/cross-layer-thinking-guide.md) |
+| Shared component/helper extraction | [Component Guidelines](./component-guidelines.md), [../guides/code-reuse-thinking-guide.md](../guides/code-reuse-thinking-guide.md) |
+
 ---
 
 ## Current Reality
@@ -72,11 +82,11 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
 - Install deps from `frontend/`: `bun install`
 - Dev server from `frontend/`: `bun run dev`
 - Build from `frontend/`: `bun run build`
-- Lint from `frontend/`: `bun run lint`
+- Lint from `frontend/`: `bun run lint` (this runs Biome with `--write --unsafe`; always review the resulting diff)
 - Playwright from `frontend/`: `bunx playwright test`
 - Client generation from repo root after backend contract changes: `bash ./scripts/generate-client.sh`
-- Current configured stack includes React 19, Vite 7, TanStack Router 1.166,
-  React Query 5, Tailwind 4, Biome 2, Playwright, and `@hey-api/openapi-ts`
+- Current configured stack includes React 19, Vite 8, TanStack Router 1.170,
+  React Query 5.101, Tailwind 4, Biome 2.4, Playwright 1.61, and `@hey-api/openapi-ts`
   in [`frontend/package.json`](../../../frontend/package.json).
 - Vite owns the `@/` alias, TanStack Router plugin, React SWC plugin, and
   Tailwind plugin in [`frontend/vite.config.ts`](../../../frontend/vite.config.ts).
