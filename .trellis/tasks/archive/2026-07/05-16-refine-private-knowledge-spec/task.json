@@ -3,7 +3,7 @@
   "name": "refine-private-knowledge-spec",
   "title": "Refine Trellis spec from private knowledge docs",
   "description": "",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "fx",
   "assignee": "fx",
   "createdAt": "2026-05-16",
-  "completedAt": null,
+  "completedAt": "2026-07-09",
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "",
+  "notes": "2026-07-09: 由后续 spec refresh / spec modernization 覆盖完成；对应后续交付见 0ade592 docs(trellis): 刷新项目规范、b107b76 feat(spec): 更新Trellis规范和文档，以及 07-08-trellis-spec-modernization 后续改造任务。",
   "meta": {}
 }
