@@ -63,6 +63,7 @@ The backend uses SQLModel + SQLAlchemy on PostgreSQL. Model and schema conventio
   - [`backend/app/services/user.py`](../../../backend/app/services/user.py)
   - [`backend/app/crud/user.py`](../../../backend/app/crud/user.py)
 - Keep ownership and permission filtering in service orchestration. CRUD helpers should stay database-focused and not become hidden authorization layers.
+- In the item module pilot, `modules/items/service.py` owns commit/refresh and `modules/items/repository.py` plus `crud.item` do not commit. Do not assume this item-only transaction contract has migrated to users/auth yet.
 
 ---
 
@@ -98,4 +99,5 @@ The backend uses SQLModel + SQLAlchemy on PostgreSQL. Model and schema conventio
 - Entity models: [`backend/app/models/user.py`](../../../backend/app/models/user.py), [`backend/app/models/item.py`](../../../backend/app/models/item.py)
 - API schemas: [`backend/app/schemas/user.py`](../../../backend/app/schemas/user.py), [`backend/app/schemas/item.py`](../../../backend/app/schemas/item.py)
 - Service transformations: [`backend/app/services/user.py`](../../../backend/app/services/user.py), [`backend/app/services/item.py`](../../../backend/app/services/item.py)
+- Item module persistence pilot: [`backend/app/modules/items/service.py`](../../../backend/app/modules/items/service.py), [`backend/app/modules/items/repository.py`](../../../backend/app/modules/items/repository.py)
 - Client regeneration script: [`scripts/generate-client.sh`](../../../scripts/generate-client.sh)

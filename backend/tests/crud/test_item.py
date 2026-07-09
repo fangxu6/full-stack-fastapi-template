@@ -3,13 +3,15 @@ import uuid
 from sqlmodel import Session
 
 from app import crud
+from app.core.db import engine
+from app.modules.items import service as item_service
 from app.schemas.item import ItemCreate, ItemUpdate
 from tests.utils.item import create_random_item
 from tests.utils.user import create_random_user
 from tests.utils.utils import random_lower_string
 
 
-def test_create_item(db: Session) -> None:
+def test_create_item_requires_explicit_commit(db: Session) -> None:
     user = create_random_user(db)
     assert user.id is not None
 
@@ -22,6 +24,36 @@ def test_create_item(db: Session) -> None:
     assert item.title == item_in.title
     assert item.description == item_in.description
     assert item.owner_id == user.id
+
+    with Session(engine) as verification_session:
+        assert (
+            crud.get_item_by_id(session=verification_session, item_id=item.id) is None
+        )
+
+    db.commit()
+
+    with Session(engine) as verification_session:
+        assert (
+            crud.get_item_by_id(session=verification_session, item_id=item.id)
+            is not None
+        )
+
+
+def test_module_service_create_item_commits(db: Session) -> None:
+    user = create_random_user(db)
+    assert user.id is not None
+
+    item_in = ItemCreate(
+        title=random_lower_string(),
+        description=random_lower_string(),
+    )
+
+    item = item_service.create_item(session=db, current_user=user, item_in=item_in)
+
+    with Session(engine) as verification_session:
+        db_item = crud.get_item_by_id(session=verification_session, item_id=item.id)
+        assert db_item is not None
+        assert db_item.title == item_in.title
 
 
 def test_get_item_by_id(db: Session) -> None:
@@ -58,13 +90,38 @@ def test_update_item(db: Session) -> None:
     assert updated_item.title == item_in.title
     assert updated_item.description == item_in.description
 
+    with Session(engine) as verification_session:
+        db_item = crud.get_item_by_id(session=verification_session, item_id=item.id)
+        assert db_item is not None
+        assert db_item.title != item_in.title
 
-def test_delete_item(db: Session) -> None:
+    db.commit()
+
+    with Session(engine) as verification_session:
+        db_item = crud.get_item_by_id(session=verification_session, item_id=item.id)
+        assert db_item is not None
+        assert db_item.title == item_in.title
+
+
+def test_delete_item_requires_explicit_commit(db: Session) -> None:
     item = create_random_item(db)
 
     crud.delete_item(session=db, db_item=item)
 
     assert crud.get_item_by_id(session=db, item_id=item.id) is None
+
+    with Session(engine) as verification_session:
+        assert (
+            crud.get_item_by_id(session=verification_session, item_id=item.id)
+            is not None
+        )
+
+    db.commit()
+
+    with Session(engine) as verification_session:
+        assert (
+            crud.get_item_by_id(session=verification_session, item_id=item.id) is None
+        )
 
 
 def test_get_item_by_id_missing(db: Session) -> None:

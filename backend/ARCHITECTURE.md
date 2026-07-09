@@ -30,6 +30,7 @@ backend/
 │   │   ├── audit/
 │   │   ├── file/
 │   │   ├── iam/
+│   │   ├── items/                 # First modularized business pilot
 │   │   └── system/
 │   ├── schemas/                   # API request/response contracts
 │   ├── services/                  # Business orchestration layer
@@ -51,7 +52,7 @@ The backend is moving from a template-style layout toward a platformized structu
 - `infra/*`: infrastructure abstractions
 - `modules/*`: future business-domain module boundaries
 
-Today, most real business logic still lives in `services/*`, but new platform seams already exist and should be preferred for incremental growth.
+Today, most real business logic still lives in `services/*`, but new platform seams already exist and should be preferred for incremental growth. The `items` flow is the first pilot for a module-local service and repository while keeping the public route under `api/routes/items.py`.
 
 ## 3. Request Flow
 
@@ -70,8 +71,8 @@ app/main.py
 ```text
 Route
   -> dependency resolution (auth / db)
-  -> service
-  -> crud
+  -> service or module-local service
+  -> crud or module-local repository
   -> model / database
 ```
 
@@ -151,9 +152,18 @@ When adding a new backend capability:
 
 Do not treat `modules/*` as dead weight and route around it by expanding ad-hoc global files forever.
 
+### Item module pilot
+
+`backend/app/modules/items/` is the first concrete module boundary:
+
+- `api/routes/items.py` still owns the public `/items` route declarations so OpenAPI output stays stable.
+- `modules/items/service.py` owns item use cases, permission checks, and transaction commit/refresh.
+- `modules/items/repository.py` owns SQLModel statements and entity mutation but does not commit.
+- `services/item.py` and `crud/item.py` remain compatibility entrypoints while callers migrate.
+
 ## 7. Current Risks and Transitional Reality
 
-- `modules/*` and `infra/*` are still mostly placeholders; the structure is ahead of full migration.
+- `modules/*` and `infra/*` are still mostly placeholders except for the `items` pilot; the structure is ahead of full migration.
 - Several business flows are still carried by the legacy `services/*` + `crud/*` model.
 - The architecture is therefore intentionally hybrid: stable enough for new work, but not yet fully domain-modular.
 

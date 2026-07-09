@@ -44,6 +44,8 @@ backend/app/
   - [`backend/app/core/exceptions.py`](../../../backend/app/core/exceptions.py)
 - `modules/*` and `infra/*` are still mostly boundary skeletons:
   - [`backend/app/modules/api.py`](../../../backend/app/modules/api.py)
+  - [`backend/app/modules/items/service.py`](../../../backend/app/modules/items/service.py)
+  - [`backend/app/modules/items/repository.py`](../../../backend/app/modules/items/repository.py)
   - [`backend/app/infra/db/session.py`](../../../backend/app/infra/db/session.py)
 
 ---
@@ -56,6 +58,7 @@ backend/app/
 - Put SQLModel tables in `models/*` and API payload schemas in `schemas/*`.
 - Put configuration, security, exception handling, logging, and similar cross-cutting behavior in `core/*`.
 - Put module-boundary entrypoints in `modules/*` when introducing a new business slice that should not remain an unbounded service-only addition.
+- For the item module pilot, keep public route declarations in `api/routes/items.py` while module-local service and repository code live in `modules/items/*`.
 - Put infra abstractions in `infra/*` only when they represent reusable infrastructure concerns rather than business logic.
 - Keep startup/lifecycle scripts such as `backend_pre_start.py`, `tests_pre_start.py`, and `initial_data.py` small and operational; do not hide request-time business behavior there.
 
@@ -66,6 +69,7 @@ backend/app/
 - New backend features should not be dumped back into a single expanding `crud.py` or into thick route files.
 - If a feature starts forming its own boundary, add it deliberately under `modules/<name>/` and let that boundary grow over time.
 - Until `modules/*` becomes richer, keep using the existing service-first pattern rather than inventing parallel placement rules.
+- Use `modules/items/*` as the first concrete reference for a module-local service/repository boundary; do not route public endpoints through the existing `/modules` router unless the public URL is intentionally changing.
 
 ---
 
@@ -84,3 +88,4 @@ backend/app/
 - Thin route examples: [`backend/app/api/routes/login.py`](../../../backend/app/api/routes/login.py), [`backend/app/api/routes/items.py`](../../../backend/app/api/routes/items.py), [`backend/app/api/routes/docs.py`](../../../backend/app/api/routes/docs.py)
 - Real service-first business flow: [`backend/app/services/user.py`](../../../backend/app/services/user.py), [`backend/app/services/item.py`](../../../backend/app/services/item.py), [`backend/app/services/docs.py`](../../../backend/app/services/docs.py)
 - Transitional module skeleton: [`backend/app/modules/api.py`](../../../backend/app/modules/api.py), [`backend/app/modules/system/__init__.py`](../../../backend/app/modules/system/__init__.py)
+- Item module pilot: [`backend/app/modules/items/service.py`](../../../backend/app/modules/items/service.py), [`backend/app/modules/items/repository.py`](../../../backend/app/modules/items/repository.py)

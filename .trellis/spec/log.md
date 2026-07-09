@@ -31,3 +31,10 @@
 - Source inputs: `Ant Design：企业级中后台 UI 设计系统.md`, Ant Design 6.5
   official docs, `frontend/package.json`, `frontend/src/main.tsx`, and
   `frontend/src/routes/_layout/rules.tsx`.
+- Recorded the backend `items` module pilot: public routes remain under
+  `api/routes/items.py`, module-local service/repository behavior lives under
+  `modules/items/*`, and item service code owns commit/refresh while item
+  repository and `crud.item` helpers do not commit.
+- Source inputs: `.trellis/tasks/07-09-backend-items-module-boundary/`,
+  `backend/app/api/routes/items.py`, `backend/app/modules/items/service.py`,
+  `backend/app/modules/items/repository.py`, and ADR-0002/0003.
