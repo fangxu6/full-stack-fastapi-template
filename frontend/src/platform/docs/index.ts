@@ -1,1 +1,1 @@
-export {}
+export { RulesPage } from "./pages/RulesPage"

@@ -47,6 +47,7 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
 | Auth, current-user, logout, or token behavior | [Hook Guidelines](./hook-guidelines.md), [State Management](./state-management.md), [Route Permission Navigation Contract](./route-permission-navigation-contract.md) |
 | Generated client or API consumer change | [Type Safety](./type-safety.md), [State Management](./state-management.md), [../guides/cross-layer-thinking-guide.md](../guides/cross-layer-thinking-guide.md) |
 | Shared component/helper extraction | [Component Guidelines](./component-guidelines.md), [../guides/code-reuse-thinking-guide.md](../guides/code-reuse-thinking-guide.md) |
+| Ant Design component adoption | [Component Guidelines](./component-guidelines.md), [Quality Guidelines](./quality-guidelines.md) |
 
 ---
 

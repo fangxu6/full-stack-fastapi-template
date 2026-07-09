@@ -23,6 +23,10 @@ The main frontend risk in this repo is false sharing: pushing page-specific or b
   - [`frontend/src/shared/components/feedback/ErrorState.tsx`](../../../frontend/src/shared/components/feedback/ErrorState.tsx)
   - [`frontend/src/shared/components/table/index.ts`](../../../frontend/src/shared/components/table/index.ts)
 - UI primitives live under `frontend/src/components/ui/**` and are treated as vendor-style generated primitives for normal feature work.
+- Ant Design is available as a gradual complex-component layer, not a
+  replacement for the existing shadcn/ui primitive layer:
+  - [`frontend/src/app/providers/AntdProvider.tsx`](../../../frontend/src/app/providers/AntdProvider.tsx)
+  - [`frontend/src/platform/docs/pages/RulesPage.tsx`](../../../frontend/src/platform/docs/pages/RulesPage.tsx)
 
 ---
 
@@ -35,6 +39,23 @@ The main frontend risk in this repo is false sharing: pushing page-specific or b
   - it does not depend on one domain's business vocabulary
   - it does not encode one page's workflow assumptions
 - Prefer grouped shared barrels such as `@/shared/components/feedback`, `@/shared/components/layout`, or `@/shared/components/theme`.
+
+## Ant Design Boundary
+
+- Use Ant Design for complex enterprise UI surfaces where it removes real
+  local composition: document browsers, dense lists, result/empty/error states,
+  complex forms, date controls, upload flows, and future data-heavy tables.
+- Keep existing shadcn/ui primitives for current app shell, auth, simple
+  feature dialogs, and already-working page flows unless a task explicitly
+  scopes a migration.
+- Do not create a full wrapper layer around every Ant Design component. Import
+  `antd` components directly in `app/*`, `platform/*`, or `features/*`; extract
+  a local wrapper only when multiple pages need the same domain-neutral
+  composition.
+- Keep Ant Design provider and token wiring in `app/providers/*`; page code
+  should not configure global Ant Design theme.
+- Do not adopt `@ant-design/pro-components` until its peer dependencies and
+  project need are reviewed in a dedicated task.
 
 ---
 
@@ -57,6 +78,8 @@ If the answer is no, keep it in the domain.
 - Do not edit generated UI primitives under `frontend/src/components/ui/**` directly when composition or wrapping is enough.
 - Do not make a page-private component shared because it may be reused someday;
   wait until another page or domain actually needs it.
+- Do not interpret Ant Design adoption as permission to replace existing
+  shadcn/ui pages wholesale.
 
 ---
 
@@ -66,3 +89,4 @@ If the answer is no, keep it in the domain.
 - Shared grouped UI: [`frontend/src/shared/components/feedback/ErrorState.tsx`](../../../frontend/src/shared/components/feedback/ErrorState.tsx), [`frontend/src/shared/components/layout/Footer.tsx`](../../../frontend/src/shared/components/layout/Footer.tsx)
 - Page composition examples: [`frontend/src/platform/auth/pages/LoginPage.tsx`](../../../frontend/src/platform/auth/pages/LoginPage.tsx), [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx)
 - Vendor-style UI primitives: [`frontend/src/components/ui/button.tsx`](../../../frontend/src/components/ui/button.tsx)
+- Ant Design provider and pilot: [`frontend/src/app/providers/AntdProvider.tsx`](../../../frontend/src/app/providers/AntdProvider.tsx), [`frontend/src/platform/docs/pages/RulesPage.tsx`](../../../frontend/src/platform/docs/pages/RulesPage.tsx)

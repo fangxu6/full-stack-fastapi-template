@@ -20,3 +20,14 @@
 - Source inputs: current `backend/pyproject.toml`, `frontend/package.json`,
   `scripts/generate-client.sh`, backend/frontend code anchors, and
   `docs/trellis-spec-diff-analysis.md`.
+
+## 2026-07-09
+
+- Recorded Ant Design as a gradual complex-component layer for the React
+  frontend, not a replacement for the existing Tailwind + shadcn/ui primitive
+  layer.
+- Added frontend spec guardrails for Ant Design provider placement, pilot-page
+  verification, and the current rejection of `@ant-design/pro-components`.
+- Source inputs: `Ant Design：企业级中后台 UI 设计系统.md`, Ant Design 6.5
+  official docs, `frontend/package.json`, `frontend/src/main.tsx`, and
+  `frontend/src/routes/_layout/rules.tsx`.

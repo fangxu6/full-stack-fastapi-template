@@ -17,6 +17,8 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
 - Keep domain pages in `platform/*` or `features/*`.
 - Keep genuinely shared UI and helpers in `shared/*`.
 - Use `@/` aliases and generated client types consistently.
+- Keep Ant Design usage within the documented complex-component boundary in
+  [Component Guidelines](./component-guidelines.md).
 - Respect Biome exclusions and generated/vendor-style boundaries from
   [`frontend/biome.json`](../../../frontend/biome.json).
 
@@ -32,6 +34,8 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
 - Do not use `shared/*` as a first-stop bucket for domain-specific code.
 - Do not mass-format unrelated files while touching frontend code.
 - Do not hand-write API types that already exist in the generated client.
+- Do not introduce `@ant-design/pro-components` or migrate existing shadcn/ui
+  flows to Ant Design without a task-specific design review.
 
 ---
 
@@ -47,6 +51,8 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
   - permission state
   - loading state
 - If a UI flow changed, check success, failed mutation, pending/loading, and no-data states instead of only the happy path.
+- If Ant Design components are introduced, verify they render correctly through
+  the global `AntdProvider` in light, dark, and system theme modes.
 
 ---
 
@@ -76,6 +82,9 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
 - Use Playwright or equivalent UI verification when critical flows change.
 - Use `bash ./scripts/generate-client.sh` from repo root when backend contract
   changes must flow into frontend types.
+- For Ant Design dependency changes, prefer `bun install` from the repository
+  root so `bun.lock` stays synchronized; if the package manager stalls, record
+  that explicitly before handoff.
 
 ---
 
@@ -88,6 +97,9 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
 - [ ] `shared/*` additions pass the shared admission test in [Component Guidelines](./component-guidelines.md).
 - [ ] Any generated files changed by tooling are expected and reviewed.
 - [ ] If `bun run lint` was run, its auto-fixes are included intentionally or reverted.
+- [ ] Ant Design pages use `app/providers/AntdProvider.tsx`, not local
+      per-page theme providers.
+- [ ] Ant Design adoption did not silently replace unrelated shadcn/ui pages.
 
 ---
 
@@ -96,3 +108,4 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
 - Thin routes and page placement: [`frontend/src/routes/login.tsx`](../../../frontend/src/routes/login.tsx), [`frontend/src/routes/_layout/items.tsx`](../../../frontend/src/routes/_layout/items.tsx), [`frontend/src/platform/auth/pages/LoginPage.tsx`](../../../frontend/src/platform/auth/pages/LoginPage.tsx)
 - Guard and permission flow: [`frontend/src/app/router/guards.ts`](../../../frontend/src/app/router/guards.ts), [`frontend/src/app/navigation/menu-config.ts`](../../../frontend/src/app/navigation/menu-config.ts), [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)
 - Tooling and generated boundaries: [`frontend/package.json`](../../../frontend/package.json), [`frontend/biome.json`](../../../frontend/biome.json), [`scripts/generate-client.sh`](../../../scripts/generate-client.sh)
+- Ant Design boundary: [`frontend/src/app/providers/AntdProvider.tsx`](../../../frontend/src/app/providers/AntdProvider.tsx), [`frontend/src/platform/docs/pages/RulesPage.tsx`](../../../frontend/src/platform/docs/pages/RulesPage.tsx), [`docs/adr/0001-use-ant-design-for-complex-admin-components.md`](../../../docs/adr/0001-use-ant-design-for-complex-admin-components.md)
