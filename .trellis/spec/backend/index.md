@@ -55,7 +55,7 @@ Future work should preserve that direction instead of drifting back toward route
 - Real domain behavior is still service-first:
   - [`backend/app/services/user.py`](../../../backend/app/services/user.py)
   - [`backend/app/services/item.py`](../../../backend/app/services/item.py)
-- `modules/*` and `infra/*` exist, but they are mostly structural placeholders today:
+- `modules/*` and `infra/*` exist as future-facing boundaries:
   - [`backend/app/modules/api.py`](../../../backend/app/modules/api.py)
   - [`backend/app/modules/system/__init__.py`](../../../backend/app/modules/system/__init__.py)
   - [`backend/app/infra/db/session.py`](../../../backend/app/infra/db/session.py)
@@ -69,7 +69,7 @@ Future work should preserve that direction instead of drifting back toward route
 
 - Keep route handlers thin and continue concentrating business rules in services until real module-local service slices emerge.
 - Add new cross-cutting behavior to `core/*`, not to ad hoc helpers spread across routes or services.
-- When introducing a new business module, prefer attaching it to `modules/*` as an explicit boundary instead of growing one more large shared file.
+- When introducing a new business module, prefer attaching it to `modules/*` as an explicit boundary instead of growing one more large shared file. Keep simple CRUD in the lightweight route/service/crud flow until that boundary is justified.
 - Preserve the unified error contract and `request_id` chain as non-optional platform behavior.
 
 ---

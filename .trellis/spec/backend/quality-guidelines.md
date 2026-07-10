@@ -17,7 +17,7 @@ Backend quality in this repo is mostly about preserving architectural direction:
 
 ## Required Patterns
 
-- Keep layering explicit: `api -> services -> crud -> models/schemas`.
+- Keep layering explicit: `api route -> service -> crud -> models/schemas` for simple CRUD; use `module router -> module service -> module repository` only when a domain earns that boundary.
 - Use semantic application exceptions for expected business failures.
 - Keep new platform-wide behavior in `core/*`.
 - Keep model/schema changes paired with migration thinking and frontend client impact review.
@@ -29,8 +29,8 @@ Backend quality in this repo is mostly about preserving architectural direction:
 ## Strong Review Rules
 
 - New module work should attach to the existing platform skeleton rather than expanding one large shared file forever.
-- If a feature suggests a bounded business slice, prefer a deliberate path through `modules/*` over uncontrolled growth in route files or a giant `crud.py`.
-- For the current item pilot, public routes stay in `api/routes/items.py` and module-local service/repository behavior stays under `modules/items/*`; verify OpenAPI output remains unchanged unless the task explicitly approves a contract change.
+- If a feature is simple CRUD, keep it lightweight. If it suggests a bounded business slice, prefer a deliberate path through `modules/*` over uncontrolled growth in route files or a giant `crud.py`.
+- For items, keep the public router at `api/routes/items.py`, service behavior at `services/item.py`, and persistence helpers at `crud/item.py`; the public path remains `/api/v1/items/*`.
 - API contract changes require checking whether `bash ./scripts/generate-client.sh` must be run.
 - New or changed error branches should preserve the `detail + request_id` response contract.
 - Large files are a review smell. If a route, service, or helper grows because it owns several unrelated responsibilities, split by boundary before adding more behavior.
@@ -98,5 +98,5 @@ Backend quality in this repo is mostly about preserving architectural direction:
 - Service-first behavior: [`backend/app/services/user.py`](../../../backend/app/services/user.py), [`backend/app/services/item.py`](../../../backend/app/services/item.py)
 - Error baseline: [`backend/app/main.py`](../../../backend/app/main.py), [`backend/app/core/exceptions.py`](../../../backend/app/core/exceptions.py)
 - Model/schema contract examples: [`backend/app/models/user.py`](../../../backend/app/models/user.py), [`backend/app/schemas/user.py`](../../../backend/app/schemas/user.py)
-- Item module pilot: [`backend/app/modules/items/service.py`](../../../backend/app/modules/items/service.py), [`backend/app/modules/items/repository.py`](../../../backend/app/modules/items/repository.py)
+- Lightweight item CRUD: [`backend/app/api/routes/items.py`](../../../backend/app/api/routes/items.py), [`backend/app/services/item.py`](../../../backend/app/services/item.py), [`backend/app/crud/item.py`](../../../backend/app/crud/item.py)
 - Backend and cross-layer tooling: [`backend/pyproject.toml`](../../../backend/pyproject.toml), [`scripts/generate-client.sh`](../../../scripts/generate-client.sh)

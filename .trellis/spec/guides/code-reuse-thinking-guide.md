@@ -49,7 +49,7 @@ rg --files backend/app frontend/src | rg "service|crud|Page|Dialog|Table|guard|p
 Bad: duplicating permission or ownership checks in multiple route handlers.
 
 Good: keep business checks in `services/*`, persistence helpers in `crud/*`,
-and route handlers thin. Existing anchors:
+and route handlers thin for simple CRUD. Existing anchors:
 
 - `backend/app/api/routes/items.py`
 - `backend/app/services/item.py`

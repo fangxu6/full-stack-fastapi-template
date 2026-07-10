@@ -2,7 +2,7 @@
 
 ## Goal Summary
 - 已将 backend 主体重构为清晰分层架构，路由层不再承载核心业务逻辑。
-- 新增 service 层承接业务编排，crud 层专注原子数据库操作。
+- 新增 service 层承接业务编排，crud 层专注原子数据库操作；`items` 暂时保持轻量 CRUD 结构。
 - 将依赖注入拆分为独立模块，将 API DTO 提取到 schemas 层。
 - 同步补齐架构与开发规范文档，确保后续开发一致性。
 
@@ -21,8 +21,8 @@
 ## Core Flow (After Refactor)
 1. Route 接收请求并解析参数。
 2. Route 注入依赖并调用对应 Service。
-3. Service 校验规则并协调一个或多个 CRUD 操作。
-4. CRUD 与数据库交互，返回模型数据。
+3. Service 校验规则并协调一个或多个 CRUD 或模块 repository 操作。
+4. CRUD/repository 与数据库交互，返回模型数据。
 5. Service 组装业务结果，Route 输出响应模型。
 
 ## Validation & Errors
@@ -36,6 +36,7 @@
 - Step 3: 增加 schema 层作为 API DTO 契约。
 - Step 4: 重构依赖注入为 `api/dependencies/` 子模块。
 - Step 5: 更新架构与代码规范文档，固化团队约束。
+- Step 6: 根据 ORM 隔离与实用边界规则，items 保持 `/api/v1/items/*` 与 `router -> service -> crud -> ORM` 轻量链路。
 
 ## Rollback
 - 若需回滚，按提交顺序逆向回退：

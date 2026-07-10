@@ -2,9 +2,8 @@ import uuid
 
 from sqlmodel import Session
 
-from app import crud
+from app import crud, services
 from app.core.db import engine
-from app.modules.items import service as item_service
 from app.schemas.item import ItemCreate, ItemUpdate
 from tests.utils.item import create_random_item
 from tests.utils.user import create_random_user
@@ -48,7 +47,7 @@ def test_module_service_create_item_commits(db: Session) -> None:
         description=random_lower_string(),
     )
 
-    item = item_service.create_item(session=db, current_user=user, item_in=item_in)
+    item = services.item.create_item(session=db, current_user=user, item_in=item_in)
 
     with Session(engine) as verification_session:
         db_item = crud.get_item_by_id(session=verification_session, item_id=item.id)

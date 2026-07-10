@@ -25,12 +25,11 @@ backend/
 │   ├── infra/                     # Infrastructure boundary placeholders
 │   │   └── db/
 │   ├── models/                    # SQLModel ORM entities only
-│   ├── modules/                   # Module boundary skeleton
+│   ├── modules/                   # Future module-owned backend boundaries
 │   │   ├── api.py                 # Modules router aggregation entrypoint
 │   │   ├── audit/
 │   │   ├── file/
 │   │   ├── iam/
-│   │   ├── items/                 # First modularized business pilot
 │   │   └── system/
 │   ├── schemas/                   # API request/response contracts
 │   ├── services/                  # Business orchestration layer
@@ -52,7 +51,7 @@ The backend is moving from a template-style layout toward a platformized structu
 - `infra/*`: infrastructure abstractions
 - `modules/*`: future business-domain module boundaries
 
-Today, most real business logic still lives in `services/*`, but new platform seams already exist and should be preferred for incremental growth. The `items` flow is the first pilot for a module-local service and repository while keeping the public route under `api/routes/items.py`.
+Today, most real business logic still lives in `services/*`, and this project is primarily CRUD-oriented. Simple CRUD flows such as `items` should stay on the lightweight `api/routes -> services -> crud -> models/schemas` path until a domain shows enough business complexity to justify a module boundary.
 
 ## 3. Request Flow
 
@@ -71,8 +70,8 @@ app/main.py
 ```text
 Route
   -> dependency resolution (auth / db)
-  -> service or module-local service
-  -> crud or module-local repository
+  -> service
+  -> crud
   -> model / database
 ```
 
@@ -145,26 +144,26 @@ The `modules/*` tree is currently a scaffold, not a fully migrated module system
 When adding a new backend capability:
 
 1. decide whether it is cross-cutting (`core`), infra (`infra`), or domain-facing (`modules`)
-2. expose HTTP entrypoints from `api/*` or a module router
-3. implement orchestration in `services/*` or module-local services
+2. expose simple CRUD HTTP entrypoints from `api/*`; use a module router only when the domain has real module-level complexity
+3. implement orchestration in `services/*` first, and move to module-local services only when the boundary earns its weight
 4. reuse the shared exception contract
 5. add tests for success, auth, validation, and not-found/error paths
 
-Do not treat `modules/*` as dead weight and route around it by expanding ad-hoc global files forever.
+Do not treat `modules/*` as dead weight, but also do not force simple CRUD into module structure before there is a real boundary story.
 
-### Item module pilot
+### Item lightweight CRUD flow
 
-`backend/app/modules/items/` is the first concrete module boundary:
+`items` is intentionally kept as a lightweight CRUD flow for now:
 
-- `api/routes/items.py` still owns the public `/items` route declarations so OpenAPI output stays stable.
-- `modules/items/service.py` owns item use cases, permission checks, and transaction commit/refresh.
-- `modules/items/repository.py` owns SQLModel statements and entity mutation but does not commit.
-- `services/item.py` and `crud/item.py` remain compatibility entrypoints while callers migrate.
+- `api/routes/items.py` owns the public `/api/v1/items/*` route declarations.
+- `services/item.py` owns item use cases, permission checks, and transaction commit/refresh.
+- `crud/item.py` owns SQLModel statements and entity mutation but does not commit.
+- No separate domain entity, mapper, use-case class, repository interface, or module router is required for this simple CRUD resource.
 
 ## 7. Current Risks and Transitional Reality
 
-- `modules/*` and `infra/*` are still mostly placeholders except for the `items` pilot; the structure is ahead of full migration.
+- `modules/*` and `infra/*` are still mostly placeholders; the structure is ahead of full migration.
 - Several business flows are still carried by the legacy `services/*` + `crud/*` model.
 - The architecture is therefore intentionally hybrid: stable enough for new work, but not yet fully domain-modular.
 
-That means new changes should move with the target boundary, not reinforce the old flat shape.
+That means new changes should use the lightest boundary that fits: simple CRUD stays lightweight, while real multi-step or cross-module business flows can graduate into `modules/*`.

@@ -110,8 +110,8 @@ export type UsersPublic = {
 
 export type UserUpdate = {
     email?: (string | null);
-    is_active?: (boolean | null);
-    is_superuser?: (boolean | null);
+    is_active?: boolean;
+    is_superuser?: boolean;
     full_name?: (string | null);
     password?: (string | null);
 };
@@ -196,6 +196,10 @@ export type LoginRecoverPasswordHtmlContentData = {
 };
 
 export type LoginRecoverPasswordHtmlContentResponse = (string);
+
+export type ModulesModulesHealthCheckResponse = ({
+    [key: string]: (string);
+});
 
 export type PrivateCreateUserData = {
     requestBody: PrivateUserCreate;

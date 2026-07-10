@@ -108,5 +108,5 @@ Do not patch `frontend/src/client/**` manually to hide backend typing mistakes.
 - Tooling: [`backend/pyproject.toml`](../../../backend/pyproject.toml)
 - Entity models: [`backend/app/models/user.py`](../../../backend/app/models/user.py), [`backend/app/models/item.py`](../../../backend/app/models/item.py)
 - API schemas: [`backend/app/schemas/user.py`](../../../backend/app/schemas/user.py), [`backend/app/schemas/item.py`](../../../backend/app/schemas/item.py)
-- Transform/update patterns: [`backend/app/services/user.py`](../../../backend/app/services/user.py), [`backend/app/crud/user.py`](../../../backend/app/crud/user.py)
+- Transform/update patterns: [`backend/app/services/user.py`](../../../backend/app/services/user.py), [`backend/app/crud/user.py`](../../../backend/app/crud/user.py), [`backend/app/services/item.py`](../../../backend/app/services/item.py), [`backend/app/crud/item.py`](../../../backend/app/crud/item.py)
 - Client generation: [`scripts/generate-client.sh`](../../../scripts/generate-client.sh)

@@ -494,26 +494,14 @@ export const UserUpdateSchema = {
             title: 'Email'
         },
         is_active: {
-            anyOf: [
-                {
-                    type: 'boolean'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Is Active'
+            type: 'boolean',
+            title: 'Is Active',
+            default: true
         },
         is_superuser: {
-            anyOf: [
-                {
-                    type: 'boolean'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Is Superuser'
+            type: 'boolean',
+            title: 'Is Superuser',
+            default: false
         },
         full_name: {
             anyOf: [

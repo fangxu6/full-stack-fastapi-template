@@ -38,3 +38,15 @@
 - Source inputs: `.trellis/tasks/07-09-backend-items-module-boundary/`,
   `backend/app/api/routes/items.py`, `backend/app/modules/items/service.py`,
   `backend/app/modules/items/repository.py`, and ADR-0002/0003.
+
+## 2026-07-10
+
+- Superseded the earlier item module-route experiment for this CRUD-heavy
+  project: simple CRUD should stay lightweight on
+  `api/routes -> services -> crud -> ORM`, while `modules/*` is reserved for
+  domains with multi-table workflows, state transitions, background tasks,
+  events, external-system calls, or cross-module collaboration.
+- Source inputs: `3. Python后端架构规则-ORM隔离与实用边界.md`,
+  `backend/app/api/routes/items.py`, `backend/app/services/item.py`,
+  `backend/app/crud/item.py`, focused item tests, and generated OpenAPI client
+  output.

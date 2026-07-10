@@ -6,13 +6,15 @@ from sqlmodel import Session
 from app.core.config import settings
 from tests.utils.item import create_random_item
 
+ITEMS_PATH = f"{settings.API_V1_STR}/items"
+
 
 def test_create_item(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
     data = {"title": "Foo", "description": "Fighters"}
     response = client.post(
-        f"{settings.API_V1_STR}/items/",
+        f"{ITEMS_PATH}/",
         headers=superuser_token_headers,
         json=data,
     )
@@ -29,7 +31,7 @@ def test_create_item_without_trailing_slash(
 ) -> None:
     data = {"title": "Foo", "description": "Fighters"}
     response = client.post(
-        f"{settings.API_V1_STR}/items",
+        ITEMS_PATH,
         headers=superuser_token_headers,
         json=data,
     )
@@ -46,7 +48,7 @@ def test_read_item(
 ) -> None:
     item = create_random_item(db)
     response = client.get(
-        f"{settings.API_V1_STR}/items/{item.id}",
+        f"{ITEMS_PATH}/{item.id}",
         headers=superuser_token_headers,
     )
     assert response.status_code == 200
@@ -61,7 +63,7 @@ def test_read_item_not_found(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
     response = client.get(
-        f"{settings.API_V1_STR}/items/{uuid.uuid4()}",
+        f"{ITEMS_PATH}/{uuid.uuid4()}",
         headers=superuser_token_headers,
     )
     assert response.status_code == 404
@@ -75,7 +77,7 @@ def test_read_item_not_enough_permissions(
 ) -> None:
     item = create_random_item(db)
     response = client.get(
-        f"{settings.API_V1_STR}/items/{item.id}",
+        f"{ITEMS_PATH}/{item.id}",
         headers=normal_user_token_headers,
     )
     assert response.status_code == 403
@@ -90,7 +92,7 @@ def test_read_items(
     create_random_item(db)
     create_random_item(db)
     response = client.get(
-        f"{settings.API_V1_STR}/items/",
+        f"{ITEMS_PATH}/",
         headers=superuser_token_headers,
     )
     assert response.status_code == 200
@@ -104,7 +106,7 @@ def test_read_items_without_trailing_slash(
     create_random_item(db)
     create_random_item(db)
     response = client.get(
-        f"{settings.API_V1_STR}/items",
+        ITEMS_PATH,
         headers=superuser_token_headers,
     )
     assert response.status_code == 200
@@ -118,7 +120,7 @@ def test_update_item(
     item = create_random_item(db)
     data = {"title": "Updated title", "description": "Updated description"}
     response = client.put(
-        f"{settings.API_V1_STR}/items/{item.id}",
+        f"{ITEMS_PATH}/{item.id}",
         headers=superuser_token_headers,
         json=data,
     )
@@ -135,7 +137,7 @@ def test_update_item_not_found(
 ) -> None:
     data = {"title": "Updated title", "description": "Updated description"}
     response = client.put(
-        f"{settings.API_V1_STR}/items/{uuid.uuid4()}",
+        f"{ITEMS_PATH}/{uuid.uuid4()}",
         headers=superuser_token_headers,
         json=data,
     )
@@ -151,7 +153,7 @@ def test_update_item_not_enough_permissions(
     item = create_random_item(db)
     data = {"title": "Updated title", "description": "Updated description"}
     response = client.put(
-        f"{settings.API_V1_STR}/items/{item.id}",
+        f"{ITEMS_PATH}/{item.id}",
         headers=normal_user_token_headers,
         json=data,
     )
@@ -166,7 +168,7 @@ def test_delete_item(
 ) -> None:
     item = create_random_item(db)
     response = client.delete(
-        f"{settings.API_V1_STR}/items/{item.id}",
+        f"{ITEMS_PATH}/{item.id}",
         headers=superuser_token_headers,
     )
     assert response.status_code == 200
@@ -178,7 +180,7 @@ def test_delete_item_not_found(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
     response = client.delete(
-        f"{settings.API_V1_STR}/items/{uuid.uuid4()}",
+        f"{ITEMS_PATH}/{uuid.uuid4()}",
         headers=superuser_token_headers,
     )
     assert response.status_code == 404
@@ -192,10 +194,21 @@ def test_delete_item_not_enough_permissions(
 ) -> None:
     item = create_random_item(db)
     response = client.delete(
-        f"{settings.API_V1_STR}/items/{item.id}",
+        f"{ITEMS_PATH}/{item.id}",
         headers=normal_user_token_headers,
     )
     assert response.status_code == 403
     content = response.json()
     assert content["detail"] == "Not enough permissions"
     assert content["request_id"]
+
+
+def test_items_openapi_uses_lightweight_crud_route(client: TestClient) -> None:
+    response = client.get(f"{settings.API_V1_STR}/openapi.json")
+    assert response.status_code == 200
+
+    paths = response.json()["paths"]
+    assert f"{settings.API_V1_STR}/items/" in paths
+    assert f"{settings.API_V1_STR}/items/{{id}}" in paths
+    assert f"{settings.API_V1_STR}/modules/items/" not in paths
+    assert f"{settings.API_V1_STR}/modules/items/{{id}}" not in paths
