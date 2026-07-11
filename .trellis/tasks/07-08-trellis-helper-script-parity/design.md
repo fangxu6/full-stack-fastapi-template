@@ -17,6 +17,7 @@ lifecycle event is assumed by this task.
 | `hooks/quality_hooks/backend.py` | Runs backend checks only for backend changes or `--force`. |
 | `hooks/quality_hooks/frontend.py` | Enforces frontend component-system rules only for frontend changes or `--force`. |
 | `hooks/run_quality_hooks.py` | Stable human/automation CLI entrypoint. |
+| `.codex/hooks/stop-quality-gate.py` | Codex `Stop` adapter that maps failed CLI output to a continuation prompt. |
 
 ## Interface Contract
 
@@ -42,6 +43,14 @@ Run a required final backend check even after changes were staged or committed:
 ```powershell
 python hooks/run_quality_hooks.py --hook backend-quality --force
 ```
+
+## Codex Stop Adapter
+
+`.codex/hooks.json` registers the project Stop adapter. On each attempted
+completion it runs the quality CLI with `--json`. A passing or skipped result
+prints `{}`. A failed runner emits Codex Stop output with `decision: block` and
+an actionable `reason`, which prevents completion and creates a continuation
+prompt. The adapter has no Trellis dependency.
 
 ## Backend Policy
 

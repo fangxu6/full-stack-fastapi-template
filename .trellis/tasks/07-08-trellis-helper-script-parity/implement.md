@@ -13,6 +13,8 @@
    violations, registered UI imports, and registry validation.
 6. Update the project hook contract and task artifacts with CLI usage and the
    no-library-modification boundary.
-7. Validate with `python -m unittest discover hooks/tests -v`,
+7. Add a Codex Stop adapter that maps quality-hook CLI failures to the Stop
+   continuation protocol, then register it in `.codex/hooks.json`.
+8. Validate with `python -m unittest discover hooks/tests -v`,
    `python hooks/run_quality_hooks.py --list`, compilation, and a no-diff check
    for protected Trellis library files.

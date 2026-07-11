@@ -60,3 +60,8 @@
   environment because WSL Bash does not inherit that environment reliably.
 - Source inputs: `hooks/quality_hooks/**`, `hooks/run_quality_hooks.py`, and
   `hooks/tests/test_quality_hooks.py`.
+- Added the project-local Codex `Stop` adapter. It maps a failed quality-hook
+  CLI run to Codex `decision: block` output, so a failing quality gate creates
+  a continuation prompt rather than allowing the turn to finish.
+- Source inputs: `.codex/hooks.json`, `.codex/hooks/stop-quality-gate.py`, and
+  `hooks/tests/test_stop_quality_gate.py`.

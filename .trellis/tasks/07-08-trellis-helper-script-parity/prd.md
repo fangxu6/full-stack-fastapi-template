@@ -30,6 +30,8 @@ It must be safe from Trellis library updates and make future hooks easy to add.
 5. Keep all Trellis library files and `.trellis/config.yaml` unchanged.
 6. Make adding a future hook a project-local change: implement the interface and
    register it in the project registry.
+7. Register a project-local Codex `Stop` adapter that runs all applicable
+   quality hooks and blocks completion when one fails.
 
 ## Acceptance Criteria
 
@@ -43,9 +45,10 @@ It must be safe from Trellis library updates and make future hooks easy to add.
 - [ ] Frontend hook accepts a registered UI primitive and rejects each protected
   component-system violation.
 - [ ] Focused hook tests pass.
+- [ ] The Stop adapter emits Codex `decision: block` plus an actionable reason
+  when the quality-hook CLI returns non-zero.
 
 ## Out Of Scope
 
 - Modifying Trellis library lifecycle behavior.
-- Automatically registering unsupported Codex lifecycle events.
 - Rewriting backend or frontend application code.

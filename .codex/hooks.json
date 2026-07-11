@@ -10,6 +10,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -X utf8 .codex/hooks/stop-quality-gate.py",
+            "timeout": 300
+          }
+        ]
+      }
     ]
   }
 }

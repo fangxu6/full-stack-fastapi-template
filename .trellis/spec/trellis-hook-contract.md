@@ -10,13 +10,14 @@
   checks after development.
 - Primary files: `hooks/quality_hooks/**`, `hooks/run_quality_hooks.py`.
 - Out of scope: `.trellis/scripts/common/**`, `.trellis/scripts/task.py`,
-  `.trellis/config.yaml`, and automatic Codex lifecycle registration.
+  `.trellis/config.yaml`, and automatic Trellis task lifecycle changes.
 
 ---
 
 ## 2. Signatures / Interfaces
 
 - `python hooks/run_quality_hooks.py [--hook NAME] [--force] [--changed-file PATH] [--json]`
+- `.codex/hooks/stop-quality-gate.py` maps the runner result to Codex `Stop`.
 - `QualityHook.applies(context: HookContext) -> bool`
 - `QualityHook.run(context: HookContext) -> HookResult`
 - Register project defaults only in `default_registry()`.
@@ -34,6 +35,9 @@
 - Frontend UI imports are resolved through `frontend/components.json`.
 - Future hooks are project code and registry entries, never Trellis library
   edits.
+- The Codex Stop adapter returns `{}` after passing/skipped checks. On failure
+  it returns `decision: block` with a reason so Codex continues instead of
+  completing the turn.
 
 ---
 
@@ -46,6 +50,7 @@
 | Protected frontend primitive/client edit | Frontend result fails | Unit test |
 | Unknown selected hook | CLI/registry rejects it | Unit test |
 | New project hook | Registered implementation runs without Trellis changes | Registry test and protected-file diff check |
+| Quality hook fails during Codex Stop | Adapter returns `decision: block` with diagnostics | Adapter unit test |
 
 ---
 
