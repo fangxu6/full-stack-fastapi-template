@@ -50,3 +50,13 @@
   `backend/app/api/routes/items.py`, `backend/app/services/item.py`,
   `backend/app/crud/item.py`, focused item tests, and generated OpenAPI client
   output.
+
+## 2026-07-11
+
+- Added the project quality-hook contract: a typed project-owned interface,
+  registry, explicit CLI, and regression requirements for backend/frontend
+  policies without modifying Trellis library files.
+- Recorded Windows backend-gate execution through the repository virtual
+  environment because WSL Bash does not inherit that environment reliably.
+- Source inputs: `hooks/quality_hooks/**`, `hooks/run_quality_hooks.py`, and
+  `hooks/tests/test_quality_hooks.py`.

@@ -1,58 +1,70 @@
-# Design: Trellis helper script parity
+# Design: Extensible project quality hooks
 
 ## Boundary
 
-This task is about Trellis infrastructure under `.trellis/**` only. The reference source is `.trellis-other/**`, but `.trellis-other` belongs to a different project and must be treated as evidence, not as a drop-in replacement.
+The implementation is entirely project-owned under `hooks/**`. Trellis library
+files and Trellis configuration are immutable dependencies, not extension
+points. A future Codex or CI adapter can invoke the project CLI, but no platform
+lifecycle event is assumed by this task.
 
-Allowed candidate areas:
+## Architecture
 
-- `.trellis/scripts/spec_wiki.py`
-- `.trellis/scripts/session_hook_runner.py`
-- `.trellis/scripts/task_hook_runner.py`
-- `.trellis/scripts/multi_agent/**`
-- `.trellis/scripts/common/registry.py`
-- `.trellis/scripts/common/worktree.py`
-- selected `.trellis/tests/**` that exercise reusable Trellis behavior
-- small workflow/spec catalog references only when required by adopted scripts
+| Component | Responsibility |
+| --- | --- |
+| `hooks/quality_hooks/contracts.py` | Defines `HookContext`, `HookResult`, and the `QualityHook` protocol. |
+| `hooks/quality_hooks/registry.py` | Owns project default hook registration and unknown-hook validation. |
+| `hooks/quality_hooks/changed_files.py` | Reads tracked and untracked worktree paths from Git. |
+| `hooks/quality_hooks/backend.py` | Runs backend checks only for backend changes or `--force`. |
+| `hooks/quality_hooks/frontend.py` | Enforces frontend component-system rules only for frontend changes or `--force`. |
+| `hooks/run_quality_hooks.py` | Stable human/automation CLI entrypoint. |
 
-Explicitly excluded areas:
+## Interface Contract
 
-- `.trellis-other/tasks/**`
-- `.trellis-other/workspace/**`
-- `.trellis-other/.runtime/**`
-- `.trellis-other/.developer`
-- `.trellis-other/spec/**` business contracts for JSE/PMS/Tooling/Training
-- Python bytecode caches and update markers
+```python
+class QualityHook(Protocol):
+    name: str
+    def applies(self, context: HookContext) -> bool: ...
+    def run(self, context: HookContext) -> HookResult: ...
+```
 
-## Candidate Script Notes
+`HookContext` contains the repository root, changed paths, and an explicit
+force flag. `HookResult` is `passed`, `failed`, or `skipped`; only failed
+results make the CLI return non-zero.
 
-| Candidate | Expected role | Initial import decision |
-| --- | --- | --- |
-| `spec_wiki.py` | Builds and lints a global Trellis spec catalog plus append-only maintenance log. | Candidate, but must be adapted to current FastAPI/React spec shape. |
-| `session_hook_runner.py` | Runs session lifecycle hooks through common hook plumbing. | Candidate, only if current platform hooks need this indirection. |
-| `task_hook_runner.py` | Runs task lifecycle hooks through common hook plumbing. | Candidate, only with dependency review against `common/hooks.py` and config handling. |
-| `multi_agent/codex_handoff.py` | Supports Codex handoff/context behavior for multi-agent workflows. | Caution: current project is in Codex inline mode; do not enable sub-agent routing accidentally. |
-| `multi_agent/worker.py` | Supports Trellis worker execution. | Caution: import only if tests and workflow actually need it. |
-| `common/registry.py` | Shared registry helper used by hook or multi-agent plumbing. | Candidate if imported by selected scripts. |
-| `common/worktree.py` | Shared worktree helper for worker or handoff flows. | Candidate if imported by selected scripts. |
-| `tests/**` | Regression tests for Trellis hooks/workflow/subagent behavior. | Candidate subset; remove cache files and adapt project-specific assertions. |
+Run all applicable hooks after development:
 
-## Compatibility Rules
+```powershell
+python hooks/run_quality_hooks.py
+```
 
-- Keep the current project's command style unless the runtime requires otherwise. `.trellis-other` mostly changed help text from `python` to `python3`, which is not automatically appropriate on this Windows PowerShell checkout.
-- Preserve Codex inline dispatch mode. Imported multi-agent helpers must not change the active workflow from inline to sub-agent.
-- If `spec_wiki.py` is adopted, generate a catalog from the current project's actual `.trellis/spec/**` files, not from `.trellis-other/spec/**`.
-- Do not copy `.template-hashes.json` wholesale. If generated-file hashes need updates, regenerate or update only after the selected files are imported.
+Run a required final backend check even after changes were staged or committed:
 
-## Data Flow
+```powershell
+python hooks/run_quality_hooks.py --hook backend-quality --force
+```
 
-1. Inventory `.trellis-other` candidate scripts and their imports.
-2. Map each import to an existing current-project file or an additional candidate.
-3. Decide whether each candidate is infrastructure, project-specific policy, or generated state.
-4. Copy only approved infrastructure files.
-5. Adapt command text, workflow references, and tests to current project conventions.
-6. Validate scripts and tests before any task activation or commit.
+## Backend Policy
+
+POSIX hosts invoke `backend/scripts/lint.sh` from the backend directory. Windows
+hosts use the repository `.venv/Scripts/python.exe` to execute the exact mypy,
+ty, Ruff, and format-check commands from that script. This avoids WSL PATH
+translation and does not depend on `backend/.venv`.
+
+## Frontend Policy
+
+The hook reads `frontend/components.json` for `aliases.ui` and applies the
+existing project component rules: generated UI/client files are protected,
+components must stay under allowed roots, Ant Design belongs only in complex
+surface roots, shared code cannot import feature/platform paths, and a UI alias
+import must resolve to an existing primitive.
+
+## Extensibility
+
+Add a new hook by implementing `QualityHook` in `hooks/quality_hooks/` and
+adding one instance to `default_registry()`. No Trellis update can overwrite
+this extension surface.
 
 ## Rollback
 
-All changes should be limited to the new task directory plus selected `.trellis/scripts/**`, `.trellis/tests/**`, and narrowly justified `.trellis/workflow.md` or `.trellis/spec/index.md` files. Rollback is deleting the imported candidate files and reverting any workflow/spec catalog edits from the same change set.
+Delete the new project hook package and runner. No Trellis state, library files,
+or application source needs restoration.

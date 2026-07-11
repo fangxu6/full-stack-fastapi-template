@@ -27,6 +27,7 @@ merge:
 | --- | --- | --- |
 | Backend | [backend/index.md](./backend/index.md) | Editing `backend/app/**`, backend tests, migrations, API contracts, or backend tooling |
 | Frontend | [frontend/index.md](./frontend/index.md) | Editing `frontend/src/**`, route/menu/permission behavior, generated-client consumers, or frontend tooling |
+| Project Hooks | [trellis-hook-contract.md](./trellis-hook-contract.md) | Changing project-owned backend/frontend quality hooks |
 | Thinking Guides | [guides/index.md](./guides/index.md) | Planning cross-layer work, deciding reuse boundaries, or reviewing architecture-impacting diffs |
 
 ---
@@ -42,6 +43,7 @@ merge:
 | Frontend API consumer or form type changes | [frontend/type-safety.md](./frontend/type-safety.md), [frontend/state-management.md](./frontend/state-management.md), [guides/cross-layer-thinking-guide.md](./guides/cross-layer-thinking-guide.md) |
 | Cross-layer feature or bugfix | [guides/cross-layer-thinking-guide.md](./guides/cross-layer-thinking-guide.md), then the relevant backend and frontend indexes |
 | New reusable helper/component/service | [guides/code-reuse-thinking-guide.md](./guides/code-reuse-thinking-guide.md), then the owning layer index |
+| Project quality hook or quality gate | [trellis-hook-contract.md](./trellis-hook-contract.md) |
 
 ---
 
