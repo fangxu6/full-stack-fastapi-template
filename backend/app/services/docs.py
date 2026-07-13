@@ -1,7 +1,11 @@
 from pathlib import Path
 
 from app.core.exceptions import RuleDocumentNotFoundError
-from app.schemas.docs import RuleDocumentPublic, RuleDocumentsPublic, RuleDocumentSummary
+from app.schemas.docs import (
+    RuleDocumentPublic,
+    RuleDocumentsPublic,
+    RuleDocumentSummary,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RULES_DIRECTORY = REPO_ROOT / "docs" / "rules"
@@ -21,7 +25,7 @@ def _is_allowed_rule_file(*, file_path: Path, rules_directory: Path) -> bool:
     try:
         resolved_file_path = file_path.resolve(strict=True)
         resolved_file_path.relative_to(rules_directory)
-    except (FileNotFoundError, ValueError):
+    except FileNotFoundError, ValueError:
         return False
 
     return resolved_file_path.is_file()

@@ -10,7 +10,7 @@ router = APIRouter(prefix="/docs", tags=["docs"])
 
 
 @router.get("/rules", response_model=RuleDocumentsPublic)
-def read_rule_documents(current_user: CurrentUser) -> Any:
+def read_rule_documents(_current_user: CurrentUser) -> Any:
     """
     Retrieve whitelisted rule documents.
     """
@@ -18,7 +18,7 @@ def read_rule_documents(current_user: CurrentUser) -> Any:
 
 
 @router.get("/rules/{slug}", response_model=RuleDocumentPublic)
-def read_rule_document(slug: str, current_user: CurrentUser) -> Any:
+def read_rule_document(slug: str, _current_user: CurrentUser) -> Any:
     """
     Get a single rule document by slug.
     """

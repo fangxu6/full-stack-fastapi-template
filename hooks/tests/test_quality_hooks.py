@@ -16,6 +16,13 @@ from quality_hooks.registry import HookRegistry
 
 
 class BackendQualityHookTests(unittest.TestCase):
+    def test_default_commands_use_uv_project_runner(self) -> None:
+        commands = BackendQualityHook._default_commands()
+
+        self.assertIsNotNone(commands)
+        assert commands is not None
+        self.assertTrue(all(command[:2] == ("uv", "run") for command in commands))
+
     def test_skips_non_backend_changes(self) -> None:
         result = BackendQualityHook().run(HookContext(Path.cwd(), ("frontend/src/app/App.tsx",)))
         self.assertEqual(result.status, "skipped")

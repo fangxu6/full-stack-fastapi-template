@@ -81,9 +81,7 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         return response
 
 
-async def unhandled_exception_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     request_id = getattr(request.state, "request_id", str(uuid4()))
     request.state.request_id = request_id
     logger.error(

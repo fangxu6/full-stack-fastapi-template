@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,7 +10,6 @@ from .contracts import HookContext, HookResult
 
 
 BACKEND_PREFIX = "backend/"
-POSIX_COMMAND = ("bash", "scripts/lint.sh")
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,14 +27,7 @@ class BackendQualityHook:
             return HookResult(self.name, "skipped", "No backend changes detected.")
 
         backend_dir = context.repo_root / "backend"
-        commands = self.command_groups or self._default_commands(context.repo_root)
-        if commands is None:
-            python = context.repo_root / ".venv" / "Scripts" / "python.exe"
-            return HookResult(
-                self.name,
-                "failed",
-                f"Repository virtual environment is missing: {python}.",
-            )
+        commands = self.command_groups or self._default_commands()
 
         for command in commands:
             try:
@@ -64,17 +55,10 @@ class BackendQualityHook:
         return HookResult(self.name, "passed", "Backend quality gate passed.")
 
     @staticmethod
-    def _default_commands(repo_root: Path) -> tuple[tuple[str, ...], ...] | None:
-        if os.name != "nt":
-            return (POSIX_COMMAND,)
-
-        python = repo_root / ".venv" / "Scripts" / "python.exe"
-        if not python.is_file():
-            return None
-        executable = str(python)
+    def _default_commands() -> tuple[tuple[str, ...], ...]:
         return (
-            (executable, "-m", "mypy", "app"),
-            (executable, "-m", "ty", "check", "app"),
-            (executable, "-m", "ruff", "check", "app"),
-            (executable, "-m", "ruff", "format", "app", "--check"),
+            ("uv", "run", "mypy", "app"),
+            ("uv", "run", "ty", "check", "app"),
+            ("uv", "run", "ruff", "check", "app"),
+            ("uv", "run", "ruff", "format", "app", "--check"),
         )

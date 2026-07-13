@@ -16,10 +16,11 @@ from app.schemas.security import Message
 from app.schemas.user import (
     UpdatePassword,
     UserCreate,
+    UserPublic,
     UserRegister,
     UsersPublic,
     UserUpdate,
-    UserUpdateMe, UserPublic,
+    UserUpdateMe,
 )
 from app.utils import generate_new_account_email, send_email
 
@@ -40,9 +41,7 @@ def read_users(*, session: Session, skip: int = 0, limit: int = 100) -> UsersPub
 def create_user(*, session: Session, user_in: UserCreate) -> User:
     user = crud.get_user_by_email(session=session, email=user_in.email)
     if user:
-        raise BadRequestError(
-            "The user with this email already exists in the system."
-        )
+        raise BadRequestError("The user with this email already exists in the system.")
 
     user = crud.create_user(session=session, user_create=user_in)
     if settings.emails_enabled and user_in.email:
@@ -71,12 +70,10 @@ def read_user_by_id(
     user_id: uuid.UUID,
 ) -> User:
     user = crud.get_user_by_id(session=session, user_id=user_id)
-    if user == current_user:
+    if user is not None and user == current_user:
         return user
     if not current_user.is_superuser:
-        raise PermissionDeniedError(
-            "The user doesn't have enough privileges"
-        )
+        raise PermissionDeniedError("The user doesn't have enough privileges")
     if user is None:
         raise UserNotFoundError()
     return user
@@ -104,9 +101,7 @@ def update_password_me(
     if not verified:
         raise BadRequestError("Incorrect password")
     if body.current_password == body.new_password:
-        raise BadRequestError(
-            "New password cannot be the same as the current one"
-        )
+        raise BadRequestError("New password cannot be the same as the current one")
     hashed_password = get_password_hash(body.new_password)
     current_user.hashed_password = hashed_password
     session.add(current_user)
@@ -117,9 +112,7 @@ def update_password_me(
 def register_user(*, session: Session, user_in: UserRegister) -> User:
     user = crud.get_user_by_email(session=session, email=user_in.email)
     if user:
-        raise BadRequestError(
-            "The user with this email already exists in the system"
-        )
+        raise BadRequestError("The user with this email already exists in the system")
     user_create = UserCreate.model_validate(user_in)
     user = crud.create_user(session=session, user_create=user_create)
     return user
