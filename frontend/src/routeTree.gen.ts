@@ -19,6 +19,10 @@ import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
 import { Route as LayoutRulesRouteImport } from './routes/_layout/rules'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as LayoutInventoryShipmentsRouteImport } from './routes/_layout/inventory/shipments'
+import { Route as LayoutInventoryRawRouteImport } from './routes/_layout/inventory/raw'
+import { Route as LayoutInventoryMastersRouteImport } from './routes/_layout/inventory/masters'
+import { Route as LayoutInventoryBalancesRouteImport } from './routes/_layout/inventory/balances'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -69,6 +73,27 @@ const LayoutAdminRoute = LayoutAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutInventoryShipmentsRoute =
+  LayoutInventoryShipmentsRouteImport.update({
+    id: '/inventory/shipments',
+    path: '/inventory/shipments',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+const LayoutInventoryRawRoute = LayoutInventoryRawRouteImport.update({
+  id: '/inventory/raw',
+  path: '/inventory/raw',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutInventoryMastersRoute = LayoutInventoryMastersRouteImport.update({
+  id: '/inventory/masters',
+  path: '/inventory/masters',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutInventoryBalancesRoute = LayoutInventoryBalancesRouteImport.update({
+  id: '/inventory/balances',
+  path: '/inventory/balances',
+  getParentRoute: () => LayoutRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
@@ -80,6 +105,10 @@ export interface FileRoutesByFullPath {
   '/items': typeof LayoutItemsRoute
   '/rules': typeof LayoutRulesRoute
   '/settings': typeof LayoutSettingsRoute
+  '/inventory/balances': typeof LayoutInventoryBalancesRoute
+  '/inventory/masters': typeof LayoutInventoryMastersRoute
+  '/inventory/raw': typeof LayoutInventoryRawRoute
+  '/inventory/shipments': typeof LayoutInventoryShipmentsRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -91,6 +120,10 @@ export interface FileRoutesByTo {
   '/rules': typeof LayoutRulesRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
+  '/inventory/balances': typeof LayoutInventoryBalancesRoute
+  '/inventory/masters': typeof LayoutInventoryMastersRoute
+  '/inventory/raw': typeof LayoutInventoryRawRoute
+  '/inventory/shipments': typeof LayoutInventoryShipmentsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,6 +137,10 @@ export interface FileRoutesById {
   '/_layout/rules': typeof LayoutRulesRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/': typeof LayoutIndexRoute
+  '/_layout/inventory/balances': typeof LayoutInventoryBalancesRoute
+  '/_layout/inventory/masters': typeof LayoutInventoryMastersRoute
+  '/_layout/inventory/raw': typeof LayoutInventoryRawRoute
+  '/_layout/inventory/shipments': typeof LayoutInventoryShipmentsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,6 +154,10 @@ export interface FileRouteTypes {
     | '/items'
     | '/rules'
     | '/settings'
+    | '/inventory/balances'
+    | '/inventory/masters'
+    | '/inventory/raw'
+    | '/inventory/shipments'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -128,6 +169,10 @@ export interface FileRouteTypes {
     | '/rules'
     | '/settings'
     | '/'
+    | '/inventory/balances'
+    | '/inventory/masters'
+    | '/inventory/raw'
+    | '/inventory/shipments'
   id:
     | '__root__'
     | '/_layout'
@@ -140,6 +185,10 @@ export interface FileRouteTypes {
     | '/_layout/rules'
     | '/_layout/settings'
     | '/_layout/'
+    | '/_layout/inventory/balances'
+    | '/_layout/inventory/masters'
+    | '/_layout/inventory/raw'
+    | '/_layout/inventory/shipments'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -222,6 +271,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/inventory/shipments': {
+      id: '/_layout/inventory/shipments'
+      path: '/inventory/shipments'
+      fullPath: '/inventory/shipments'
+      preLoaderRoute: typeof LayoutInventoryShipmentsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/inventory/raw': {
+      id: '/_layout/inventory/raw'
+      path: '/inventory/raw'
+      fullPath: '/inventory/raw'
+      preLoaderRoute: typeof LayoutInventoryRawRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/inventory/masters': {
+      id: '/_layout/inventory/masters'
+      path: '/inventory/masters'
+      fullPath: '/inventory/masters'
+      preLoaderRoute: typeof LayoutInventoryMastersRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/inventory/balances': {
+      id: '/_layout/inventory/balances'
+      path: '/inventory/balances'
+      fullPath: '/inventory/balances'
+      preLoaderRoute: typeof LayoutInventoryBalancesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
   }
 }
 
@@ -231,6 +308,10 @@ interface LayoutRouteChildren {
   LayoutRulesRoute: typeof LayoutRulesRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
+  LayoutInventoryBalancesRoute: typeof LayoutInventoryBalancesRoute
+  LayoutInventoryMastersRoute: typeof LayoutInventoryMastersRoute
+  LayoutInventoryRawRoute: typeof LayoutInventoryRawRoute
+  LayoutInventoryShipmentsRoute: typeof LayoutInventoryShipmentsRoute
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
@@ -239,6 +320,10 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutRulesRoute: LayoutRulesRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutIndexRoute: LayoutIndexRoute,
+  LayoutInventoryBalancesRoute: LayoutInventoryBalancesRoute,
+  LayoutInventoryMastersRoute: LayoutInventoryMastersRoute,
+  LayoutInventoryRawRoute: LayoutInventoryRawRoute,
+  LayoutInventoryShipmentsRoute: LayoutInventoryShipmentsRoute,
 }
 
 const LayoutRouteWithChildren =

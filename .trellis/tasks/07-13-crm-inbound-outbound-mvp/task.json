@@ -3,7 +3,7 @@
   "name": "crm-inbound-outbound-mvp",
   "title": "CRM 入库与出货 MVP",
   "description": "",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "",
+  "notes": "2026-07-14: 已生成 deferred-iterations.md 和 handoff.md；当前 MVP 核心链路已实现，但历史导入/迁移对账期初、前端筛选联想、E2E 验收及前端 Router 依赖修复仍待完成。",
   "meta": {}
 }

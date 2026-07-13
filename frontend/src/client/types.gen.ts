@@ -13,6 +13,100 @@ export type HTTPValidationError = {
     detail?: Array<ValidationError>;
 };
 
+export type InventoryBalancePublic = {
+    processing_unit_id: string;
+    item_name: string;
+    item_code?: (string | null);
+    wool_content: string;
+    color_code?: (string | null);
+    dye_lot_no?: (string | null);
+    rolls_balance: number;
+    meters_balance: string;
+};
+
+export type InventoryBalancesPublic = {
+    data: Array<InventoryBalancePublic>;
+};
+
+export type InventoryDocumentCreate = {
+    document_type: InventoryDocumentType;
+    business_date: string;
+    processing_unit_id: string;
+    receiving_unit_id?: (string | null);
+    document_number: string;
+    remarks?: (string | null);
+    lines: Array<InventoryLineCreate>;
+};
+
+export type InventoryDocumentPublic = {
+    id: string;
+    document_type: InventoryDocumentType;
+    business_date: string;
+    processing_unit_id: string;
+    receiving_unit_id: (string | null);
+    document_number: (string | null);
+    remarks: (string | null);
+    deleted_at: (string | null);
+    lines: Array<InventoryLinePublic>;
+};
+
+export type InventoryDocumentsPublic = {
+    data: Array<InventoryDocumentPublic>;
+    count: number;
+};
+
+export type InventoryDocumentType = 'RAW_RECEIPT' | 'RAW_RETURN' | 'FINISHED_SHIPMENT' | 'FINISHED_RECEIPT';
+
+export type InventoryLedgerEntriesPublic = {
+    data: Array<InventoryLedgerEntryPublic>;
+    count: number;
+};
+
+export type InventoryLedgerEntryPublic = {
+    id: string;
+    ledger_kind: string;
+    movement_type: string;
+    business_date: string;
+    processing_unit_id: string;
+    document_line_id: (string | null);
+    item_name: string;
+    item_code: (string | null);
+    wool_content: string;
+    color_code: (string | null);
+    dye_lot_no: (string | null);
+    rolls_delta: number;
+    meters_delta: string;
+    reason: (string | null);
+};
+
+export type InventoryLedgerKind = 'RAW' | 'FINISHED';
+
+export type InventoryLineCreate = {
+    item_name: string;
+    item_code?: (string | null);
+    wool_content: string;
+    color_code?: (string | null);
+    dye_lot_no?: (string | null);
+    quantity_rolls: number;
+    quantity_meters?: (number | string | null);
+};
+
+export type InventoryLinePublic = {
+    item_name: string;
+    item_code?: (string | null);
+    wool_content: string;
+    color_code?: (string | null);
+    dye_lot_no?: (string | null);
+    quantity_rolls: number;
+    quantity_meters?: (string | null);
+    id: string;
+    line_no: number;
+};
+
+export type InventorySuggestionsPublic = {
+    data: Array<(string)>;
+};
+
 export type ItemCreate = {
     title: string;
     description?: (string | null);
@@ -34,6 +128,26 @@ export type ItemsPublic = {
 export type ItemUpdate = {
     title?: (string | null);
     description?: (string | null);
+};
+
+export type MasterUnitCreate = {
+    name: string;
+};
+
+export type MasterUnitPublic = {
+    id: string;
+    name: string;
+    is_active: boolean;
+};
+
+export type MasterUnitsPublic = {
+    data: Array<MasterUnitPublic>;
+    count: number;
+};
+
+export type MasterUnitUpdate = {
+    name?: (string | null);
+    is_active?: (boolean | null);
 };
 
 export type Message = {
@@ -138,6 +252,117 @@ export type DocsReadRuleDocumentData = {
 };
 
 export type DocsReadRuleDocumentResponse = (RuleDocumentPublic);
+
+export type InventoryReadProcessingUnitsResponse = (MasterUnitsPublic);
+
+export type InventoryCreateProcessingUnitData = {
+    requestBody: MasterUnitCreate;
+};
+
+export type InventoryCreateProcessingUnitResponse = (MasterUnitPublic);
+
+export type InventoryUpdateProcessingUnitData = {
+    requestBody: MasterUnitUpdate;
+    unitId: string;
+};
+
+export type InventoryUpdateProcessingUnitResponse = (MasterUnitPublic);
+
+export type InventoryReadReceivingUnitsResponse = (MasterUnitsPublic);
+
+export type InventoryCreateReceivingUnitData = {
+    requestBody: MasterUnitCreate;
+};
+
+export type InventoryCreateReceivingUnitResponse = (MasterUnitPublic);
+
+export type InventoryUpdateReceivingUnitData = {
+    requestBody: MasterUnitUpdate;
+    unitId: string;
+};
+
+export type InventoryUpdateReceivingUnitResponse = (MasterUnitPublic);
+
+export type InventoryCreateInventoryDocumentData = {
+    requestBody: InventoryDocumentCreate;
+};
+
+export type InventoryCreateInventoryDocumentResponse = (InventoryDocumentPublic);
+
+export type InventoryReadInventoryDocumentsData = {
+    businessDateFrom?: (string | null);
+    businessDateTo?: (string | null);
+    documentNumber?: (string | null);
+    documentType?: (InventoryDocumentType | null);
+    includeDeleted?: boolean;
+    processingUnitId?: (string | null);
+    receivingUnitId?: (string | null);
+};
+
+export type InventoryReadInventoryDocumentsResponse = (InventoryDocumentsPublic);
+
+export type InventoryReadInventoryDocumentData = {
+    documentId: string;
+};
+
+export type InventoryReadInventoryDocumentResponse = (InventoryDocumentPublic);
+
+export type InventoryUpdateInventoryDocumentData = {
+    documentId: string;
+    requestBody: InventoryDocumentCreate;
+};
+
+export type InventoryUpdateInventoryDocumentResponse = (InventoryDocumentPublic);
+
+export type InventoryDeleteInventoryDocumentData = {
+    documentId: string;
+};
+
+export type InventoryDeleteInventoryDocumentResponse = ({
+    [key: string]: (string);
+});
+
+export type InventoryRestoreInventoryDocumentData = {
+    documentId: string;
+};
+
+export type InventoryRestoreInventoryDocumentResponse = ({
+    [key: string]: (string);
+});
+
+export type InventoryReadRawBalancesData = {
+    itemName?: (string | null);
+    processingUnitId?: (string | null);
+};
+
+export type InventoryReadRawBalancesResponse = (InventoryBalancesPublic);
+
+export type InventoryReadFinishedBalancesData = {
+    itemName?: (string | null);
+    processingUnitId?: (string | null);
+};
+
+export type InventoryReadFinishedBalancesResponse = (InventoryBalancesPublic);
+
+export type InventoryReadInventoryLedgerData = {
+    colorCode?: (string | null);
+    dyeLotNo?: (string | null);
+    itemCode?: (string | null);
+    itemName: string;
+    ledgerKind: InventoryLedgerKind;
+    processingUnitId: string;
+    woolContent: string;
+};
+
+export type InventoryReadInventoryLedgerResponse = (InventoryLedgerEntriesPublic);
+
+export type InventoryReadInventorySuggestionsData = {
+    field: string;
+    ledgerKind: InventoryLedgerKind;
+    query?: (string | null);
+};
+
+export type InventoryReadInventorySuggestionsResponse = (InventorySuggestionsPublic);
 
 export type ItemsReadItemsData = {
     limit?: number;

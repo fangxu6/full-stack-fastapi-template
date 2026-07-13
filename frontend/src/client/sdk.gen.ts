@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { DocsReadRuleDocumentsResponse, DocsReadRuleDocumentData, DocsReadRuleDocumentResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, ModulesModulesHealthCheckResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { DocsReadRuleDocumentsResponse, DocsReadRuleDocumentData, DocsReadRuleDocumentResponse, InventoryReadProcessingUnitsResponse, InventoryCreateProcessingUnitData, InventoryCreateProcessingUnitResponse, InventoryUpdateProcessingUnitData, InventoryUpdateProcessingUnitResponse, InventoryReadReceivingUnitsResponse, InventoryCreateReceivingUnitData, InventoryCreateReceivingUnitResponse, InventoryUpdateReceivingUnitData, InventoryUpdateReceivingUnitResponse, InventoryCreateInventoryDocumentData, InventoryCreateInventoryDocumentResponse, InventoryReadInventoryDocumentsData, InventoryReadInventoryDocumentsResponse, InventoryReadInventoryDocumentData, InventoryReadInventoryDocumentResponse, InventoryUpdateInventoryDocumentData, InventoryUpdateInventoryDocumentResponse, InventoryDeleteInventoryDocumentData, InventoryDeleteInventoryDocumentResponse, InventoryRestoreInventoryDocumentData, InventoryRestoreInventoryDocumentResponse, InventoryReadRawBalancesData, InventoryReadRawBalancesResponse, InventoryReadFinishedBalancesData, InventoryReadFinishedBalancesResponse, InventoryReadInventoryLedgerData, InventoryReadInventoryLedgerResponse, InventoryReadInventorySuggestionsData, InventoryReadInventorySuggestionsResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, ModulesModulesHealthCheckResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class DocsService {
     /**
@@ -18,7 +18,7 @@ export class DocsService {
             url: '/api/v1/docs/rules'
         });
     }
-    
+
     /**
      * Read Rule Document
      * Get a single rule document by slug.
@@ -33,6 +33,350 @@ export class DocsService {
             url: '/api/v1/docs/rules/{slug}',
             path: {
                 slug: data.slug
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class InventoryService {
+    /**
+     * Read Processing Units
+     * @returns MasterUnitsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readProcessingUnits(): CancelablePromise<InventoryReadProcessingUnitsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/inventory/processing-units'
+        });
+    }
+
+    /**
+     * Create Processing Unit
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns MasterUnitPublic Successful Response
+     * @throws ApiError
+     */
+    public static createProcessingUnit(data: InventoryCreateProcessingUnitData): CancelablePromise<InventoryCreateProcessingUnitResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/inventory/processing-units',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Update Processing Unit
+     * @param data The data for the request.
+     * @param data.unitId
+     * @param data.requestBody
+     * @returns MasterUnitPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateProcessingUnit(data: InventoryUpdateProcessingUnitData): CancelablePromise<InventoryUpdateProcessingUnitResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/inventory/processing-units/{unit_id}',
+            path: {
+                unit_id: data.unitId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Read Receiving Units
+     * @returns MasterUnitsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readReceivingUnits(): CancelablePromise<InventoryReadReceivingUnitsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/inventory/receiving-units'
+        });
+    }
+
+    /**
+     * Create Receiving Unit
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns MasterUnitPublic Successful Response
+     * @throws ApiError
+     */
+    public static createReceivingUnit(data: InventoryCreateReceivingUnitData): CancelablePromise<InventoryCreateReceivingUnitResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/inventory/receiving-units',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Update Receiving Unit
+     * @param data The data for the request.
+     * @param data.unitId
+     * @param data.requestBody
+     * @returns MasterUnitPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateReceivingUnit(data: InventoryUpdateReceivingUnitData): CancelablePromise<InventoryUpdateReceivingUnitResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/inventory/receiving-units/{unit_id}',
+            path: {
+                unit_id: data.unitId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Create Inventory Document
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns InventoryDocumentPublic Successful Response
+     * @throws ApiError
+     */
+    public static createInventoryDocument(data: InventoryCreateInventoryDocumentData): CancelablePromise<InventoryCreateInventoryDocumentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/inventory/documents',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Read Inventory Documents
+     * @param data The data for the request.
+     * @param data.documentType
+     * @param data.businessDateFrom
+     * @param data.businessDateTo
+     * @param data.processingUnitId
+     * @param data.receivingUnitId
+     * @param data.documentNumber
+     * @param data.includeDeleted
+     * @returns InventoryDocumentsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readInventoryDocuments(data: InventoryReadInventoryDocumentsData = {}): CancelablePromise<InventoryReadInventoryDocumentsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/inventory/documents',
+            query: {
+                document_type: data.documentType,
+                business_date_from: data.businessDateFrom,
+                business_date_to: data.businessDateTo,
+                processing_unit_id: data.processingUnitId,
+                receiving_unit_id: data.receivingUnitId,
+                document_number: data.documentNumber,
+                include_deleted: data.includeDeleted
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Read Inventory Document
+     * @param data The data for the request.
+     * @param data.documentId
+     * @returns InventoryDocumentPublic Successful Response
+     * @throws ApiError
+     */
+    public static readInventoryDocument(data: InventoryReadInventoryDocumentData): CancelablePromise<InventoryReadInventoryDocumentResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/inventory/documents/{document_id}',
+            path: {
+                document_id: data.documentId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Update Inventory Document
+     * @param data The data for the request.
+     * @param data.documentId
+     * @param data.requestBody
+     * @returns InventoryDocumentPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateInventoryDocument(data: InventoryUpdateInventoryDocumentData): CancelablePromise<InventoryUpdateInventoryDocumentResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/inventory/documents/{document_id}',
+            path: {
+                document_id: data.documentId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Delete Inventory Document
+     * @param data The data for the request.
+     * @param data.documentId
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static deleteInventoryDocument(data: InventoryDeleteInventoryDocumentData): CancelablePromise<InventoryDeleteInventoryDocumentResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/inventory/documents/{document_id}',
+            path: {
+                document_id: data.documentId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Restore Inventory Document
+     * @param data The data for the request.
+     * @param data.documentId
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static restoreInventoryDocument(data: InventoryRestoreInventoryDocumentData): CancelablePromise<InventoryRestoreInventoryDocumentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/inventory/documents/{document_id}/restore',
+            path: {
+                document_id: data.documentId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Read Raw Balances
+     * @param data The data for the request.
+     * @param data.processingUnitId
+     * @param data.itemName
+     * @returns InventoryBalancesPublic Successful Response
+     * @throws ApiError
+     */
+    public static readRawBalances(data: InventoryReadRawBalancesData = {}): CancelablePromise<InventoryReadRawBalancesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/inventory/balances/raw',
+            query: {
+                processing_unit_id: data.processingUnitId,
+                item_name: data.itemName
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Read Finished Balances
+     * @param data The data for the request.
+     * @param data.processingUnitId
+     * @param data.itemName
+     * @returns InventoryBalancesPublic Successful Response
+     * @throws ApiError
+     */
+    public static readFinishedBalances(data: InventoryReadFinishedBalancesData = {}): CancelablePromise<InventoryReadFinishedBalancesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/inventory/balances/finished',
+            query: {
+                processing_unit_id: data.processingUnitId,
+                item_name: data.itemName
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Read Inventory Ledger
+     * @param data The data for the request.
+     * @param data.ledgerKind
+     * @param data.processingUnitId
+     * @param data.itemName
+     * @param data.woolContent
+     * @param data.itemCode
+     * @param data.colorCode
+     * @param data.dyeLotNo
+     * @returns InventoryLedgerEntriesPublic Successful Response
+     * @throws ApiError
+     */
+    public static readInventoryLedger(data: InventoryReadInventoryLedgerData): CancelablePromise<InventoryReadInventoryLedgerResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/inventory/ledger',
+            query: {
+                ledger_kind: data.ledgerKind,
+                processing_unit_id: data.processingUnitId,
+                item_name: data.itemName,
+                wool_content: data.woolContent,
+                item_code: data.itemCode,
+                color_code: data.colorCode,
+                dye_lot_no: data.dyeLotNo
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Read Inventory Suggestions
+     * @param data The data for the request.
+     * @param data.ledgerKind
+     * @param data.field
+     * @param data.query
+     * @returns InventorySuggestionsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readInventorySuggestions(data: InventoryReadInventorySuggestionsData): CancelablePromise<InventoryReadInventorySuggestionsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/inventory/suggestions',
+            query: {
+                ledger_kind: data.ledgerKind,
+                field: data.field,
+                query: data.query
             },
             errors: {
                 422: 'Validation Error'
@@ -64,7 +408,7 @@ export class ItemsService {
             }
         });
     }
-    
+
     /**
      * Create Item
      * Create new item.
@@ -84,7 +428,7 @@ export class ItemsService {
             }
         });
     }
-    
+
     /**
      * Read Item
      * Get item by ID.
@@ -105,7 +449,7 @@ export class ItemsService {
             }
         });
     }
-    
+
     /**
      * Update Item
      * Update an item.
@@ -129,7 +473,7 @@ export class ItemsService {
             }
         });
     }
-    
+
     /**
      * Delete Item
      * Delete an item.
@@ -172,7 +516,7 @@ export class LoginService {
             }
         });
     }
-    
+
     /**
      * Test Token
      * Test access token
@@ -185,7 +529,7 @@ export class LoginService {
             url: '/api/v1/login/test-token'
         });
     }
-    
+
     /**
      * Recover Password
      * Password Recovery
@@ -206,7 +550,7 @@ export class LoginService {
             }
         });
     }
-    
+
     /**
      * Reset Password
      * Reset password
@@ -226,7 +570,7 @@ export class LoginService {
             }
         });
     }
-    
+
     /**
      * Recover Password Html Content
      * HTML Content for Password Recovery
@@ -308,7 +652,7 @@ export class UsersService {
             }
         });
     }
-    
+
     /**
      * Create User
      * Create new user.
@@ -328,7 +672,7 @@ export class UsersService {
             }
         });
     }
-    
+
     /**
      * Read User Me
      * Get current user.
@@ -341,7 +685,7 @@ export class UsersService {
             url: '/api/v1/users/me'
         });
     }
-    
+
     /**
      * Delete User Me
      * Delete own user.
@@ -354,7 +698,7 @@ export class UsersService {
             url: '/api/v1/users/me'
         });
     }
-    
+
     /**
      * Update User Me
      * Update own user.
@@ -374,7 +718,7 @@ export class UsersService {
             }
         });
     }
-    
+
     /**
      * Update Password Me
      * Update own password.
@@ -394,7 +738,7 @@ export class UsersService {
             }
         });
     }
-    
+
     /**
      * Register User
      * Create new user without the need to be logged in.
@@ -414,7 +758,7 @@ export class UsersService {
             }
         });
     }
-    
+
     /**
      * Read User By Id
      * Get a specific user by id.
@@ -435,7 +779,7 @@ export class UsersService {
             }
         });
     }
-    
+
     /**
      * Update User
      * Update a user.
@@ -459,7 +803,7 @@ export class UsersService {
             }
         });
     }
-    
+
     /**
      * Delete User
      * Delete a user.
@@ -503,7 +847,7 @@ export class UtilsService {
             }
         });
     }
-    
+
     /**
      * Health Check
      * @returns boolean Successful Response

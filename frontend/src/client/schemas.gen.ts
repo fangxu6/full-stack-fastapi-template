@@ -71,6 +71,549 @@ export const HTTPValidationErrorSchema = {
     title: 'HTTPValidationError'
 } as const;
 
+export const InventoryBalancePublicSchema = {
+    properties: {
+        processing_unit_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Processing Unit Id'
+        },
+        item_name: {
+            type: 'string',
+            title: 'Item Name'
+        },
+        item_code: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Item Code'
+        },
+        wool_content: {
+            type: 'string',
+            title: 'Wool Content'
+        },
+        color_code: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Color Code'
+        },
+        dye_lot_no: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Dye Lot No'
+        },
+        rolls_balance: {
+            type: 'integer',
+            title: 'Rolls Balance'
+        },
+        meters_balance: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Meters Balance'
+        }
+    },
+    type: 'object',
+    required: ['processing_unit_id', 'item_name', 'wool_content', 'rolls_balance', 'meters_balance'],
+    title: 'InventoryBalancePublic'
+} as const;
+
+export const InventoryBalancesPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/InventoryBalancePublic'
+            },
+            type: 'array',
+            title: 'Data'
+        }
+    },
+    type: 'object',
+    required: ['data'],
+    title: 'InventoryBalancesPublic'
+} as const;
+
+export const InventoryDocumentCreateSchema = {
+    properties: {
+        document_type: {
+            '$ref': '#/components/schemas/InventoryDocumentType'
+        },
+        business_date: {
+            type: 'string',
+            format: 'date',
+            title: 'Business Date'
+        },
+        processing_unit_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Processing Unit Id'
+        },
+        receiving_unit_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Receiving Unit Id'
+        },
+        document_number: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 1,
+            title: 'Document Number'
+        },
+        remarks: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Remarks'
+        },
+        lines: {
+            items: {
+                '$ref': '#/components/schemas/InventoryLineCreate'
+            },
+            type: 'array',
+            minItems: 1,
+            title: 'Lines'
+        }
+    },
+    type: 'object',
+    required: ['document_type', 'business_date', 'processing_unit_id', 'document_number', 'lines'],
+    title: 'InventoryDocumentCreate'
+} as const;
+
+export const InventoryDocumentPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        document_type: {
+            '$ref': '#/components/schemas/InventoryDocumentType'
+        },
+        business_date: {
+            type: 'string',
+            format: 'date',
+            title: 'Business Date'
+        },
+        processing_unit_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Processing Unit Id'
+        },
+        receiving_unit_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Receiving Unit Id'
+        },
+        document_number: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Document Number'
+        },
+        remarks: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Remarks'
+        },
+        deleted_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Deleted At'
+        },
+        lines: {
+            items: {
+                '$ref': '#/components/schemas/InventoryLinePublic'
+            },
+            type: 'array',
+            title: 'Lines'
+        }
+    },
+    type: 'object',
+    required: ['id', 'document_type', 'business_date', 'processing_unit_id', 'receiving_unit_id', 'document_number', 'remarks', 'deleted_at', 'lines'],
+    title: 'InventoryDocumentPublic'
+} as const;
+
+export const InventoryDocumentTypeSchema = {
+    type: 'string',
+    enum: ['RAW_RECEIPT', 'RAW_RETURN', 'FINISHED_SHIPMENT', 'FINISHED_RECEIPT'],
+    title: 'InventoryDocumentType'
+} as const;
+
+export const InventoryDocumentsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/InventoryDocumentPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'InventoryDocumentsPublic'
+} as const;
+
+export const InventoryLedgerEntriesPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/InventoryLedgerEntryPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'InventoryLedgerEntriesPublic'
+} as const;
+
+export const InventoryLedgerEntryPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        ledger_kind: {
+            type: 'string',
+            title: 'Ledger Kind'
+        },
+        movement_type: {
+            type: 'string',
+            title: 'Movement Type'
+        },
+        business_date: {
+            type: 'string',
+            format: 'date',
+            title: 'Business Date'
+        },
+        processing_unit_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Processing Unit Id'
+        },
+        document_line_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Document Line Id'
+        },
+        item_name: {
+            type: 'string',
+            title: 'Item Name'
+        },
+        item_code: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Item Code'
+        },
+        wool_content: {
+            type: 'string',
+            title: 'Wool Content'
+        },
+        color_code: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Color Code'
+        },
+        dye_lot_no: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Dye Lot No'
+        },
+        rolls_delta: {
+            type: 'integer',
+            title: 'Rolls Delta'
+        },
+        meters_delta: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Meters Delta'
+        },
+        reason: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reason'
+        }
+    },
+    type: 'object',
+    required: ['id', 'ledger_kind', 'movement_type', 'business_date', 'processing_unit_id', 'document_line_id', 'item_name', 'item_code', 'wool_content', 'color_code', 'dye_lot_no', 'rolls_delta', 'meters_delta', 'reason'],
+    title: 'InventoryLedgerEntryPublic'
+} as const;
+
+export const InventoryLedgerKindSchema = {
+    type: 'string',
+    enum: ['RAW', 'FINISHED'],
+    title: 'InventoryLedgerKind'
+} as const;
+
+export const InventoryLineCreateSchema = {
+    properties: {
+        item_name: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Item Name'
+        },
+        item_code: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Item Code'
+        },
+        wool_content: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Wool Content'
+        },
+        color_code: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Color Code'
+        },
+        dye_lot_no: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Dye Lot No'
+        },
+        quantity_rolls: {
+            type: 'integer',
+            exclusiveMinimum: 0,
+            title: 'Quantity Rolls'
+        },
+        quantity_meters: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Quantity Meters'
+        }
+    },
+    type: 'object',
+    required: ['item_name', 'wool_content', 'quantity_rolls'],
+    title: 'InventoryLineCreate'
+} as const;
+
+export const InventoryLinePublicSchema = {
+    properties: {
+        item_name: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Item Name'
+        },
+        item_code: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Item Code'
+        },
+        wool_content: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Wool Content'
+        },
+        color_code: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Color Code'
+        },
+        dye_lot_no: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Dye Lot No'
+        },
+        quantity_rolls: {
+            type: 'integer',
+            exclusiveMinimum: 0,
+            title: 'Quantity Rolls'
+        },
+        quantity_meters: {
+            anyOf: [
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Quantity Meters'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        line_no: {
+            type: 'integer',
+            title: 'Line No'
+        }
+    },
+    type: 'object',
+    required: ['item_name', 'wool_content', 'quantity_rolls', 'id', 'line_no'],
+    title: 'InventoryLinePublic'
+} as const;
+
+export const InventorySuggestionsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Data'
+        }
+    },
+    type: 'object',
+    required: ['data'],
+    title: 'InventorySuggestionsPublic'
+} as const;
+
 export const ItemCreateSchema = {
     properties: {
         title: {
@@ -194,6 +737,91 @@ export const ItemsPublicSchema = {
     type: 'object',
     required: ['data', 'count'],
     title: 'ItemsPublic'
+} as const;
+
+export const MasterUnitCreateSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Name'
+        }
+    },
+    type: 'object',
+    required: ['name'],
+    title: 'MasterUnitCreate'
+} as const;
+
+export const MasterUnitPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        is_active: {
+            type: 'boolean',
+            title: 'Is Active'
+        }
+    },
+    type: 'object',
+    required: ['id', 'name', 'is_active'],
+    title: 'MasterUnitPublic'
+} as const;
+
+export const MasterUnitUpdateSchema = {
+    properties: {
+        name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        is_active: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Is Active'
+        }
+    },
+    type: 'object',
+    title: 'MasterUnitUpdate'
+} as const;
+
+export const MasterUnitsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/MasterUnitPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'MasterUnitsPublic'
 } as const;
 
 export const MessageSchema = {
