@@ -193,6 +193,7 @@ Complex task: ask the user if you can create a Trellis task and enter the planni
 Load `trellis-brainstorm`; stay in planning.
 Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; ask for review before `task.py start`.
 Multi-deliverable scope: consider a parent task plus independently verifiable child tasks; dependencies must be written in child artifacts, not implied by tree position.
+Major scope with confirmed deferred work: read `.trellis/spec/guides/deferred-iterations-thinking-guide.md`; do not mix deferred items with current acceptance criteria.
 Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/research manifests before start.
 [/workflow-state:planning]
 
@@ -206,6 +207,7 @@ Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/research mani
 Load `trellis-brainstorm`; stay in planning.
 Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; ask for review before `task.py start`.
 Multi-deliverable scope: consider a parent task plus independently verifiable child tasks; dependencies must be written in child artifacts, not implied by tree position.
+Major scope with confirmed deferred work: read `.trellis/spec/guides/deferred-iterations-thinking-guide.md`; do not mix deferred items with current acceptance criteria.
 Inline mode: skip jsonl curation; Phase 2 reads artifacts/specs via `trellis-before-dev`.
 [/workflow-state:planning-inline]
 
@@ -337,6 +339,7 @@ The brainstorm skill will guide you to:
 - Prefer offering options over open-ended questions
 - Update `prd.md` immediately after each user answer
 - Split large scopes into a parent task plus child tasks when the deliverables can be verified independently
+- For a major scope with explicitly deferred future deliverables, read `.trellis/spec/guides/deferred-iterations-thinking-guide.md`; record only deferred work in the current task's `deferred-iterations.md`.
 - Keep `prd.md` focused on requirements and acceptance criteria
 - For complex tasks, produce `design.md` and `implement.md` before implementation starts
 

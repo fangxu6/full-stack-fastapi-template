@@ -23,6 +23,7 @@ These guides are the "what should I think about?" entry point. The detailed "how
 |-------|---------|-------------|
 | [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md) | Identify patterns and reduce duplication | When you notice repeated patterns |
 | [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning multiple layers |
+| [Deferred Iterations Thinking Guide](./deferred-iterations-thinking-guide.md) | Preserve deferred scope, dependencies, and future-task handoff | Major tasks with explicitly deferred deliverables |
 
 ---
 
@@ -96,6 +97,14 @@ Use small, reliable docs as context anchors.
 - [ ] You're creating a new utility/helper function
 
 → Read [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md)
+
+### When to Track Deferred Work
+
+- [ ] The current task has confirmed out-of-scope future deliverables
+- [ ] Deferred flows depend on work that is not yet planned or available
+- [ ] Those flows could otherwise be mistaken for current acceptance criteria
+
+→ Read [Deferred Iterations Thinking Guide](./deferred-iterations-thinking-guide.md)
 
 ---
 
