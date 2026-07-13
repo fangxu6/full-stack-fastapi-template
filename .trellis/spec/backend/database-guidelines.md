@@ -29,6 +29,8 @@ The backend uses SQLModel + SQLAlchemy on PostgreSQL. Model and schema conventio
 - `created_at` uses timezone-aware UTC timestamps through `get_datetime_utc`:
   - [`backend/app/models/user.py`](../../../backend/app/models/user.py)
   - [`backend/app/models/item.py`](../../../backend/app/models/item.py)
+- Existing `User` and `Item` tables have only the template's `created_at`; they do
+  not yet implement the full audit-field contract below.
 - Ownership from `Item` to `User` is modeled with `owner_id` and `ondelete="CASCADE"`:
   - [`backend/app/models/item.py`](../../../backend/app/models/item.py)
 
@@ -50,6 +52,162 @@ The backend uses SQLModel + SQLAlchemy on PostgreSQL. Model and schema conventio
 - Use `<resource>_id` for foreign-key fields such as `owner_id`.
 - Keep timestamp fields in UTC with timezone-aware storage.
 - Public list wrappers should keep the existing `data + count` shape, for example `UsersPublic` and `ItemsPublic`.
+
+---
+
+## Audit Field Contract
+
+### 1. Scope / Trigger
+
+Every new durable business table must include the audit-field contract below. This
+applies to user-maintained master data, documents, document lines, inventory
+ledger entries, controlled-import batches, and source rows. It does not
+retroactively change the platform `User` or template `Item` tables; changing
+those requires a separately reviewed migration.
+
+Use the term **audit fields** in task `design.md` files instead of repeating the
+five columns in every table definition. A design must still state any exception
+and the actor source for non-HTTP writes.
+
+### 2. Signatures
+
+| Field | PostgreSQL type and constraint | Meaning |
+|---|---|---|
+| `created_at` | `TIMESTAMPTZ NOT NULL` | UTC time at first persistence; immutable. |
+| `created_by` | `UUID NOT NULL REFERENCES "user"(id) ON DELETE RESTRICT` | Authenticated user or explicitly supplied command actor that created the row; immutable. |
+| `updated_at` | `TIMESTAMPTZ NOT NULL` | UTC time of the most recent persisted mutation. Equal to `created_at` on insert. |
+| `updated_by` | `UUID NOT NULL REFERENCES "user"(id) ON DELETE RESTRICT` | Authenticated user or explicitly supplied command actor that made the most recent mutation. Equal to `created_by` on insert. |
+| `deleted_at` | `TIMESTAMPTZ NULL` | Soft-delete time in UTC. `NULL` rows are active; only an explicit delete or restore service operation may change it. |
+
+SQLModel fields use `uuid.UUID`, `datetime`, `DateTime(timezone=True)`, and
+`get_datetime_utc`. New table models may obtain the fields from a shared audit
+mixin, but the Alembic revision must emit the four concrete columns and both
+foreign keys for every table in scope.
+
+```python
+import uuid
+from datetime import datetime
+
+from sqlalchemy import DateTime
+from sqlmodel import Field, SQLModel
+
+from app.models.base import get_datetime_utc
+
+
+class AuditFields(SQLModel):
+    created_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),
+        nullable=False,
+    )
+    created_by: uuid.UUID = Field(
+        foreign_key="user.id", nullable=False, ondelete="RESTRICT"
+    )
+    updated_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),
+        nullable=False,
+    )
+    updated_by: uuid.UUID = Field(
+        foreign_key="user.id", nullable=False, ondelete="RESTRICT"
+    )
+    deleted_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),
+        nullable=True,
+    )
+```
+
+The service creates rows with the four actor/timestamp values and
+`deleted_at=None`. Ordinary updates change only `updated_at` and `updated_by`.
+`created_at`, `created_by`, and `deleted_at` are never accepted from public
+create or update payloads.
+
+### 3. Contracts
+
+- HTTP mutations obtain the actor from the existing authenticated-user
+  dependency. Services receive that actor or its UUID explicitly; repositories
+  do not infer it from global state.
+- Controlled commands, importers, workers, and scripts must require an
+  `actor_user_id: UUID` argument and validate that the user exists before they
+  create auditable rows. They must not write `NULL`, a sentinel UUID, or a
+  fabricated "system" user.
+- Soft deletion is an update: set `deleted_at` to the current UTC time, retain
+  the original creator, and set `updated_at` / `updated_by` to the deletion
+  actor. Restore sets `deleted_at=NULL` and updates the same updater pair.
+- API response DTOs expose audit fields only on detail or history endpoints
+  where they are needed for traceability. Create and update DTOs never accept
+  them from clients.
+- `ON DELETE RESTRICT` preserves audit history. A user referenced by any audit
+  field cannot be physically deleted; deactivate the user instead.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| HTTP mutation has no authenticated actor | Reject through the existing authentication flow; do not persist a row. |
+| Command lacks `actor_user_id` | Reject before opening the write transaction with a validation error. |
+| Supplied actor does not exist | Reject with the repository's not-found or validation error; do not persist a row. |
+| Client sends a creator or updater field in a public payload | Ignore no values silently: reject the payload schema as unsupported. |
+| Client sends `deleted_at` in a create or ordinary update payload | Reject the payload schema as unsupported; use the explicit delete or restore operation. |
+| Update tries to alter a creator field | Reject as a validation or domain error; preserve the original values. |
+| User deletion is blocked by an audit reference | Surface a semantic conflict; require deactivation rather than physical deletion. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a receipt is created by the authenticated user. Both creator and updater
+  IDs are that user's UUID, and both timestamps use the same UTC instant.
+- Base: editing the receipt changes only the updater pair; the creator pair
+  remains unchanged.
+- Bad: an Excel importer writes rows with `created_by = NULL` because it
+  runs outside HTTP. The importer must instead require the operator's UUID.
+
+### 6. Tests Required
+
+- Insert test: assert all four actor/timestamp fields are non-null, the two
+  creator/updater pairs are equal on creation, and `deleted_at` is `NULL`.
+- Update test: assert only the updater pair changes, while creator fields remain
+  unchanged.
+- Soft-delete/restore test: assert delete sets a UTC `deleted_at` value and
+  changes the updater pair; restore sets it back to `NULL` without changing
+  creator fields.
+- Authorization/command test: assert unauthenticated mutation and a command
+  without an actor fail before inserting any business rows.
+- Referential-integrity test: assert physical deletion of a referenced user is
+  rejected, while user deactivation preserves historical rows.
+- Migration test: assert every new in-scope table contains the five audit
+  columns, UTC timestamp types, non-null constraints, and two foreign keys to
+  `user.id`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+document = InventoryDocument(
+    created_by=payload.created_by,
+    updated_by=payload.updated_by,
+)
+```
+
+This lets a caller forge audit history and leaves command-driven writes without
+an accountable actor.
+
+#### Correct
+
+```python
+now = get_datetime_utc()
+document = InventoryDocument(
+    created_at=now,
+    created_by=current_user.id,
+    updated_at=now,
+    updated_by=current_user.id,
+)
+```
+
+For a later mutation, obtain the current actor again and change only
+`updated_at` and `updated_by` in the same transaction as the business
+change.
 
 ---
 

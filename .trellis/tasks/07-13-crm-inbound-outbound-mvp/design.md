@@ -44,7 +44,76 @@ ORM 表仍在 `models/*`，HTTP DTO 仍在 `schemas/*`。路由只绑定依赖�
 
 停用替代物理删除，确保历史记录仍能显示原名称。首次导入从 Excel 的工作表名和加工单位列建立或匹配加工单位；`天双退走` 等值映射为加工单位“天双”加变动类型“退走”。当成品源行的加工单位单元格为空时，以该工作表名作为来源加工单位。不会依据猜测合并名称相近但不完全相同的单位。
 
-### 3.2 单据、历史来源与库存日记账
+### 3.2 物理数据库设计
+
+数据库使用 PostgreSQL、SQLModel 和 Alembic；所有业务表使用 UUID 主键，并继承 [数据库规范的审计字段](../../spec/backend/database-guidelines.md#audit-field-contract)：`created_at`、`created_by`、`updated_at`、`updated_by`、`deleted_at`。表格不再逐项重复这些字段；受控导入命令必须接收并记录实际操作人的 UUID。表名在 ORM 中显式指定，避免依赖类名推导。库存余额不落到可编辑表中，始终由有效日记账聚合得到。
+
+#### 枚举
+
+| PostgreSQL 枚举 | 值 | 用途 |
+|---|---|---|
+| `inventory_document_type` | `RAW_RECEIPT`、`RAW_RETURN`、`FINISHED_SHIPMENT`、`FINISHED_RECEIPT` | 前三项为日常单据；`FINISHED_RECEIPT` 仅供历史导入和未来成品入库使用，首版没有创建页面。 |
+| `inventory_ledger_kind` | `RAW`、`FINISHED` | 区分来料和成品两套不可互相抵扣的台账。 |
+| `inventory_movement_type` | `RAW_RECEIPT`、`RAW_RETURN`、`FINISHED_RECEIPT`、`FINISHED_SHIPMENT`、`MIGRATION_RECONCILIATION_OPENING` | 记录库存增减的业务原因；最后一项只允许导入器创建。 |
+| `legacy_workbook_kind` | `RAW`、`FINISHED` | 标识两份历史工作簿的来源类型。 |
+
+`inventory_document_type` 与 `inventory_movement_type` 虽有同名值，但职责不同：前者描述单据，后者描述日记账中的库存方向和原因。
+
+#### 主数据表
+
+| 表 | 字段 | 约束与索引 |
+|---|---|---|
+| `processing_unit` | `id UUID PK`；`name VARCHAR(255)`；`normalized_name VARCHAR(255)`；`is_active BOOLEAN NOT NULL DEFAULT true`；审计字段 | `normalized_name` 唯一，写入前按既定规则去首尾空白并合并连续空白。禁止物理删除被单据引用的记录。 |
+| `receiving_unit` | 与 `processing_unit` 相同的字段 | `normalized_name` 唯一；禁止物理删除被单据引用的记录。 |
+
+名称显示使用 `name`，去重和精确匹配使用 `normalized_name`。是否可用于新单据由服务层依据 `is_active` 判断，历史单据不受停用影响。
+
+#### 单据头与明细
+
+三个日常单据共享相同的审计、软删除、筛选和多明细行为，因此采用一张单据头表和一张明细表，而不是六张近似的按类型拆分表。单据类型决定字段校验和库存方向，数据库与服务层共同守住边界。
+
+| 表 | 字段 | 约束与索引 |
+|---|---|---|
+| `inventory_document` | `id UUID PK`；`document_type inventory_document_type NOT NULL`；`business_date DATE NOT NULL`；`processing_unit_id UUID NOT NULL FK processing_unit`；`receiving_unit_id UUID NULL FK receiving_unit`；`document_number VARCHAR(64) NULL`；`remarks TEXT NULL`；`is_legacy BOOLEAN NOT NULL DEFAULT false`；审计字段 | `CHECK` 要求且仅允许 `FINISHED_SHIPMENT` 填写 `receiving_unit_id`；非历史单据必须有非空白 `document_number`。建立部分唯一索引 `(document_type, document_number) WHERE is_legacy = false`，因此软删除后仍不能复用日常单号，历史空单号和重复单号不受该索引约束。建立 `(document_type, business_date DESC)`、`(processing_unit_id, business_date DESC)` 和 `(receiving_unit_id, business_date DESC) WHERE receiving_unit_id IS NOT NULL` 索引。 |
+| `inventory_document_line` | `id UUID PK`；`document_id UUID NOT NULL FK inventory_document`；`line_no SMALLINT NOT NULL`；`item_name VARCHAR(255) NOT NULL`；`item_code VARCHAR(255) NULL`；`wool_content VARCHAR(255) NOT NULL`；`color_code VARCHAR(255) NULL`；`dye_lot_no VARCHAR(255) NULL`；`quantity_rolls INTEGER NOT NULL`；`quantity_meters NUMERIC(18,3) NULL`；审计字段 | `UNIQUE(document_id, line_no)`；`line_no > 0`；`quantity_rolls > 0`；`quantity_meters IS NULL OR quantity_meters > 0`。明细物理删除只允许伴随受控导入回滚；日常删除仅设置单据头的 `deleted_at`。建立 `document_id` 索引。 |
+
+服务层额外验证不可由跨表 `CHECK` 表达的规则：来料明细必须填写 `item_code` 且不得填写颜色、缸号或米数；成品明细必须填写颜色和缸号，日常成品出货必须同时填写匹数和米数；新单据不得写入任何历史占位值。历史导入将缺项转为确认的占位字符串并标记来源行待清洗。
+
+`FINISHED_RECEIPT` 没有首版日常创建入口，但其单据和明细结构与其他类型一致，供历史 Excel 中的成品入库量建立成品库存。未来工艺卡和成品入库功能应在同一迁移中新增其表及 `inventory_document_line` 的明确外键，不提前放置无外键的占位 UUID 字段。
+
+#### 导入来源表
+
+| 表 | 字段 | 约束与索引 |
+|---|---|---|
+| `inventory_import_batch` | `id UUID PK`；`source_fingerprint CHAR(64) NOT NULL`；`raw_workbook_sha256 CHAR(64) NOT NULL`；`finished_workbook_sha256 CHAR(64) NOT NULL`；`importer_version VARCHAR(64) NOT NULL`；`reconciliation_report JSONB NOT NULL`；`imported_at TIMESTAMPTZ NOT NULL`；审计字段 | `source_fingerprint` 唯一，取两份工作簿哈希的确定性组合，因此更换导入器版本也不能重复导入同一份源数据；dry-run 不创建本表记录。 |
+| `legacy_import_row` | `id UUID PK`；`import_batch_id UUID NOT NULL FK inventory_import_batch`；`workbook_kind legacy_workbook_kind NOT NULL`；`workbook_name VARCHAR(255) NOT NULL`；`worksheet_name VARCHAR(255) NOT NULL`；`source_row_number INTEGER NOT NULL`；`raw_cells JSONB NOT NULL`；`source_balance_snapshot JSONB NOT NULL`；`requires_cleanup BOOLEAN NOT NULL DEFAULT false`；审计字段 | `source_row_number > 0`；`UNIQUE(import_batch_id, workbook_kind, worksheet_name, source_row_number)`。该唯一约束同时提供来源定位索引；每个实际 Excel 行均有一条记录，即使它不产生业务库存变动。 |
+
+`raw_cells` 保存原始单元格，`source_balance_snapshot` 只保存 Excel 中的静态库存列供对账；两者都不参与系统余额计算。导入批次回滚由受控命令按依赖反向删除本批次创建的日记账、单据、来源行和批次记录完成，不开放 HTTP 接口。
+
+#### 库存日记账与余额视图
+
+| 表 / 视图 | 字段 | 约束与索引 |
+|---|---|---|
+| `inventory_ledger_entry` | `id UUID PK`；`ledger_kind inventory_ledger_kind NOT NULL`；`movement_type inventory_movement_type NOT NULL`；`business_date DATE NOT NULL`；`processing_unit_id UUID NOT NULL FK processing_unit`；`document_line_id UUID NULL FK inventory_document_line`；`legacy_import_row_id UUID NULL FK legacy_import_row`；`import_batch_id UUID NULL FK inventory_import_batch`；`item_name VARCHAR(255) NOT NULL`；`item_code VARCHAR(255) NULL`；`wool_content VARCHAR(255) NOT NULL`；`color_code VARCHAR(255) NULL`；`dye_lot_no VARCHAR(255) NULL`；`rolls_delta INTEGER NOT NULL`；`meters_delta NUMERIC(18,3) NOT NULL DEFAULT 0`；`reason TEXT NULL`；审计字段 | `UNIQUE(document_line_id)`；`MIGRATION_RECONCILIATION_OPENING` 必须没有 `document_line_id`、必须有关联 `import_batch_id`，其他变动必须关联一条明细。原材料账要求 `item_code` 非空、颜色/缸号为空且 `meters_delta = 0`；成品账要求颜色和缸号非空、`item_code` 为空。建立来料余额键索引 `(processing_unit_id, item_name, item_code, wool_content, business_date)` 的 `RAW` 部分索引，以及成品余额键 `(processing_unit_id, item_name, wool_content, color_code, dye_lot_no, business_date)` 的 `FINISHED` 部分索引。 |
+| `raw_inventory_balance_v` | 按 `processing_unit_id + item_name + item_code + wool_content` 分组；输出 `SUM(rolls_delta) AS rolls_balance` | 只聚合 `deleted_at IS NULL` 的日记账及其关联未删除单据，以及无单据的迁移对账期初；视图不隐藏负数，服务层、导入对账和测试必须将任何负值视为不变量被破坏。 |
+| `finished_inventory_balance_v` | 按 `processing_unit_id + item_name + wool_content + color_code + dye_lot_no` 分组；输出 `SUM(rolls_delta)`、`SUM(meters_delta)` | 与来料余额视图使用相同的日记账和单据有效性规则；两个余额都必须非负。 |
+
+日常明细中的数量始终是正数，服务层根据单据类型写入带符号的 `rolls_delta` / `meters_delta`：来料入库和成品入库为正，坯布退走和成品出货为负。每条明细恰好对应一条日记账；同一历史来源行同时包含成品入库与出库时，创建两个单据明细和两条日记账，并令它们的 `legacy_import_row_id` 指向同一来源行。
+
+单据编辑在一个事务内同步更新其明细和关联日记账快照；软删除仅将 `inventory_document.deleted_at` 设为当前 UTC 时间，余额视图因而自动排除整张单据，恢复时设回 `NULL` 后自动重新纳入。迁移对账期初没有单据明细，不能从日常编辑、删除或恢复流程访问。
+
+#### 外键与数据生命周期
+
+- `inventory_document` 到加工单位、收货单位使用 `ON DELETE RESTRICT`，防止主数据物理删除破坏历史。
+- `inventory_document_line` 到单据头使用 `ON DELETE CASCADE`，仅用于受控导入回滚中的物理删除；日常操作不物理删除单据头。
+- 日记账到单据明细、历史来源行和导入批次均使用 `ON DELETE RESTRICT`；回滚按“日记账 -> 单据/来源行 -> 批次”的反向顺序执行，避免隐式级联误删审计数据。
+- 历史来源行到导入批次使用 `ON DELETE RESTRICT`。只有导入器的失败回滚或经人工确认的重导流程可以执行上述物理删除。
+
+#### 实现约束
+
+Alembic 迁移应先创建四个枚举，再依次创建主数据、单据、导入来源、日记账和余额视图；降级时按相反顺序删除。`models/inventory.py` 只声明表和关系，余额视图通过仓储层使用 `select` / 聚合查询访问，不映射为可写 SQLModel。非负余额、单位是否已停用、跨表单据类型约束和库存并发校验均属于同一事务内的服务层规则，不能仅依赖数据库 `CHECK`。
+
+### 3.3 单据、历史来源与库存日记账
 
 新建业务单据使用单据头和多条明细：
 
@@ -54,11 +123,11 @@ ORM 表仍在 `models/*`，HTTP DTO 仍在 `schemas/*`。路由只绑定依赖�
 | 坯布退走 | 日期、加工单位、单号、备注 | 同来料识别字段、退走匹数；写入来料 `RAW_RETURN` 负变动 |
 | 成品出货 | 日期、加工单位、收货单位、出库单号、备注 | 品名、含毛量、颜色/色号、缸号、出库匹数、出库米数；写入成品 `FINISHED_SHIPMENT` 双负变动 |
 
-每一条业务明细对应不可直接编辑的库存日记账变动。日记账保留：所属台账、变动类型、原因、库存识别维度、匹数增减、米数增减、所属业务明细、创建时间。未来成品入库可写入 `FINISHED_RECEIPT` 正变动并关联工艺卡；其表和页面不在本期实现。
+每一条业务明细对应不可直接编辑的库存日记账变动。日记账保留：所属台账、变动类型、原因、库存识别维度、匹数增减、米数增减、所属业务明细、创建时间。历史导入的成品入库会写入 `FINISHED_RECEIPT` 正变动；其日常页面及与工艺卡的关联不在本期实现。
 
 历史导入另保存 `LegacyImportRow`：原工作簿、工作表、行号、原始单元格数据、原库存快照和“历史待清洗”标记。每行至少有一个 `LegacyImportRow`；一行同时有成品入库和出库时，会生成两条关联同一来源行的库存日记账变动。历史记录可以在业务页面编辑或软删除其归一化后的业务字段和变动，但原始来源快照保持不变以便审计。
 
-### 3.3 库存识别键
+### 3.4 库存识别键
 
 | 台账 | 归并键 | 余额 |
 |---|---|---|
@@ -69,7 +138,7 @@ ORM 表仍在 `models/*`，HTTP DTO 仍在 `schemas/*`。路由只绑定依赖�
 
 日期、单号、出库单号、收货单位和备注不参与归并。坯布数量为正整数匹；成品出货匹数为正整数、米数为正 Decimal，二者必须同时输入。
 
-### 3.4 软删除、编辑和非负不变量
+### 3.5 软删除、编辑和非负不变量
 
 - 软删除单据或历史行后，其日记账变动不再参与余额；记录和来源定位保留。
 - 恢复、编辑和删除在一个数据库事务内处理。服务先按库存键聚合本次变动，再以“排除旧版本后的余额 + 新版本聚合量”校验，任一结果小于零即拒绝整个请求。

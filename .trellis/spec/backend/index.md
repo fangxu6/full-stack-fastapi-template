@@ -21,7 +21,7 @@ Future work should preserve that direction instead of drifting back toward route
 | Guide | Description | Status |
 |-------|-------------|--------|
 | [Directory Structure](./directory-structure.md) | Layer ownership, placement rules, transitional structure | Customized |
-| [Database Guidelines](./database-guidelines.md) | SQLModel entities, API schemas, Alembic workflow | Customized |
+| [Database Guidelines](./database-guidelines.md) | SQLModel entities, audit fields, API schemas, Alembic workflow | Customized |
 | [Error Handling](./error-handling.md) | Unified error contract and exception usage | Customized |
 | [Type Safety](./type-safety.md) | Python 3.14, SQLModel/Pydantic, service signatures, and generated-client impact | Customized |
 | [Quality Guidelines](./quality-guidelines.md) | Review rules, forbidden regressions, validation expectations | Customized |
