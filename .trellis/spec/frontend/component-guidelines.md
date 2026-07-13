@@ -42,6 +42,13 @@ The main frontend risk in this repo is false sharing: pushing page-specific or b
 
 ## Ant Design Boundary
 
+- **Default for new business-management surfaces:** use the installed Ant
+  Design 6 package (`antd@^6.5.0`) for new data-dense workflows under
+  `features/*` or `platform/*`. This includes tables, filter/search forms,
+  create/edit forms, date and selection controls, confirmation dialogs, and
+  loading, empty, or error feedback. Do not rebuild local equivalents from
+  low-level primitives unless the page has a concrete interaction need that
+  Ant Design does not cover.
 - Use Ant Design for complex enterprise UI surfaces where it removes real
   local composition: document browsers, dense lists, result/empty/error states,
   complex forms, date controls, upload flows, and future data-heavy tables.
@@ -54,6 +61,9 @@ The main frontend risk in this repo is false sharing: pushing page-specific or b
   composition.
 - Keep Ant Design provider and token wiring in `app/providers/*`; page code
   should not configure global Ant Design theme.
+- Import Ant Design components directly from `antd` inside the owning feature
+  or platform module. The global provider is already mounted through
+  [`frontend/src/app/providers/AntdProvider.tsx`](../../../frontend/src/app/providers/AntdProvider.tsx).
 - Do not adopt `@ant-design/pro-components` until its peer dependencies and
   project need are reviewed in a dedicated task.
 
