@@ -1,6 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { App, Button, Popconfirm, Space, Table, Tabs, Tag, Tooltip } from "antd"
+import {
+  App,
+  Button,
+  DatePicker,
+  Form,
+  Input,
+  Popconfirm,
+  Select,
+  Space,
+  Table,
+  Tabs,
+  Tag,
+  Tooltip,
+} from "antd"
 import type { ColumnsType } from "antd/es/table"
+import type { Dayjs } from "dayjs"
 import { Edit3, Plus, RotateCcw, Trash2 } from "lucide-react"
 import { useState } from "react"
 
@@ -16,6 +30,13 @@ type DocumentPageProps = {
   title: string
 }
 
+type DocumentFilters = {
+  business_dates?: [Dayjs, Dayjs]
+  document_number?: string
+  processing_unit_id?: string
+  receiving_unit_id?: string
+}
+
 const documentLabels: Record<InventoryDocumentCreate["document_type"], string> =
   {
     FINISHED_RECEIPT: "成品入库",
@@ -29,15 +50,31 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
   const [editingDocument, setEditingDocument] =
     useState<InventoryDocumentPublic>()
   const [isEditorOpen, setEditorOpen] = useState(false)
+  const [filters, setFilters] = useState<DocumentFilters>({})
+  const [filterForm] = Form.useForm<DocumentFilters>()
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const documentsQuery = useQuery({
     queryFn: () =>
       InventoryService.readInventoryDocuments({
+        businessDateFrom: filters.business_dates?.[0]?.format("YYYY-MM-DD"),
+        businessDateTo: filters.business_dates?.[1]?.format("YYYY-MM-DD"),
         documentType: activeType,
+        documentNumber: filters.document_number?.trim() || undefined,
         includeDeleted: true,
+        processingUnitId: filters.processing_unit_id,
+        receivingUnitId: filters.receiving_unit_id,
       }),
-    queryKey: ["inventory", "documents", activeType],
+    queryKey: ["inventory", "documents", activeType, filters],
+  })
+  const processingUnitsQuery = useQuery({
+    queryFn: () => InventoryService.readProcessingUnits(),
+    queryKey: ["inventory-processing-units"],
+  })
+  const receivingUnitsQuery = useQuery({
+    enabled: activeType === "FINISHED_SHIPMENT",
+    queryFn: () => InventoryService.readReceivingUnits(),
+    queryKey: ["inventory-receiving-units"],
   })
   const invalidate = () =>
     void queryClient.invalidateQueries({ queryKey: ["inventory"] })
@@ -159,6 +196,52 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
         }))}
         onChange={(nextType) => setActiveType(nextType as typeof activeType)}
       />
+      <Form
+        form={filterForm}
+        layout="inline"
+        onValuesChange={(_, values: DocumentFilters) => setFilters(values)}
+      >
+        <Form.Item label="日期" name="business_dates">
+          <DatePicker.RangePicker />
+        </Form.Item>
+        <Form.Item label="加工单位" name="processing_unit_id">
+          <Select
+            allowClear
+            className="min-w-40"
+            loading={processingUnitsQuery.isLoading}
+            options={(processingUnitsQuery.data?.data ?? []).map((unit) => ({
+              label: unit.name,
+              value: unit.id,
+            }))}
+            showSearch
+          />
+        </Form.Item>
+        {activeType === "FINISHED_SHIPMENT" ? (
+          <Form.Item label="收货单位" name="receiving_unit_id">
+            <Select
+              allowClear
+              className="min-w-40"
+              loading={receivingUnitsQuery.isLoading}
+              options={(receivingUnitsQuery.data?.data ?? []).map((unit) => ({
+                label: unit.name,
+                value: unit.id,
+              }))}
+              showSearch
+            />
+          </Form.Item>
+        ) : null}
+        <Form.Item label="单号" name="document_number">
+          <Input allowClear placeholder="输入单号" />
+        </Form.Item>
+        <Button
+          onClick={() => {
+            filterForm.resetFields()
+            setFilters({})
+          }}
+        >
+          清除筛选
+        </Button>
+      </Form>
       <Table
         columns={columns}
         dataSource={documentsQuery.data?.data ?? []}

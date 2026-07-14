@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   App,
+  AutoComplete,
   Button,
   DatePicker,
   Form,
@@ -11,10 +12,12 @@ import {
 } from "antd"
 import dayjs from "dayjs"
 import { Minus, Plus } from "lucide-react"
+import { useState } from "react"
 
 import {
   type InventoryDocumentCreate,
   type InventoryDocumentPublic,
+  type InventoryLedgerKind,
   type InventoryLineCreate,
   InventoryService,
 } from "@/client"
@@ -42,6 +45,38 @@ const documentLabels = {
   RAW_RETURN: "坯布退走",
 } as const
 
+type SuggestionField =
+  | "item_name"
+  | "item_code"
+  | "wool_content"
+  | "color_code"
+  | "dye_lot_no"
+
+function InventorySuggestionInput({
+  field,
+  ledgerKind,
+}: {
+  field: SuggestionField
+  ledgerKind: InventoryLedgerKind
+}) {
+  const [query, setQuery] = useState("")
+  const suggestionsQuery = useQuery({
+    enabled: query.trim().length > 0,
+    queryFn: () =>
+      InventoryService.readInventorySuggestions({ field, ledgerKind, query }),
+    queryKey: ["inventory", "suggestions", ledgerKind, field, query],
+  })
+
+  return (
+    <AutoComplete
+      onSearch={setQuery}
+      options={(suggestionsQuery.data?.data ?? []).map((value) => ({ value }))}
+    >
+      <Input />
+    </AutoComplete>
+  )
+}
+
 function isFinishedShipment(
   documentType: InventoryDocumentCreate["document_type"],
 ) {
@@ -58,6 +93,7 @@ export function DocumentEditorModal({
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const isShipment = isFinishedShipment(documentType)
+  const ledgerKind: InventoryLedgerKind = isShipment ? "FINISHED" : "RAW"
   const processingUnitsQuery = useQuery({
     queryFn: () => InventoryService.readProcessingUnits(),
     queryKey: ["inventory-processing-units"],
@@ -197,7 +233,10 @@ export function DocumentEditorModal({
                     name={[field.name, "item_name"]}
                     rules={[{ required: true }]}
                   >
-                    <Input />
+                    <InventorySuggestionInput
+                      field="item_name"
+                      ledgerKind={ledgerKind}
+                    />
                   </Form.Item>
                   {!isShipment ? (
                     <Form.Item
@@ -205,7 +244,10 @@ export function DocumentEditorModal({
                       name={[field.name, "item_code"]}
                       rules={[{ required: true }]}
                     >
-                      <Input />
+                      <InventorySuggestionInput
+                        field="item_code"
+                        ledgerKind={ledgerKind}
+                      />
                     </Form.Item>
                   ) : null}
                   <Form.Item
@@ -213,7 +255,10 @@ export function DocumentEditorModal({
                     name={[field.name, "wool_content"]}
                     rules={[{ required: true }]}
                   >
-                    <Input />
+                    <InventorySuggestionInput
+                      field="wool_content"
+                      ledgerKind={ledgerKind}
+                    />
                   </Form.Item>
                   {isShipment ? (
                     <>
@@ -222,14 +267,20 @@ export function DocumentEditorModal({
                         name={[field.name, "color_code"]}
                         rules={[{ required: true }]}
                       >
-                        <Input />
+                        <InventorySuggestionInput
+                          field="color_code"
+                          ledgerKind={ledgerKind}
+                        />
                       </Form.Item>
                       <Form.Item
                         label={index === 0 ? "缸号" : undefined}
                         name={[field.name, "dye_lot_no"]}
                         rules={[{ required: true }]}
                       >
-                        <Input />
+                        <InventorySuggestionInput
+                          field="dye_lot_no"
+                          ledgerKind={ledgerKind}
+                        />
                       </Form.Item>
                     </>
                   ) : null}

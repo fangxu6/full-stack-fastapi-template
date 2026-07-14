@@ -1,3 +1,8 @@
+# SQLModel's type surface exposes ORM columns as their value types. Query
+# expressions below are SQLAlchemy descriptors at runtime, which mypy cannot
+# represent without a plugin; preserve checking for all other error families.
+# mypy: disable-error-code="arg-type,attr-defined,return-value,union-attr"
+
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
@@ -47,7 +52,7 @@ def _audit(current_user: User) -> dict[str, object]:
 def _list_units(
     *, session: Session, model: type[ProcessingUnit] | type[ReceivingUnit]
 ) -> MasterUnitsPublic:
-    units = list(session.exec(select(model).where(model.deleted_at.is_(None))).all())
+    units = list(session.exec(select(model).where(model.deleted_at.is_(None))).all())  # ty:ignore[unresolved-attribute]
     data = [MasterUnitPublic.model_validate(unit) for unit in units]
     return MasterUnitsPublic(data=data, count=len(data))
 
@@ -70,7 +75,7 @@ def _create_unit(
     name = _normalized_name(unit_in.name)
     if not name:
         raise BadRequestError("Unit name cannot be blank")
-    unit = model(name=name, normalized_name=name, **_audit(current_user))
+    unit = model(name=name, normalized_name=name, **_audit(current_user))  # ty:ignore[invalid-argument-type]
     session.add(unit)
     try:
         session.commit()
@@ -89,7 +94,7 @@ def create_processing_unit(
         current_user=current_user,
         unit_in=unit_in,
         model=ProcessingUnit,
-    )
+    )  # ty:ignore[invalid-return-type]
 
 
 def create_receiving_unit(
@@ -100,7 +105,7 @@ def create_receiving_unit(
         current_user=current_user,
         unit_in=unit_in,
         model=ReceivingUnit,
-    )
+    )  # ty:ignore[invalid-return-type]
 
 
 def _update_unit(
@@ -147,7 +152,7 @@ def update_processing_unit(
         unit_id=unit_id,
         unit_in=unit_in,
         model=ProcessingUnit,
-    )
+    )  # ty:ignore[invalid-return-type]
 
 
 def update_receiving_unit(
@@ -163,10 +168,12 @@ def update_receiving_unit(
         unit_id=unit_id,
         unit_in=unit_in,
         model=ReceivingUnit,
-    )
+    )  # ty:ignore[invalid-return-type]
 
 
-def _require_active_units(*, session: Session, document_in: InventoryDocumentCreate) -> None:
+def _require_active_units(
+    *, session: Session, document_in: InventoryDocumentCreate
+) -> None:
     processing = session.get(ProcessingUnit, document_in.processing_unit_id)
     if not processing or processing.deleted_at or not processing.is_active:
         raise BadRequestError("Processing unit is not active")
@@ -202,24 +209,26 @@ def _movement(
         raise BadRequestError("This document type cannot be created manually") from err
 
 
-def _validate_line_for_type(
-    document_type: InventoryDocumentType, line: object
-) -> None:
-    values = (line.item_code, line.wool_content, line.color_code, line.dye_lot_no)
+def _validate_line_for_type(document_type: InventoryDocumentType, line: object) -> None:
+    values = (line.item_code, line.wool_content, line.color_code, line.dye_lot_no)  # ty:ignore[unresolved-attribute]
     if any(value in LEGACY_PLACEHOLDERS for value in values):
-        raise BadRequestError("Legacy placeholder values cannot be used in new documents")
+        raise BadRequestError(
+            "Legacy placeholder values cannot be used in new documents"
+        )
     if document_type in {
         InventoryDocumentType.RAW_RECEIPT,
         InventoryDocumentType.RAW_RETURN,
     }:
         if (
-            not line.item_code
-            or line.color_code
-            or line.dye_lot_no
-            or line.quantity_meters is not None
+            not line.item_code  # ty:ignore[unresolved-attribute]
+            or line.color_code  # ty:ignore[unresolved-attribute]
+            or line.dye_lot_no  # ty:ignore[unresolved-attribute]
+            or line.quantity_meters is not None  # ty:ignore[unresolved-attribute]
         ):
-            raise BadRequestError("Raw inventory lines require item code and rolls only")
-    elif not line.color_code or not line.dye_lot_no or line.quantity_meters is None:
+            raise BadRequestError(
+                "Raw inventory lines require item code and rolls only"
+            )
+    elif not line.color_code or not line.dye_lot_no or line.quantity_meters is None:  # ty:ignore[unresolved-attribute]
         raise BadRequestError(
             "Finished shipment lines require color, lot, rolls, and meters"
         )
@@ -257,13 +266,16 @@ def _add_lines_and_ledgers(
                 dye_lot_no=line.dye_lot_no,
                 rolls_delta=direction * line.quantity_rolls,
                 meters_delta=direction * (line.quantity_meters or Decimal("0")),
-                **_audit(current_user),
+                **_audit(current_user),  # ty:ignore[invalid-argument-type]
             )
         )
 
 
 def _apply_document_values(
-    *, document: InventoryDocument, document_in: InventoryDocumentCreate, current_user: User
+    *,
+    document: InventoryDocument,
+    document_in: InventoryDocumentCreate,
+    current_user: User,
 ) -> None:
     number = document_in.document_number.strip()
     if not number:
@@ -290,7 +302,7 @@ def create_document(
             receiving_unit_id=document_in.receiving_unit_id,
             document_number=document_in.document_number.strip(),
             remarks=document_in.remarks,
-            **_audit(current_user),
+            **_audit(current_user),  # ty:ignore[invalid-argument-type]
         )
         session.add(document)
         session.flush()
@@ -300,9 +312,11 @@ def create_document(
             document=document,
             document_in=document_in,
         )
-        _reject_negative_balances(session=session, processing_unit_id=document.processing_unit_id)
+        _reject_negative_balances(
+            session=session, processing_unit_id=document.processing_unit_id
+        )
         session.commit()
-    except (BadRequestError, ConflictError):
+    except BadRequestError, ConflictError:
         session.rollback()
         raise
     except IntegrityError as err:
@@ -311,7 +325,9 @@ def create_document(
     return _document_public(session=session, document=document)
 
 
-def get_document(*, session: Session, document_id: uuid.UUID) -> InventoryDocumentPublic:
+def get_document(
+    *, session: Session, document_id: uuid.UUID
+) -> InventoryDocumentPublic:
     document = session.get(InventoryDocument, document_id)
     if not document:
         raise NotFoundError("Inventory document not found")
@@ -333,23 +349,31 @@ def list_documents(
     if document_type:
         statement = statement.where(InventoryDocument.document_type == document_type)
     if business_date_from:
-        statement = statement.where(InventoryDocument.business_date >= business_date_from)
+        statement = statement.where(
+            InventoryDocument.business_date >= business_date_from
+        )
     if business_date_to:
         statement = statement.where(InventoryDocument.business_date <= business_date_to)
     if processing_unit_id:
-        statement = statement.where(InventoryDocument.processing_unit_id == processing_unit_id)
+        statement = statement.where(
+            InventoryDocument.processing_unit_id == processing_unit_id
+        )
     if receiving_unit_id:
-        statement = statement.where(InventoryDocument.receiving_unit_id == receiving_unit_id)
+        statement = statement.where(
+            InventoryDocument.receiving_unit_id == receiving_unit_id
+        )
     if document_number:
         statement = statement.where(
-            InventoryDocument.document_number.ilike(f"%{document_number.strip()}%")
+            InventoryDocument.document_number.ilike(f"%{document_number.strip()}%")  # ty:ignore[unresolved-attribute]
         )
     if not include_deleted:
-        statement = statement.where(InventoryDocument.deleted_at.is_(None))
+        statement = statement.where(InventoryDocument.deleted_at.is_(None))  # ty:ignore[unresolved-attribute]
     documents = list(
-        session.exec(statement.order_by(InventoryDocument.business_date.desc())).all()
+        session.exec(statement.order_by(InventoryDocument.business_date.desc())).all()  # ty:ignore[unresolved-attribute]
     )
-    data = [_document_public(session=session, document=document) for document in documents]
+    data = [
+        _document_public(session=session, document=document) for document in documents
+    ]
     return InventoryDocumentsPublic(data=data, count=len(data))
 
 
@@ -391,7 +415,7 @@ def update_document(
                 session=session, processing_unit_id=document.processing_unit_id
             )
         session.commit()
-    except (BadRequestError, ConflictError):
+    except BadRequestError, ConflictError:
         session.rollback()
         raise
     except IntegrityError as err:
@@ -463,7 +487,7 @@ def _replace_document_lines(*, session: Session, document: InventoryDocument) ->
     line_ids = [line.id for line in lines]
     ledgers = session.exec(
         select(InventoryLedgerEntry).where(
-            InventoryLedgerEntry.document_line_id.in_(line_ids)
+            InventoryLedgerEntry.document_line_id.in_(line_ids)  # ty:ignore[unresolved-attribute]
         )
     ).all()
     for ledger in ledgers:
@@ -489,7 +513,9 @@ def _set_document_ledger_deleted(
     if not line_ids:
         return
     ledgers = session.exec(
-        select(InventoryLedgerEntry).where(InventoryLedgerEntry.document_line_id.in_(line_ids))
+        select(InventoryLedgerEntry).where(
+            InventoryLedgerEntry.document_line_id.in_(line_ids)  # ty:ignore[unresolved-attribute]
+        )
     ).all()
     now = get_datetime_utc()
     for ledger in ledgers:
@@ -507,9 +533,9 @@ def _document_public(
             select(InventoryDocumentLine)
             .where(
                 InventoryDocumentLine.document_id == document.id,
-                InventoryDocumentLine.deleted_at.is_(None),
+                InventoryDocumentLine.deleted_at.is_(None),  # ty:ignore[unresolved-attribute]
             )
-            .order_by(InventoryDocumentLine.line_no)
+            .order_by(InventoryDocumentLine.line_no)  # ty:ignore[invalid-argument-type]
         ).all()
     )
     return InventoryDocumentPublic(
@@ -538,11 +564,13 @@ def _document_public(
     )
 
 
-def _reject_negative_balances(*, session: Session, processing_unit_id: uuid.UUID) -> None:
+def _reject_negative_balances(
+    *, session: Session, processing_unit_id: uuid.UUID
+) -> None:
     entries = session.exec(
         select(InventoryLedgerEntry).where(
             InventoryLedgerEntry.processing_unit_id == processing_unit_id,
-            InventoryLedgerEntry.deleted_at.is_(None),
+            InventoryLedgerEntry.deleted_at.is_(None),  # ty:ignore[unresolved-attribute]
         )
     ).all()
     balances: dict[tuple[object, ...], tuple[int, Decimal]] = {}
@@ -570,14 +598,16 @@ def list_balances(
 ) -> InventoryBalancesPublic:
     statement = select(InventoryLedgerEntry).where(
         InventoryLedgerEntry.ledger_kind == ledger_kind,
-        InventoryLedgerEntry.deleted_at.is_(None),
+        InventoryLedgerEntry.deleted_at.is_(None),  # ty:ignore[unresolved-attribute]
     )
     if processing_unit_id:
         statement = statement.where(
             InventoryLedgerEntry.processing_unit_id == processing_unit_id
         )
     if item_name:
-        statement = statement.where(InventoryLedgerEntry.item_name.ilike(f"%{item_name}%"))
+        statement = statement.where(
+            InventoryLedgerEntry.item_name.ilike(f"%{item_name}%")  # ty:ignore[unresolved-attribute]
+        )
     entries = session.exec(statement).all()
     balances: dict[tuple[object, ...], tuple[int, Decimal]] = {}
     for entry in entries:
@@ -594,12 +624,12 @@ def list_balances(
     return InventoryBalancesPublic(
         data=[
             InventoryBalancePublic(
-                processing_unit_id=key[0],
-                item_name=key[1],
-                item_code=key[2],
-                wool_content=key[3],
-                color_code=key[4],
-                dye_lot_no=key[5],
+                processing_unit_id=key[0],  # ty:ignore[invalid-argument-type]
+                item_name=key[1],  # ty:ignore[invalid-argument-type]
+                item_code=key[2],  # ty:ignore[invalid-argument-type]
+                wool_content=key[3],  # ty:ignore[invalid-argument-type]
+                color_code=key[4],  # ty:ignore[invalid-argument-type]
+                dye_lot_no=key[5],  # ty:ignore[invalid-argument-type]
                 rolls_balance=value[0],
                 meters_balance=value[1],
             )
@@ -625,15 +655,21 @@ def list_ledger_entries(
         InventoryLedgerEntry.processing_unit_id == processing_unit_id,
         InventoryLedgerEntry.item_name == item_name,
         InventoryLedgerEntry.wool_content == wool_content,
-        InventoryLedgerEntry.deleted_at.is_(None),
+        InventoryLedgerEntry.deleted_at.is_(None),  # ty:ignore[unresolved-attribute]
     )
     for column, value in (
         (InventoryLedgerEntry.item_code, item_code),
         (InventoryLedgerEntry.color_code, color_code),
         (InventoryLedgerEntry.dye_lot_no, dye_lot_no),
     ):
-        statement = statement.where(column.is_(None) if value is None else column == value)
-    entries = list(session.exec(statement.order_by(InventoryLedgerEntry.business_date)).all())
+        statement = statement.where(
+            column.is_(None) if value is None else column == value  # ty:ignore[unresolved-attribute]
+        )
+    entries = list(
+        session.exec(
+            statement.order_by(InventoryLedgerEntry.business_date)  # ty:ignore[invalid-argument-type]
+        ).all()
+    )
     data = [
         InventoryLedgerEntryPublic(
             id=entry.id,
@@ -675,10 +711,10 @@ def list_suggestions(
         raise BadRequestError("Unsupported suggestion field")
     statement = select(column).where(
         InventoryLedgerEntry.ledger_kind == ledger_kind,
-        InventoryLedgerEntry.deleted_at.is_(None),
-        column.is_not(None),
+        InventoryLedgerEntry.deleted_at.is_(None),  # ty:ignore[unresolved-attribute]
+        column.is_not(None),  # ty:ignore[unresolved-attribute]
     )
     if query:
-        statement = statement.where(column.ilike(f"%{query.strip()}%"))
+        statement = statement.where(column.ilike(f"%{query.strip()}%"))  # ty:ignore[unresolved-attribute]
     values = sorted({value for value in session.exec(statement).all() if value})
     return InventorySuggestionsPublic(data=values[:50])

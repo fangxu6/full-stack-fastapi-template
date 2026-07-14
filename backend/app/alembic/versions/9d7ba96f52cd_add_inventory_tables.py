@@ -132,7 +132,7 @@ def upgrade():
     sa.Column('quantity_meters', sa.Numeric(precision=18, scale=3), nullable=True),
     sa.CheckConstraint('line_no > 0', name='ck_inventory_document_line_number'),
     sa.CheckConstraint('quantity_meters IS NULL OR quantity_meters > 0', name='ck_inventory_document_line_meters'),
-    sa.CheckConstraint('quantity_rolls > 0', name='ck_inventory_document_line_rolls'),
+    sa.CheckConstraint('quantity_rolls >= 0', name='ck_inventory_document_line_rolls'),
     sa.ForeignKeyConstraint(['created_by'], ['user.id'], ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['document_id'], ['inventory_document.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['updated_by'], ['user.id'], ondelete='RESTRICT'),
