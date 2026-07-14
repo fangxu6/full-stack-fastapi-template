@@ -6,7 +6,12 @@ from openpyxl import Workbook, load_workbook
 from sqlmodel import Session, select
 
 from app.core.exceptions import BadRequestError
-from app.models import InventoryImportBatch, InventoryLedgerEntry, User
+from app.models import (
+    InventoryDocumentLine,
+    InventoryImportBatch,
+    InventoryLedgerEntry,
+    User,
+)
 from app.models.inventory import InventoryDocumentType
 from app.modules.inventory.importer import (
     _movement_definitions,
@@ -102,6 +107,22 @@ def test_finished_row_keeps_roll_and_meter_snapshots() -> None:
     }
 
 
+def test_finished_row_preserves_decimal_rolls() -> None:
+    movements, _ = _movement_definitions(
+        cells={"出库匹数": 0.5, "出库米数": 20},
+        kind="FINISHED",
+        worksheet_name="三泰",
+    )
+
+    assert movements == [
+        (
+            InventoryDocumentType.FINISHED_SHIPMENT,
+            Decimal("0.5"),
+            Decimal("20"),
+        )
+    ]
+
+
 def test_negative_finished_quantity_is_normalized_as_a_shipment() -> None:
     movements, _ = _movement_definitions(
         cells={"入库匹数": -1, "入库米数": -35.5},
@@ -163,7 +184,7 @@ def test_import_rolls_back_batch_when_a_workbook_row_is_invalid(
     assert db.exec(select(InventoryImportBatch)).first() is None
 
 
-def _write_finished_workbook(path: Path) -> None:
+def _write_finished_workbook(path: Path, rolls: float = 2) -> None:
     workbook = Workbook()
     sheet = workbook.active
     sheet.append(
@@ -188,7 +209,7 @@ def _write_finished_workbook(path: Path) -> None:
             "70%",
             "焦糖",
             "LOT-001",
-            2,
+            rolls,
             30,
             2,
             30,
@@ -214,6 +235,37 @@ def test_import_preserves_the_compound_color_column(
         finished_workbook=finished_workbook,
     )
 
-    ledger = db.exec(select(InventoryLedgerEntry)).first()
+    ledger = db.exec(
+        select(InventoryLedgerEntry).where(InventoryLedgerEntry.color_code == "焦糖")
+    ).one()
     assert ledger is not None
     assert ledger.color_code == "焦糖"
+
+
+def test_import_preserves_decimal_rolls(db: Session, tmp_path: Path) -> None:
+    actor = db.exec(select(User)).first()
+    assert actor is not None
+    raw_workbook = tmp_path / "raw-empty.xlsx"
+    finished_workbook = tmp_path / "finished-decimal-rolls.xlsx"
+    _write_raw_workbook(raw_workbook, 0)
+    _write_finished_workbook(finished_workbook, rolls=0.5)
+
+    import_workbooks(
+        session=db,
+        actor_user_id=actor.id,
+        raw_workbook=raw_workbook,
+        finished_workbook=finished_workbook,
+    )
+
+    line = db.exec(
+        select(InventoryDocumentLine).where(
+            InventoryDocumentLine.quantity_rolls == Decimal("0.5")
+        )
+    ).one()
+    ledger = db.exec(
+        select(InventoryLedgerEntry).where(
+            InventoryLedgerEntry.document_line_id == line.id
+        )
+    ).one()
+    assert line.quantity_rolls == Decimal("0.5")
+    assert ledger.rolls_delta == Decimal("0.5")

@@ -20,7 +20,7 @@ export type InventoryBalancePublic = {
     wool_content: string;
     color_code?: (string | null);
     dye_lot_no?: (string | null);
-    rolls_balance: number;
+    rolls_balance: string;
     meters_balance: string;
 };
 
@@ -74,7 +74,7 @@ export type InventoryLedgerEntryPublic = {
     wool_content: string;
     color_code: (string | null);
     dye_lot_no: (string | null);
-    rolls_delta: number;
+    rolls_delta: string;
     meters_delta: string;
     reason: (string | null);
 };
@@ -87,8 +87,8 @@ export type InventoryLineCreate = {
     wool_content: string;
     color_code?: (string | null);
     dye_lot_no?: (string | null);
-    quantity_rolls: number;
     quantity_meters?: (number | string | null);
+    quantity_rolls: (number | string);
 };
 
 export type InventoryLinePublic = {
@@ -97,10 +97,10 @@ export type InventoryLinePublic = {
     wool_content: string;
     color_code?: (string | null);
     dye_lot_no?: (string | null);
-    quantity_rolls: number;
     quantity_meters?: (string | null);
     id: string;
     line_no: number;
+    quantity_rolls: string;
 };
 
 export type InventorySuggestionsPublic = {

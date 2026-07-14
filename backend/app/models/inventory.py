@@ -151,7 +151,9 @@ class InventoryDocumentLine(AuditFields, table=True):
     wool_content: str = Field(max_length=255)
     color_code: str | None = Field(default=None, max_length=255)
     dye_lot_no: str | None = Field(default=None, max_length=255)
-    quantity_rolls: int
+    quantity_rolls: Decimal = Field(
+        sa_type=Numeric(18, 2)  # ty:ignore[invalid-argument-type]
+    )
     quantity_meters: Decimal | None = Field(default=None, sa_type=Numeric(18, 3))  # ty:ignore[invalid-argument-type]
 
 
@@ -233,6 +235,8 @@ class InventoryLedgerEntry(AuditFields, table=True):
     wool_content: str = Field(max_length=255)
     color_code: str | None = Field(default=None, max_length=255)
     dye_lot_no: str | None = Field(default=None, max_length=255)
-    rolls_delta: int
+    rolls_delta: Decimal = Field(
+        sa_type=Numeric(18, 2)  # ty:ignore[invalid-argument-type]
+    )
     meters_delta: Decimal = Field(default=Decimal("0"), sa_type=Numeric(18, 3))  # ty:ignore[invalid-argument-type]
     reason: str | None = None

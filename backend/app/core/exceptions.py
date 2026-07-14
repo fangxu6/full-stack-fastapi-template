@@ -3,6 +3,7 @@ from collections.abc import Awaitable, Callable
 from uuid import uuid4
 
 from fastapi import Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -136,7 +137,7 @@ async def request_validation_exception_handler(
     return JSONResponse(
         status_code=HTTP_422_UNPROCESSABLE_ENTITY,
         content={
-            "detail": exc.errors(),
+            "detail": jsonable_encoder(exc.errors()),
             "request_id": request_id,
         },
         headers={REQUEST_ID_HEADER: request_id},

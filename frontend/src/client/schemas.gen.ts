@@ -120,7 +120,8 @@ export const InventoryBalancePublicSchema = {
             title: 'Dye Lot No'
         },
         rolls_balance: {
-            type: 'integer',
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
             title: 'Rolls Balance'
         },
         meters_balance: {
@@ -409,7 +410,8 @@ export const InventoryLedgerEntryPublicSchema = {
             title: 'Dye Lot No'
         },
         rolls_delta: {
-            type: 'integer',
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
             title: 'Rolls Delta'
         },
         meters_delta: {
@@ -490,11 +492,6 @@ export const InventoryLineCreateSchema = {
             ],
             title: 'Dye Lot No'
         },
-        quantity_rolls: {
-            type: 'integer',
-            exclusiveMinimum: 0,
-            title: 'Quantity Rolls'
-        },
         quantity_meters: {
             anyOf: [
                 {
@@ -510,6 +507,19 @@ export const InventoryLineCreateSchema = {
                 }
             ],
             title: 'Quantity Meters'
+        },
+        quantity_rolls: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)'
+                }
+            ],
+            title: 'Quantity Rolls'
         }
     },
     type: 'object',
@@ -567,11 +577,6 @@ export const InventoryLinePublicSchema = {
             ],
             title: 'Dye Lot No'
         },
-        quantity_rolls: {
-            type: 'integer',
-            exclusiveMinimum: 0,
-            title: 'Quantity Rolls'
-        },
         quantity_meters: {
             anyOf: [
                 {
@@ -592,10 +597,15 @@ export const InventoryLinePublicSchema = {
         line_no: {
             type: 'integer',
             title: 'Line No'
+        },
+        quantity_rolls: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)',
+            title: 'Quantity Rolls'
         }
     },
     type: 'object',
-    required: ['item_name', 'wool_content', 'quantity_rolls', 'id', 'line_no'],
+    required: ['item_name', 'wool_content', 'id', 'line_no', 'quantity_rolls'],
     title: 'InventoryLinePublic'
 } as const;
 

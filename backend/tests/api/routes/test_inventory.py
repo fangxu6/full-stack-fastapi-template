@@ -1,11 +1,18 @@
 import uuid
 from datetime import date
+from decimal import Decimal
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
+from app.schemas.inventory import InventoryLinePublic
 
 INVENTORY_PATH = f"{settings.API_V1_STR}/inventory"
+
+
+def _decimal(value: object) -> Decimal:
+    return Decimal(str(value))
 
 
 def _create_processing_unit(
@@ -35,7 +42,7 @@ def test_raw_receipt_return_and_balance(
                 "item_name": "Raw fabric",
                 "item_code": item_code,
                 "wool_content": "100% wool",
-                "quantity_rolls": 5,
+                "quantity_rolls": "5.50",
             }
         ],
     }
@@ -49,7 +56,7 @@ def test_raw_receipt_return_and_balance(
         "document_type": "RAW_RETURN",
         "document_number": f"T-{uuid.uuid4()}",
     }
-    return_document["lines"] = [{**receipt["lines"][0], "quantity_rolls": 2}]
+    return_document["lines"] = [{**receipt["lines"][0], "quantity_rolls": "2.25"}]
     response = client.post(
         f"{INVENTORY_PATH}/documents",
         headers=superuser_token_headers,
@@ -64,7 +71,7 @@ def test_raw_receipt_return_and_balance(
     balance = next(
         item for item in response.json()["data"] if item["item_code"] == item_code
     )
-    assert balance["rolls_balance"] == 3
+    assert _decimal(balance["rolls_balance"]) == Decimal("3.25")
 
 
 def test_raw_return_rejects_negative_balance(
@@ -109,7 +116,7 @@ def test_document_update_delete_and_restore_recalculate_balance(
                 "item_name": "Raw fabric",
                 "item_code": item_code,
                 "wool_content": "100% wool",
-                "quantity_rolls": 5,
+                "quantity_rolls": "5.50",
             }
         ],
     }
@@ -121,7 +128,7 @@ def test_document_update_delete_and_restore_recalculate_balance(
     assert created.status_code == 200
     document_id = created.json()["id"]
 
-    document["lines"][0]["quantity_rolls"] = 3
+    document["lines"][0]["quantity_rolls"] = "3.25"
     updated = client.put(
         f"{INVENTORY_PATH}/documents/{document_id}",
         headers=superuser_token_headers,
@@ -135,7 +142,7 @@ def test_document_update_delete_and_restore_recalculate_balance(
     balance = next(
         item for item in response.json()["data"] if item["item_code"] == item_code
     )
-    assert balance["rolls_balance"] == 3
+    assert _decimal(balance["rolls_balance"]) == Decimal("3.25")
 
     deleted = client.delete(
         f"{INVENTORY_PATH}/documents/{document_id}", headers=superuser_token_headers
@@ -157,7 +164,7 @@ def test_document_update_delete_and_restore_recalculate_balance(
     balance = next(
         item for item in response.json()["data"] if item["item_code"] == item_code
     )
-    assert balance["rolls_balance"] == 3
+    assert _decimal(balance["rolls_balance"]) == Decimal("3.25")
 
 
 def test_finished_shipment_updates_roll_and_meter_balances(
@@ -182,7 +189,7 @@ def test_finished_shipment_updates_roll_and_meter_balances(
                 "wool_content": "70% wool",
                 "color_code": "Blue-01",
                 "dye_lot_no": "LOT-01",
-                "quantity_rolls": 1,
+                "quantity_rolls": "0.50",
                 "quantity_meters": "12.5",
             }
         ],
@@ -194,6 +201,52 @@ def test_finished_shipment_updates_roll_and_meter_balances(
 
     assert response.status_code == 409
     assert response.json()["detail"] == "Insufficient inventory"
+
+
+@pytest.mark.parametrize("quantity_rolls", ["0", "-0.01", "1.001"])
+def test_roll_quantity_rejects_non_positive_or_over_precision_values(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    quantity_rolls: str,
+) -> None:
+    processing_unit = _create_processing_unit(client, superuser_token_headers)
+    payload = {
+        "document_type": "RAW_RECEIPT",
+        "business_date": str(date.today()),
+        "processing_unit_id": processing_unit["id"],
+        "document_number": f"R-{uuid.uuid4()}",
+        "lines": [
+            {
+                "item_name": "Raw fabric",
+                "item_code": f"RF-{uuid.uuid4()}",
+                "wool_content": "100% wool",
+                "quantity_rolls": quantity_rolls,
+            }
+        ],
+    }
+
+    response = client.post(
+        f"{INVENTORY_PATH}/documents", headers=superuser_token_headers, json=payload
+    )
+
+    assert response.status_code == 422
+    assert response.json()["request_id"]
+
+
+def test_historical_read_model_allows_zero_rolls() -> None:
+    line = InventoryLinePublic(
+        id=uuid.uuid4(),
+        line_no=1,
+        item_name="Legacy finished fabric",
+        item_code=None,
+        wool_content="70% wool",
+        color_code="Blue-01",
+        dye_lot_no="LOT-01",
+        quantity_rolls=Decimal("0"),
+        quantity_meters=Decimal("20"),
+    )
+
+    assert line.quantity_rolls == Decimal("0")
 
 
 def test_inactive_processing_unit_rejects_new_document(

@@ -408,7 +408,7 @@ def _write_legacy_movement(
         wool_content=wool,
         color_code=color if is_finished else None,
         dye_lot_no=lot if is_finished else None,
-        quantity_rolls=int(rolls),
+        quantity_rolls=rolls,
         quantity_meters=meters if is_finished and meters else None,
         created_by=actor.id,
         updated_by=actor.id,
@@ -422,7 +422,7 @@ def _write_legacy_movement(
     ledger_color = color if is_finished else None
     ledger_lot = lot if is_finished else None
     meter_delta = direction * (meters or Decimal("0"))
-    rolls_delta = direction * int(rolls)
+    rolls_delta = direction * rolls
     balance_key = (
         ledger_kind,
         unit.id,
@@ -451,7 +451,7 @@ def _write_legacy_movement(
                 wool_content=wool,
                 color_code=ledger_color,
                 dye_lot_no=ledger_lot,
-                rolls_delta=int(opening_rolls),
+                rolls_delta=opening_rolls,
                 meters_delta=opening_meters,
                 reason="历史迁移对账期初",
                 created_by=actor.id,

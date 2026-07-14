@@ -4,7 +4,7 @@ import type { InventoryBalancePublic, MasterUnitPublic } from "../src/client"
 const apiBaseUrl =
   process.env.PLAYWRIGHT_E2E_API_URL ??
   process.env.VITE_API_URL ??
-  "http://127.0.0.1:8000"
+  "http://localhost:8000"
 
 function uniqueValue(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -122,7 +122,7 @@ test("Finished shipment page deducts the pre-existing finished balance", async (
   }>(page, "/balances/finished")
   const balance = balances.data.find(
     (candidate) =>
-      candidate.rolls_balance > 0 &&
+      Number(candidate.rolls_balance) >= 0.5 &&
       Number(candidate.meters_balance) >= 12.5 &&
       candidate.color_code &&
       candidate.dye_lot_no,
@@ -153,7 +153,7 @@ test("Finished shipment page deducts the pre-existing finished balance", async (
   await page.getByLabel("含毛量").fill(balance.wool_content)
   await page.getByLabel("颜色/色号").fill(balance.color_code)
   await page.getByLabel("缸号").fill(balance.dye_lot_no)
-  await page.getByLabel("匹数").fill("1")
+  await page.getByLabel("匹数").fill("0.5")
   await page.getByLabel("米数").fill("12.5")
   await page
     .getByRole("dialog")
@@ -170,5 +170,7 @@ test("Finished shipment page deducts the pre-existing finished balance", async (
   const balanceRow = page
     .getByRole("row")
     .filter({ hasText: balance.item_name })
-  await expect(balanceRow).toContainText(String(balance.rolls_balance - 1))
+  await expect(balanceRow).toContainText(
+    String(Number(balance.rolls_balance) - 0.5),
+  )
 })

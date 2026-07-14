@@ -250,6 +250,84 @@ change.
 - Changes to payload shape should be reviewed together with the frontend forms, query consumers, and page states that use the generated client types.
 - Never hand-edit `frontend/src/client/types.gen.ts` as the fix for a backend schema change.
 
+## Scenario: Inventory Decimal Quantities
+
+### 1. Scope / Trigger
+
+- Trigger: inventory counts can be fractional and the same values cross PostgreSQL,
+  Pydantic, OpenAPI, generated TypeScript, and Ant Design forms.
+
+### 2. Signatures
+
+- `inventory_document_line.quantity_rolls NUMERIC(18,2) NOT NULL`
+- `inventory_ledger_entry.rolls_delta NUMERIC(18,2) NOT NULL`
+- Write DTO: `quantity_rolls: Decimal` with `gt=0`, `max_digits=18`, and
+  `decimal_places=2`.
+- Read DTO: `quantity_rolls: Decimal` with `ge=0`; ledger and balance roll
+  fields are also `Decimal`.
+
+### 3. Contracts
+
+- Daily document writes reject zero, negative values, and values with more than
+  two decimal places. They do not round the request.
+- Historical reads allow `0.00` because controlled legacy imports can contain
+  known zero-value rows. The generated OpenAPI client serializes Decimal
+  response fields as strings; frontend display and comparisons must account for
+  that.
+- Migration downgrade must refuse to cast back to integers while fractional
+  values exist. Recover from the pre-migration backup instead.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| `quantity_rolls = 0`, negative, or has three decimals | HTTP 422 with the standard `detail` and `request_id` shape |
+| Legacy row has `quantity_rolls = 0` | Read response is 200; preserve the historical value |
+| Source workbook has `0.50` rolls | Import, ledger movement, and reconciliation opening retain `Decimal("0.50")` |
+| Downgrade finds a fractional roll | Migration raises; it must not truncate data |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a shipment writes `"0.50"`, creates a `-0.50` ledger movement, and
+  the balance aggregation uses `Decimal("0")` as its initial value.
+- Base: a pre-existing imported zero-roll shipment can be listed while remaining
+  invalid for new document writes.
+- Bad: a public read model inherits the write DTO's `gt=0` field, causing a
+  response-model validation failure and a list endpoint 500.
+
+### 6. Tests Required
+
+- API tests: accept `0.50`; reject zero, negative, and three-decimal values;
+  verify insufficient-inventory behavior still works.
+- Importer test: a workbook `0.50` writes a `0.50` line and ledger movement.
+- Migration verification: check source-backed repairs, matching reconciliation
+  openings, non-negative balances, and downgrade protection on a database copy.
+- Frontend: generated-client build succeeds and roll inputs use `min=0.01`,
+  `step=0.01`, and `precision=2`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+class InventoryLinePublic(InventoryLineCreate):
+    id: uuid.UUID
+```
+
+The inherited `gt=0` contract rejects controlled historical zero values when
+serializing reads.
+
+#### Correct
+
+```python
+class InventoryLinePublic(InventoryLineBase):
+    id: uuid.UUID
+    quantity_rolls: Decimal = Field(ge=0, max_digits=18, decimal_places=2)
+```
+
+Separate read and write contracts so historical compatibility never relaxes new
+write validation.
+
 ---
 
 ## Code Anchors

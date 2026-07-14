@@ -28,14 +28,17 @@ class MasterUnitsPublic(SQLModel):
     count: int
 
 
-class InventoryLineCreate(SQLModel):
+class InventoryLineBase(SQLModel):
     item_name: str = Field(min_length=1, max_length=255)
     item_code: str | None = Field(default=None, max_length=255)
     wool_content: str = Field(min_length=1, max_length=255)
     color_code: str | None = Field(default=None, max_length=255)
     dye_lot_no: str | None = Field(default=None, max_length=255)
-    quantity_rolls: int = Field(gt=0)
     quantity_meters: Decimal | None = Field(default=None, gt=0)
+
+
+class InventoryLineCreate(InventoryLineBase):
+    quantity_rolls: Decimal = Field(gt=0, max_digits=18, decimal_places=2)
 
 
 class InventoryDocumentCreate(SQLModel):
@@ -59,9 +62,10 @@ class InventoryDocumentCreate(SQLModel):
         return self
 
 
-class InventoryLinePublic(InventoryLineCreate):
+class InventoryLinePublic(InventoryLineBase):
     id: uuid.UUID
     line_no: int
+    quantity_rolls: Decimal = Field(ge=0, max_digits=18, decimal_places=2)
 
 
 class InventoryDocumentPublic(SQLModel):
@@ -93,7 +97,7 @@ class InventoryLedgerEntryPublic(SQLModel):
     wool_content: str
     color_code: str | None
     dye_lot_no: str | None
-    rolls_delta: int
+    rolls_delta: Decimal
     meters_delta: Decimal
     reason: str | None
 
@@ -110,7 +114,7 @@ class InventoryBalancePublic(SQLModel):
     wool_content: str
     color_code: str | None = None
     dye_lot_no: str | None = None
-    rolls_balance: int
+    rolls_balance: Decimal
     meters_balance: Decimal
 
 

@@ -52,7 +52,12 @@ def _audit(current_user: User) -> dict[str, object]:
 def _list_units(
     *, session: Session, model: type[ProcessingUnit] | type[ReceivingUnit]
 ) -> MasterUnitsPublic:
-    units = list(session.exec(select(model).where(model.deleted_at.is_(None))).all())  # ty:ignore[unresolved-attribute]
+    statement = (
+        select(model)
+        .where(model.deleted_at.is_(None))  # ty:ignore[unresolved-attribute]
+        .order_by(model.created_at.desc())  # ty:ignore[unresolved-attribute]
+    )
+    units = list(session.exec(statement).all())
     data = [MasterUnitPublic.model_validate(unit) for unit in units]
     return MasterUnitsPublic(data=data, count=len(data))
 
@@ -185,22 +190,22 @@ def _require_active_units(
 
 def _movement(
     document_type: InventoryDocumentType,
-) -> tuple[InventoryLedgerKind, InventoryMovementType, int]:
+) -> tuple[InventoryLedgerKind, InventoryMovementType, Decimal]:
     mapping = {
         InventoryDocumentType.RAW_RECEIPT: (
             InventoryLedgerKind.RAW,
             InventoryMovementType.RAW_RECEIPT,
-            1,
+            Decimal("1"),
         ),
         InventoryDocumentType.RAW_RETURN: (
             InventoryLedgerKind.RAW,
             InventoryMovementType.RAW_RETURN,
-            -1,
+            Decimal("-1"),
         ),
         InventoryDocumentType.FINISHED_SHIPMENT: (
             InventoryLedgerKind.FINISHED,
             InventoryMovementType.FINISHED_SHIPMENT,
-            -1,
+            Decimal("-1"),
         ),
     }
     try:
@@ -573,7 +578,7 @@ def _reject_negative_balances(
             InventoryLedgerEntry.deleted_at.is_(None),  # ty:ignore[unresolved-attribute]
         )
     ).all()
-    balances: dict[tuple[object, ...], tuple[int, Decimal]] = {}
+    balances: dict[tuple[object, ...], tuple[Decimal, Decimal]] = {}
     for entry in entries:
         key = (
             entry.ledger_kind,
@@ -583,7 +588,7 @@ def _reject_negative_balances(
             entry.color_code,
             entry.dye_lot_no,
         )
-        rolls, meters = balances.get(key, (0, Decimal("0")))
+        rolls, meters = balances.get(key, (Decimal("0"), Decimal("0")))
         balances[key] = (rolls + entry.rolls_delta, meters + entry.meters_delta)
     if any(rolls < 0 or meters < 0 for rolls, meters in balances.values()):
         raise ConflictError("Insufficient inventory")
@@ -609,7 +614,7 @@ def list_balances(
             InventoryLedgerEntry.item_name.ilike(f"%{item_name}%")  # ty:ignore[unresolved-attribute]
         )
     entries = session.exec(statement).all()
-    balances: dict[tuple[object, ...], tuple[int, Decimal]] = {}
+    balances: dict[tuple[object, ...], tuple[Decimal, Decimal]] = {}
     for entry in entries:
         key = (
             entry.processing_unit_id,
@@ -619,7 +624,7 @@ def list_balances(
             entry.color_code,
             entry.dye_lot_no,
         )
-        rolls, meters = balances.get(key, (0, Decimal("0")))
+        rolls, meters = balances.get(key, (Decimal("0"), Decimal("0")))
         balances[key] = (rolls + entry.rolls_delta, meters + entry.meters_delta)
     return InventoryBalancesPublic(
         data=[

@@ -289,9 +289,16 @@ export function DocumentEditorModal({
                   <Form.Item
                     label={index === 0 ? "匹数" : undefined}
                     name={[field.name, "quantity_rolls"]}
-                    rules={[{ required: true, message: "请输入正整数" }]}
+                    rules={[
+                      { required: true, message: "请输入最多两位小数的正数" },
+                    ]}
                   >
-                    <InputNumber className="w-full" min={1} precision={0} />
+                    <InputNumber
+                      className="w-full"
+                      min={0.01}
+                      precision={2}
+                      step={0.01}
+                    />
                   </Form.Item>
                   {isShipment ? (
                     <Form.Item
