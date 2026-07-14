@@ -2,13 +2,17 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from openpyxl import load_workbook
+from openpyxl import Workbook, load_workbook
+from sqlmodel import Session, select
 
+from app.core.exceptions import BadRequestError
+from app.models import InventoryImportBatch, InventoryLedgerEntry, User
 from app.models.inventory import InventoryDocumentType
 from app.modules.inventory.importer import (
     _movement_definitions,
     _row_values,
     _source_balance_snapshot,
+    import_workbooks,
 )
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[4]
@@ -128,3 +132,88 @@ def test_meter_only_finished_history_is_preserved() -> None:
             Decimal("20"),
         )
     ]
+
+
+def _write_raw_workbook(path: Path, quantity: object) -> None:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(["日期", "加工单位", "品名", "品号", "含毛量", "入库"])
+    sheet.append(["2026-07-14", "回滚加工厂", "回滚坯布", "RB-001", "100%", quantity])
+    workbook.save(path)
+
+
+def test_import_rolls_back_batch_when_a_workbook_row_is_invalid(
+    db: Session, tmp_path: Path
+) -> None:
+    actor = db.exec(select(User)).first()
+    assert actor is not None
+    raw_workbook = tmp_path / "raw-invalid.xlsx"
+    finished_workbook = tmp_path / "finished-empty.xlsx"
+    _write_raw_workbook(raw_workbook, "not-a-quantity")
+    _write_raw_workbook(finished_workbook, 0)
+
+    with pytest.raises(BadRequestError, match="Invalid inventory quantity"):
+        import_workbooks(
+            session=db,
+            actor_user_id=actor.id,
+            raw_workbook=raw_workbook,
+            finished_workbook=finished_workbook,
+        )
+
+    assert db.exec(select(InventoryImportBatch)).first() is None
+
+
+def _write_finished_workbook(path: Path) -> None:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(
+        [
+            "日期",
+            "加工单位",
+            "品名",
+            "含毛量",
+            "颜色+色号",
+            "缸号",
+            "入库匹数",
+            "入库米数",
+            "库存匹数",
+            "库存米数",
+        ]
+    )
+    sheet.append(
+        [
+            "2026-07-14",
+            "颜色加工厂",
+            "颜色成品",
+            "70%",
+            "焦糖",
+            "LOT-001",
+            2,
+            30,
+            2,
+            30,
+        ]
+    )
+    workbook.save(path)
+
+
+def test_import_preserves_the_compound_color_column(
+    db: Session, tmp_path: Path
+) -> None:
+    actor = db.exec(select(User)).first()
+    assert actor is not None
+    raw_workbook = tmp_path / "raw-empty.xlsx"
+    finished_workbook = tmp_path / "finished-color.xlsx"
+    _write_raw_workbook(raw_workbook, 0)
+    _write_finished_workbook(finished_workbook)
+
+    import_workbooks(
+        session=db,
+        actor_user_id=actor.id,
+        raw_workbook=raw_workbook,
+        finished_workbook=finished_workbook,
+    )
+
+    ledger = db.exec(select(InventoryLedgerEntry)).first()
+    assert ledger is not None
+    assert ledger.color_code == "焦糖"

@@ -272,7 +272,7 @@ def _import_book(
                 _text(_value(cells, "含毛量", "含毛"), MISSING_WOOL_CONTENT)
                 or MISSING_WOOL_CONTENT
             )
-            color = _text(_value(cells, "颜色", "色号"))
+            color = _text(_value(cells, "颜色+色号", "颜色", "色号"))
             lot = _text(
                 _value(cells, "缸号"),
                 MISSING_DYE_LOT if kind is LegacyWorkbookKind.FINISHED else None,

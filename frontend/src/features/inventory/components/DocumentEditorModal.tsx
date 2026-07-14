@@ -189,6 +189,7 @@ export function DocumentEditorModal({
             rules={[{ required: true }]}
           >
             <Select
+              aria-label="加工单位"
               loading={processingUnitsQuery.isLoading}
               options={(processingUnitsQuery.data?.data ?? [])
                 .filter(
@@ -206,6 +207,7 @@ export function DocumentEditorModal({
               rules={[{ required: true }]}
             >
               <Select
+                aria-label="收货单位"
                 loading={receivingUnitsQuery.isLoading}
                 options={(receivingUnitsQuery.data?.data ?? [])
                   .filter(
