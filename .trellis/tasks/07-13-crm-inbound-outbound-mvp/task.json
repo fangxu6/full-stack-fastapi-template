@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "2026-07-14: 已生成 deferred-iterations.md 和 handoff.md；当前 MVP 核心链路已实现，但历史导入/迁移对账期初、前端筛选联想、E2E 验收及前端 Router 依赖修复仍待完成。",
+  "notes": "2026-07-14: 核心 MVP、历史导入/迁移对账期初、前端筛选联想和隔离库验证已完成；本地数据库已升级至 c9b1f4e7a2d0。浏览器 E2E 因当前运行时没有可用浏览器连接而待执行；归档前仍需完成该验收与收尾。",
   "meta": {}
 }
