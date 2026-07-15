@@ -1,12 +1,14 @@
 import hashlib
 import json
+import re
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import cast
 
 from openpyxl import load_workbook  # type: ignore[import-untyped]
+from openpyxl.utils.datetime import from_excel  # type: ignore[import-untyped]
 from openpyxl.worksheet.worksheet import Worksheet  # type: ignore[import-untyped]
 from sqlmodel import Session, select
 
@@ -28,7 +30,7 @@ from app.models.inventory import (
     LegacyWorkbookKind,
 )
 
-IMPORTER_VERSION = "inventory-xlsx-v1"
+IMPORTER_VERSION = "inventory-xlsx-v2"
 MISSING_ITEM_CODE = "未填写品号"
 MISSING_WOOL_CONTENT = "未填写含毛量"
 MISSING_DYE_LOT = "未分缸"
@@ -51,13 +53,37 @@ def _number(value: object) -> Decimal:
         raise BadRequestError(f"Invalid inventory quantity: {value}") from err
 
 
-def _date(value: object) -> date:
+def _date(value: object, *, epoch: datetime) -> date:
+    if isinstance(value, datetime):
+        return value.date()
     if isinstance(value, date):
         return value
+
+    text = str(value or "").strip()
+    year_closing_match = re.fullmatch(r"(\d{4})年结存", text)
+    if year_closing_match:
+        return date(int(year_closing_match.group(1)), 12, 31)
+
     try:
-        return date.fromisoformat(str(value))
-    except ValueError:
-        return date.today()
+        numeric_value = Decimal(text)
+    except Exception:
+        numeric_value = None
+    if numeric_value is not None and 30_000 <= numeric_value <= 100_000:
+        converted = from_excel(float(numeric_value), epoch)
+        return converted.date() if isinstance(converted, datetime) else converted
+
+    slash_date_match = re.fullmatch(r"(\d{4})/(\d{1,2})/(\d{1,2})", text)
+    if slash_date_match:
+        return date(
+            int(slash_date_match.group(1)),
+            int(slash_date_match.group(2)),
+            int(slash_date_match.group(3)),
+        )
+
+    try:
+        return datetime.fromisoformat(text.replace("/", "-")).date()
+    except ValueError as err:
+        raise BadRequestError(f"Invalid inventory date: {value}") from err
 
 
 def _header_key(value: object) -> str:
@@ -298,6 +324,9 @@ def _import_book(
             session.flush()
             if cleanup:
                 report["requires_cleanup"] += 1
+            if not movements:
+                continue
+            business_date = _date(_value(cells, "日期", "时间"), epoch=workbook.epoch)
             for document_type, rolls, meters in movements:
                 _write_legacy_movement(
                     session=session,
@@ -313,7 +342,7 @@ def _import_book(
                     lot=lot,
                     rolls=rolls,
                     meters=meters,
-                    business_date=_date(_value(cells, "日期", "时间")),
+                    business_date=business_date,
                     number=_text(_value(cells, "单号", "出库单号")),
                     receiving_name=_text(_value(cells, "收货单位")),
                     report=report,

@@ -1,8 +1,10 @@
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 from openpyxl import Workbook, load_workbook
+from openpyxl.utils.datetime import CALENDAR_WINDOWS_1900
 from sqlmodel import Session, select
 
 from app.core.exceptions import BadRequestError
@@ -14,6 +16,7 @@ from app.models import (
 )
 from app.models.inventory import InventoryDocumentType
 from app.modules.inventory.importer import (
+    _date,
     _movement_definitions,
     _row_values,
     _source_balance_snapshot,
@@ -60,6 +63,28 @@ def test_row_values_recognizes_the_real_legacy_workbook_layouts(
     assert source_row == expected_row
     for field, expected_value in expected_values.items():
         assert cells[field] == expected_value
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (46090, date(2026, 3, 9)),
+        ("46090", date(2026, 3, 9)),
+        ("2026/3/9", date(2026, 3, 9)),
+        ("2026-03-09 00:00:00", date(2026, 3, 9)),
+        (datetime(2026, 3, 9), date(2026, 3, 9)),
+        ("2025年结存", date(2025, 12, 31)),
+    ],
+)
+def test_date_parser_preserves_legacy_workbook_dates(
+    value: object, expected: date
+) -> None:
+    assert _date(value, epoch=CALENDAR_WINDOWS_1900) == expected
+
+
+def test_date_parser_rejects_unrecognized_values() -> None:
+    with pytest.raises(BadRequestError, match="Invalid inventory date"):
+        _date(None, epoch=CALENDAR_WINDOWS_1900)
 
 
 def test_raw_return_row_uses_its_base_processing_unit() -> None:

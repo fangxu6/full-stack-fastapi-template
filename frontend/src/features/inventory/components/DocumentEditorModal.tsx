@@ -60,9 +60,13 @@ type SuggestionField =
 function InventorySuggestionInput({
   field,
   ledgerKind,
+  onChange,
+  value,
 }: {
   field: SuggestionField
   ledgerKind: InventoryLedgerKind
+  onChange?: (value: string) => void
+  value?: string
 }) {
   const [query, setQuery] = useState("")
   const suggestionsQuery = useQuery({
@@ -74,8 +78,10 @@ function InventorySuggestionInput({
 
   return (
     <AutoComplete
+      onChange={onChange}
       onSearch={setQuery}
       options={(suggestionsQuery.data?.data ?? []).map((value) => ({ value }))}
+      value={value}
     >
       <Input />
     </AutoComplete>
@@ -204,7 +210,7 @@ export function DocumentEditorModal({
                     unit.is_active || unit.id === document?.processing_unit_id,
                 )
                 .map((unit) => ({ label: unit.name, value: unit.id }))}
-              showSearch
+              showSearch={{ optionFilterProp: "label" }}
             />
           </Form.Item>
           {isShipment ? (
@@ -222,7 +228,7 @@ export function DocumentEditorModal({
                       unit.is_active || unit.id === document?.receiving_unit_id,
                   )
                   .map((unit) => ({ label: unit.name, value: unit.id }))}
-                showSearch
+                showSearch={{ optionFilterProp: "label" }}
               />
             </Form.Item>
           ) : null}

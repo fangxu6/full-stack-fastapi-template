@@ -328,6 +328,20 @@ class InventoryLinePublic(InventoryLineBase):
 Separate read and write contracts so historical compatibility never relaxes new
 write validation.
 
+## Scenario: Legacy Workbook Business Dates
+
+- Excel workbooks may store visible dates as numeric serials or as date-formatted
+  `datetime` cells. Importers must use the workbook's epoch when converting
+  serials; they must not treat a numeric serial as an invalid date.
+- Strings matching `YYYY年结存` represent year-end stock and map to
+  `YYYY-12-31`. Rows with no business movement may omit a date; rows that create
+  a document or ledger entry must fail clearly when their date cannot be parsed.
+- Never fall back to `date.today()` for a legacy business date. This would make
+  historical ordering and date filters depend on the import execution date.
+- A historical date correction migration must update document and ledger dates
+  from `legacy_import_row.raw_cells`, run against a database backup, and verify
+  document/ledger date equality after migration.
+
 ---
 
 ## Code Anchors
