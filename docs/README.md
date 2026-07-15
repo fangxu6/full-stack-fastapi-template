@@ -1,5 +1,6 @@
 # 项目规划文档
 
+- `docs/postgresql-export.md`：PostgreSQL 数据库导出、恢复、远程操作、常见排错和安全注意事项。
 - `docs/3-month-roadmap.md`：3 个月路线图（按双周迭代），包含每期目标、验收标准、风险点、资源配置。
 - `docs/feishu-epic-story-task.csv`：可直接导入飞书项目的 `Epic -> Story -> Task` 清单，包含优先级、预估工时、负责人模板、验收标准。
 - `docs/specs/trellis-codex-hooks-subagents/`：Trellis/Codex hooks 与 subagent 后续落地实施方案，记录默认 inline、显式 sub-agent、`SubagentStart`/`SubagentStop` 边界和测试计划。
