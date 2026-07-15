@@ -55,10 +55,19 @@ def _list_units(
     *,
     session: Session,
     model: type[ProcessingUnit] | type[ReceivingUnit],
+    name: str | None,
+    is_active: bool | None,
     skip: int,
     limit: int,
 ) -> MasterUnitsPublic:
     filters = [model.deleted_at.is_(None)]  # ty:ignore[unresolved-attribute]
+    normalized_name = _normalized_name(name) if name else ""
+    if normalized_name:
+        filters.append(
+            model.normalized_name.ilike(f"%{normalized_name}%")  # ty:ignore[unresolved-attribute]
+        )
+    if is_active is not None:
+        filters.append(model.is_active == is_active)
     count = session.exec(select(func.count()).select_from(model).where(*filters)).one()
     statement = (
         select(model)
@@ -73,15 +82,39 @@ def _list_units(
 
 
 def list_processing_units(
-    *, session: Session, skip: int, limit: int
+    *,
+    session: Session,
+    name: str | None,
+    is_active: bool | None,
+    skip: int,
+    limit: int,
 ) -> MasterUnitsPublic:
-    return _list_units(session=session, model=ProcessingUnit, skip=skip, limit=limit)
+    return _list_units(
+        session=session,
+        model=ProcessingUnit,
+        name=name,
+        is_active=is_active,
+        skip=skip,
+        limit=limit,
+    )
 
 
 def list_receiving_units(
-    *, session: Session, skip: int, limit: int
+    *,
+    session: Session,
+    name: str | None,
+    is_active: bool | None,
+    skip: int,
+    limit: int,
 ) -> MasterUnitsPublic:
-    return _list_units(session=session, model=ReceivingUnit, skip=skip, limit=limit)
+    return _list_units(
+        session=session,
+        model=ReceivingUnit,
+        name=name,
+        is_active=is_active,
+        skip=skip,
+        limit=limit,
+    )
 
 
 def _create_unit(

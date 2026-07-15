@@ -98,6 +98,75 @@ def test_master_unit_lists_are_offset_paginated(
     assert payload["count"] > len(payload["data"])
 
 
+@pytest.mark.parametrize("endpoint", ["processing-units", "receiving-units"])
+def test_master_unit_lists_filter_by_name_and_status(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    endpoint: str,
+) -> None:
+    prefix = f"Filter {uuid.uuid4()}"
+    endpoint_url = f"{INVENTORY_PATH}/{endpoint}"
+    active_response = client.post(
+        endpoint_url,
+        headers=superuser_token_headers,
+        json={"name": f"{prefix} Active"},
+    )
+    inactive_response = client.post(
+        endpoint_url,
+        headers=superuser_token_headers,
+        json={"name": f"{prefix} Inactive"},
+    )
+    unrelated_response = client.post(
+        endpoint_url,
+        headers=superuser_token_headers,
+        json={"name": f"Other {uuid.uuid4()}"},
+    )
+    assert active_response.status_code == 200
+    assert inactive_response.status_code == 200
+    assert unrelated_response.status_code == 200
+
+    update_response = client.put(
+        f"{endpoint_url}/{inactive_response.json()['id']}",
+        headers=superuser_token_headers,
+        json={"is_active": False},
+    )
+    assert update_response.status_code == 200
+
+    filtered_response = client.get(
+        endpoint_url,
+        headers=superuser_token_headers,
+        params={"name": f"  {prefix}  ", "skip": 0, "limit": 20},
+    )
+    assert filtered_response.status_code == 200
+    filtered_payload = filtered_response.json()
+    assert filtered_payload["count"] == 2
+    assert {unit["name"] for unit in filtered_payload["data"]} == {
+        f"{prefix} Active",
+        f"{prefix} Inactive",
+    }
+
+    active_filtered_response = client.get(
+        endpoint_url,
+        headers=superuser_token_headers,
+        params={"name": prefix, "is_active": True},
+    )
+    assert active_filtered_response.status_code == 200
+    assert active_filtered_response.json()["count"] == 1
+    assert active_filtered_response.json()["data"][0]["name"] == f"{prefix} Active"
+
+    inactive_filtered_response = client.get(
+        endpoint_url,
+        headers=superuser_token_headers,
+        params={"name": prefix, "is_active": False},
+    )
+    assert inactive_filtered_response.status_code == 200
+    assert inactive_filtered_response.json()["count"] == 1
+    assert (
+        inactive_filtered_response.json()["data"][0]["name"]
+        == f"{prefix} Inactive"
+    )
+
+
 def test_document_list_paginates_after_filters(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:

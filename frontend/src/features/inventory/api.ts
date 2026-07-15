@@ -16,6 +16,11 @@ type OffsetParams = {
   skip: number
 }
 
+type UnitPageParams = OffsetParams & {
+  isActive?: boolean
+  name?: string
+}
+
 type InventoryBalancesPage = InventoryBalancesPublic & { count: number }
 
 function readInventoryPage<T>(url: string, query: Record<string, QueryValue>) {
@@ -27,17 +32,27 @@ function readInventoryPage<T>(url: string, query: Record<string, QueryValue>) {
   })
 }
 
-export function readProcessingUnitsPage(params: OffsetParams) {
+export function readProcessingUnitsPage(params: UnitPageParams) {
   return readInventoryPage<MasterUnitsPublic>(
     "/api/v1/inventory/processing-units",
-    params,
+    {
+      is_active: params.isActive,
+      limit: params.limit,
+      name: params.name,
+      skip: params.skip,
+    },
   )
 }
 
-export function readReceivingUnitsPage(params: OffsetParams) {
+export function readReceivingUnitsPage(params: UnitPageParams) {
   return readInventoryPage<MasterUnitsPublic>(
     "/api/v1/inventory/receiving-units",
-    params,
+    {
+      is_active: params.isActive,
+      limit: params.limit,
+      name: params.name,
+      skip: params.skip,
+    },
   )
 }
 

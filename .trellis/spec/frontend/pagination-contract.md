@@ -225,6 +225,77 @@ const { data } = useQuery({
 
 This keeps the server result, Ant Design controls, and React Query cache aligned.
 
+## Scenario: Server-Paginated Master Unit Filters
+
+### 1. Scope / Trigger
+
+- Trigger: the processing-unit and receiving-unit management lists need
+  server-side name and status filters while retaining offset pagination.
+
+### 2. Signatures
+
+- `GET /api/v1/inventory/processing-units`
+- `GET /api/v1/inventory/receiving-units`
+- Query fields: `name: string | null`, `is_active: boolean | null`,
+  `skip: int >= 0`, and `limit: 1..100`.
+- Generated client methods expose the same fields as `name`, `isActive`,
+  `skip`, and `limit`.
+
+### 3. Contracts
+
+- Trim and normalize `name`; an empty value means no name predicate.
+- Match `name` case-insensitively against the normalized unit name.
+- `is_active=true` returns enabled units, `false` returns disabled units, and
+  an omitted value returns both.
+- Count and page queries use the same name, status, and soft-delete predicates.
+- Filter changes reset the UI page to `1` and are included in the React Query
+  key.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| `name` omitted or blank | Return all non-deleted units subject to status filter. |
+| `is_active` omitted | Return both active and inactive units. |
+| `skip < 0` or `limit` outside `1..100` | Return `422` before database access. |
+| Filter result is empty | Return `{ data: [], count: 0 }` and show the empty state. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: send `name`, `is_active`, `skip`, and `limit`; use `count` for the
+  pager and fetch only the requested slice.
+- Base: send only pagination fields to list all visible units.
+- Bad: fetch a fixed large page and filter rows in the browser, which produces
+  incomplete results and an incorrect total.
+
+### 6. Tests Required
+
+- Verify name-only, status-only, and combined filters for both unit endpoints.
+- Assert case/whitespace-normalized name matching, exact filtered `count`, and
+  exclusion of unrelated and soft-deleted units.
+- Verify the frontend query key includes filters and filter changes reset page
+  state before requesting the new slice.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```tsx
+const allUnits = await readProcessingUnitsPage({ limit: 100, skip: 0 })
+const visibleUnits = allUnits.data.filter((unit) => unit.is_active)
+```
+
+#### Correct
+
+```tsx
+const units = await InventoryService.readProcessingUnits({
+  isActive: filters.isActive,
+  name: filters.name,
+  skip: (page - 1) * pageSize,
+  limit: pageSize,
+})
+```
+
 ## Code Anchors
 
 - Current offset request and count response: [`backend/app/api/routes/items.py`](../../../backend/app/api/routes/items.py), [`backend/app/schemas/item.py`](../../../backend/app/schemas/item.py), [`frontend/src/client/sdk.gen.ts`](../../../frontend/src/client/sdk.gen.ts), [`frontend/src/client/types.gen.ts`](../../../frontend/src/client/types.gen.ts)

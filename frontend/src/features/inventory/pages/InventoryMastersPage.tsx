@@ -10,6 +10,7 @@ import {
   Form,
   Input,
   Modal,
+  Select,
   Space,
   Switch,
   Table,
@@ -42,23 +43,34 @@ export function InventoryMastersPage() {
   const [activeKind, setActiveKind] = useState<UnitKind>("processing")
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
+  const [nameFilter, setNameFilter] = useState("")
+  const [activeFilter, setActiveFilter] = useState<boolean>()
   const [editingUnit, setEditingUnit] = useState<MasterUnitPublic>()
   const [modalOpen, setModalOpen] = useState(false)
   const [form] = Form.useForm<{ name: string }>()
   const { message } = App.useApp()
   const queryClient = useQueryClient()
+  const queryFilters = {
+    isActive: activeFilter,
+    name: nameFilter.trim() || undefined,
+  }
   const unitsQuery = useQuery({
     queryFn: () =>
       activeKind === "processing"
         ? readProcessingUnitsPage({
+            ...queryFilters,
             limit: pageSize,
             skip: toOffset(page, pageSize),
           })
         : readReceivingUnitsPage({
+            ...queryFilters,
             limit: pageSize,
             skip: toOffset(page, pageSize),
           }),
-    queryKey: [unitConfig[activeKind].queryKey, { page, pageSize }],
+    queryKey: [
+      unitConfig[activeKind].queryKey,
+      { ...queryFilters, page, pageSize },
+    ],
     placeholderData: keepPreviousData,
   })
   const invalidate = () =>
@@ -179,6 +191,41 @@ export function InventoryMastersPage() {
           setPage(1)
         }}
       />
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          allowClear
+          onChange={(event) => {
+            setNameFilter(event.target.value)
+            setPage(1)
+          }}
+          placeholder="按名称筛选"
+          value={nameFilter}
+          style={{ maxWidth: 280, width: "100%" }}
+        />
+        <Select<"active" | "inactive">
+          allowClear
+          onChange={(value) => {
+            setActiveFilter(
+              value === undefined ? undefined : value === "active",
+            )
+            setPage(1)
+          }}
+          options={[
+            { label: "启用", value: "active" },
+            { label: "停用", value: "inactive" },
+          ]}
+          placeholder="按状态筛选"
+          showSearch={{ optionFilterProp: "label" }}
+          style={{ width: 160 }}
+          value={
+            activeFilter === undefined
+              ? undefined
+              : activeFilter
+                ? "active"
+                : "inactive"
+          }
+        />
+      </div>
       <Table
         columns={columns}
         dataSource={unitsQuery.data?.data ?? []}

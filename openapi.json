@@ -792,6 +792,27 @@
         "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                { "type": "string", "maxLength": 255 },
+                { "type": "null" }
+              ],
+              "title": "Name"
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+              "title": "Is Active"
+            }
+          },
+          {
             "name": "skip",
             "in": "query",
             "required": false,
@@ -916,6 +937,27 @@
         "operationId": "inventory-read_receiving_units",
         "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                { "type": "string", "maxLength": 255 },
+                { "type": "null" }
+              ],
+              "title": "Name"
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+              "title": "Is Active"
+            }
+          },
           {
             "name": "skip",
             "in": "query",

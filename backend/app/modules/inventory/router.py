@@ -27,11 +27,19 @@ router = APIRouter(prefix="/inventory", tags=["inventory"])
 def read_processing_units(
     session: SessionDep,
     current_user: CurrentUser,
+    name: str | None = Query(default=None, max_length=255),
+    is_active: bool | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> Any:
     del current_user
-    return service.list_processing_units(session=session, skip=skip, limit=limit)
+    return service.list_processing_units(
+        session=session,
+        name=name,
+        is_active=is_active,
+        skip=skip,
+        limit=limit,
+    )
 
 
 @router.post("/processing-units", response_model=MasterUnitPublic)
@@ -63,11 +71,19 @@ def update_processing_unit(
 def read_receiving_units(
     session: SessionDep,
     current_user: CurrentUser,
+    name: str | None = Query(default=None, max_length=255),
+    is_active: bool | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> Any:
     del current_user
-    return service.list_receiving_units(session=session, skip=skip, limit=limit)
+    return service.list_receiving_units(
+        session=session,
+        name=name,
+        is_active=is_active,
+        skip=skip,
+        limit=limit,
+    )
 
 
 @router.post("/receiving-units", response_model=MasterUnitPublic)
