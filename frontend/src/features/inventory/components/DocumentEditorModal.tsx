@@ -21,6 +21,10 @@ import {
   type InventoryLineCreate,
   InventoryService,
 } from "@/client"
+import {
+  readProcessingUnitsPage,
+  readReceivingUnitsPage,
+} from "@/features/inventory/api"
 
 type DocumentFormValues = {
   business_date: ReturnType<typeof dayjs>
@@ -35,6 +39,7 @@ type DocumentEditorModalProps = {
   document?: InventoryDocumentPublic
   documentType: InventoryDocumentCreate["document_type"]
   onClose: () => void
+  onSaved?: () => void
   open: boolean
 }
 
@@ -87,6 +92,7 @@ export function DocumentEditorModal({
   document,
   documentType,
   onClose,
+  onSaved,
   open,
 }: DocumentEditorModalProps) {
   const [form] = Form.useForm<DocumentFormValues>()
@@ -95,12 +101,12 @@ export function DocumentEditorModal({
   const isShipment = isFinishedShipment(documentType)
   const ledgerKind: InventoryLedgerKind = isShipment ? "FINISHED" : "RAW"
   const processingUnitsQuery = useQuery({
-    queryFn: () => InventoryService.readProcessingUnits(),
+    queryFn: () => readProcessingUnitsPage({ limit: 100, skip: 0 }),
     queryKey: ["inventory-processing-units"],
   })
   const receivingUnitsQuery = useQuery({
     enabled: isShipment,
-    queryFn: () => InventoryService.readReceivingUnits(),
+    queryFn: () => readReceivingUnitsPage({ limit: 100, skip: 0 }),
     queryKey: ["inventory-receiving-units"],
   })
   const mutation = useMutation({
@@ -116,6 +122,7 @@ export function DocumentEditorModal({
     },
     onSuccess: () => {
       message.success(document ? "单据已更新" : "单据已保存")
+      onSaved?.()
       void queryClient.invalidateQueries({ queryKey: ["inventory"] })
       onClose()
     },

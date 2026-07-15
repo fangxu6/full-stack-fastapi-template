@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 import {
   App,
   Button,
@@ -11,11 +16,20 @@ import {
   Tabs,
   Tooltip,
 } from "antd"
-import type { ColumnsType } from "antd/es/table"
+import type { ColumnsType, TableProps } from "antd/es/table"
 import { Pencil, Plus } from "lucide-react"
 import { useState } from "react"
 
 import { InventoryService, type MasterUnitPublic } from "@/client"
+import {
+  readProcessingUnitsPage,
+  readReceivingUnitsPage,
+} from "@/features/inventory/api"
+import {
+  DEFAULT_PAGE_SIZE,
+  PAGE_SIZE_OPTIONS,
+  toOffset,
+} from "@/features/inventory/pagination"
 
 type UnitKind = "processing" | "receiving"
 
@@ -26,6 +40,8 @@ const unitConfig: Record<UnitKind, { label: string; queryKey: string }> = {
 
 export function InventoryMastersPage() {
   const [activeKind, setActiveKind] = useState<UnitKind>("processing")
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [editingUnit, setEditingUnit] = useState<MasterUnitPublic>()
   const [modalOpen, setModalOpen] = useState(false)
   const [form] = Form.useForm<{ name: string }>()
@@ -34,9 +50,16 @@ export function InventoryMastersPage() {
   const unitsQuery = useQuery({
     queryFn: () =>
       activeKind === "processing"
-        ? InventoryService.readProcessingUnits()
-        : InventoryService.readReceivingUnits(),
-    queryKey: [unitConfig[activeKind].queryKey],
+        ? readProcessingUnitsPage({
+            limit: pageSize,
+            skip: toOffset(page, pageSize),
+          })
+        : readReceivingUnitsPage({
+            limit: pageSize,
+            skip: toOffset(page, pageSize),
+          }),
+    queryKey: [unitConfig[activeKind].queryKey, { page, pageSize }],
+    placeholderData: keepPreviousData,
   })
   const invalidate = () =>
     void queryClient.invalidateQueries({
@@ -62,6 +85,7 @@ export function InventoryMastersPage() {
     onError: () => message.error("保存失败，单位名称可能已存在。"),
     onSuccess: () => {
       message.success("主数据已保存")
+      setPage(1)
       invalidate()
       setModalOpen(false)
     },
@@ -123,6 +147,13 @@ export function InventoryMastersPage() {
     form.resetFields()
     setModalOpen(true)
   }
+  const handleTableChange: TableProps<MasterUnitPublic>["onChange"] = (
+    pagination,
+  ) => {
+    const nextPageSize = pagination.pageSize ?? pageSize
+    setPageSize(nextPageSize)
+    setPage(nextPageSize === pageSize ? (pagination.current ?? 1) : 1)
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -143,14 +174,27 @@ export function InventoryMastersPage() {
           key,
           label: config.label,
         }))}
-        onChange={(key) => setActiveKind(key as UnitKind)}
+        onChange={(key) => {
+          setActiveKind(key as UnitKind)
+          setPage(1)
+        }}
       />
       <Table
         columns={columns}
         dataSource={unitsQuery.data?.data ?? []}
-        loading={unitsQuery.isLoading}
+        loading={unitsQuery.isFetching}
         locale={{ emptyText: "暂无主数据" }}
-        pagination={{ pageSize: 20, showSizeChanger: false }}
+        onChange={handleTableChange}
+        pagination={{
+          current: page,
+          pageSize,
+          pageSizeOptions: PAGE_SIZE_OPTIONS,
+          responsive: true,
+          showQuickJumper: true,
+          showSizeChanger: true,
+          showTotal: (total, [start, end]) => `${start}-${end} / ${total}`,
+          total: unitsQuery.data?.count ?? 0,
+        }}
         rowKey="id"
       />
       <Modal

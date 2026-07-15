@@ -1,12 +1,14 @@
 # SQLModel's type surface exposes ORM columns as their value types. Query
 # expressions below are SQLAlchemy descriptors at runtime, which mypy cannot
 # represent without a plugin; preserve checking for all other error families.
-# mypy: disable-error-code="arg-type,attr-defined,return-value,union-attr"
+# mypy: disable-error-code="arg-type,attr-defined,call-overload,return-value,union-attr"
 
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
+from sqlalchemy import desc, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
@@ -50,24 +52,36 @@ def _audit(current_user: User) -> dict[str, object]:
 
 
 def _list_units(
-    *, session: Session, model: type[ProcessingUnit] | type[ReceivingUnit]
+    *,
+    session: Session,
+    model: type[ProcessingUnit] | type[ReceivingUnit],
+    skip: int,
+    limit: int,
 ) -> MasterUnitsPublic:
+    filters = [model.deleted_at.is_(None)]  # ty:ignore[unresolved-attribute]
+    count = session.exec(select(func.count()).select_from(model).where(*filters)).one()
     statement = (
         select(model)
-        .where(model.deleted_at.is_(None))  # ty:ignore[unresolved-attribute]
-        .order_by(model.created_at.desc())  # ty:ignore[unresolved-attribute]
+        .where(*filters)
+        .order_by(model.created_at.desc(), model.id.desc())  # ty:ignore[unresolved-attribute]
+        .offset(skip)
+        .limit(limit)
     )
     units = list(session.exec(statement).all())
     data = [MasterUnitPublic.model_validate(unit) for unit in units]
-    return MasterUnitsPublic(data=data, count=len(data))
+    return MasterUnitsPublic(data=data, count=count)
 
 
-def list_processing_units(*, session: Session) -> MasterUnitsPublic:
-    return _list_units(session=session, model=ProcessingUnit)
+def list_processing_units(
+    *, session: Session, skip: int, limit: int
+) -> MasterUnitsPublic:
+    return _list_units(session=session, model=ProcessingUnit, skip=skip, limit=limit)
 
 
-def list_receiving_units(*, session: Session) -> MasterUnitsPublic:
-    return _list_units(session=session, model=ReceivingUnit)
+def list_receiving_units(
+    *, session: Session, skip: int, limit: int
+) -> MasterUnitsPublic:
+    return _list_units(session=session, model=ReceivingUnit, skip=skip, limit=limit)
 
 
 def _create_unit(
@@ -342,6 +356,8 @@ def get_document(
 def list_documents(
     *,
     session: Session,
+    skip: int,
+    limit: int,
     document_type: InventoryDocumentType | None = None,
     business_date_from: date | None = None,
     business_date_to: date | None = None,
@@ -350,36 +366,42 @@ def list_documents(
     document_number: str | None = None,
     include_deleted: bool = False,
 ) -> InventoryDocumentsPublic:
-    statement = select(InventoryDocument)
+    filters: list[Any] = []
     if document_type:
-        statement = statement.where(InventoryDocument.document_type == document_type)
+        filters.append(InventoryDocument.document_type == document_type)
     if business_date_from:
-        statement = statement.where(
-            InventoryDocument.business_date >= business_date_from
-        )
+        filters.append(InventoryDocument.business_date >= business_date_from)
     if business_date_to:
-        statement = statement.where(InventoryDocument.business_date <= business_date_to)
+        filters.append(InventoryDocument.business_date <= business_date_to)
     if processing_unit_id:
-        statement = statement.where(
-            InventoryDocument.processing_unit_id == processing_unit_id
-        )
+        filters.append(InventoryDocument.processing_unit_id == processing_unit_id)
     if receiving_unit_id:
-        statement = statement.where(
-            InventoryDocument.receiving_unit_id == receiving_unit_id
-        )
+        filters.append(InventoryDocument.receiving_unit_id == receiving_unit_id)
     if document_number:
-        statement = statement.where(
+        filters.append(
             InventoryDocument.document_number.ilike(f"%{document_number.strip()}%")  # ty:ignore[unresolved-attribute]
         )
     if not include_deleted:
-        statement = statement.where(InventoryDocument.deleted_at.is_(None))  # ty:ignore[unresolved-attribute]
+        filters.append(InventoryDocument.deleted_at.is_(None))  # ty:ignore[unresolved-attribute]
+    count = session.exec(
+        select(func.count()).select_from(InventoryDocument).where(*filters)
+    ).one()
     documents = list(
-        session.exec(statement.order_by(InventoryDocument.business_date.desc())).all()  # ty:ignore[unresolved-attribute]
+        session.exec(
+            select(InventoryDocument)
+            .where(*filters)
+            .order_by(
+                desc(InventoryDocument.business_date),  # ty:ignore[invalid-argument-type]
+                desc(InventoryDocument.id),  # ty:ignore[invalid-argument-type]
+            )
+            .offset(skip)
+            .limit(limit)
+        ).all()
     )
     data = [
         _document_public(session=session, document=document) for document in documents
     ]
-    return InventoryDocumentsPublic(data=data, count=len(data))
+    return InventoryDocumentsPublic(data=data, count=count)
 
 
 def update_document(
@@ -598,49 +620,72 @@ def list_balances(
     *,
     session: Session,
     ledger_kind: InventoryLedgerKind,
+    skip: int,
+    limit: int,
     processing_unit_id: uuid.UUID | None = None,
     item_name: str | None = None,
 ) -> InventoryBalancesPublic:
-    statement = select(InventoryLedgerEntry).where(
+    filters: list[Any] = [
         InventoryLedgerEntry.ledger_kind == ledger_kind,
         InventoryLedgerEntry.deleted_at.is_(None),  # ty:ignore[unresolved-attribute]
-    )
+    ]
     if processing_unit_id:
-        statement = statement.where(
-            InventoryLedgerEntry.processing_unit_id == processing_unit_id
-        )
+        filters.append(InventoryLedgerEntry.processing_unit_id == processing_unit_id)
     if item_name:
-        statement = statement.where(
+        filters.append(
             InventoryLedgerEntry.item_name.ilike(f"%{item_name}%")  # ty:ignore[unresolved-attribute]
         )
-    entries = session.exec(statement).all()
-    balances: dict[tuple[object, ...], tuple[Decimal, Decimal]] = {}
-    for entry in entries:
-        key = (
-            entry.processing_unit_id,
-            entry.item_name,
-            entry.item_code,
-            entry.wool_content,
-            entry.color_code,
-            entry.dye_lot_no,
+    balance_columns = (
+        InventoryLedgerEntry.processing_unit_id,
+        InventoryLedgerEntry.item_name,
+        InventoryLedgerEntry.item_code,
+        InventoryLedgerEntry.wool_content,
+        InventoryLedgerEntry.color_code,
+        InventoryLedgerEntry.dye_lot_no,
+    )
+    rolls_balance = func.sum(InventoryLedgerEntry.rolls_delta).label("rolls_balance")
+    meters_balance = func.sum(InventoryLedgerEntry.meters_delta).label("meters_balance")
+    aggregate = (
+        select(  # ty:ignore[no-matching-overload]
+            InventoryLedgerEntry.processing_unit_id,
+            InventoryLedgerEntry.item_name,
+            InventoryLedgerEntry.item_code,
+            InventoryLedgerEntry.wool_content,
+            InventoryLedgerEntry.color_code,
+            InventoryLedgerEntry.dye_lot_no,
+            rolls_balance,
+            meters_balance,
         )
-        rolls, meters = balances.get(key, (Decimal("0"), Decimal("0")))
-        balances[key] = (rolls + entry.rolls_delta, meters + entry.meters_delta)
+        .where(*filters)
+        .group_by(*balance_columns)
+        .having(
+            or_(
+                func.sum(InventoryLedgerEntry.rolls_delta) != 0,
+                func.sum(InventoryLedgerEntry.meters_delta) != 0,
+            )
+        )
+    )
+    count = session.exec(select(func.count()).select_from(aggregate.subquery())).one()
+    rows = list(
+        session.exec(
+            aggregate.order_by(*balance_columns).offset(skip).limit(limit)
+        ).all()
+    )
     return InventoryBalancesPublic(
         data=[
             InventoryBalancePublic(
-                processing_unit_id=key[0],  # ty:ignore[invalid-argument-type]
-                item_name=key[1],  # ty:ignore[invalid-argument-type]
-                item_code=key[2],  # ty:ignore[invalid-argument-type]
-                wool_content=key[3],  # ty:ignore[invalid-argument-type]
-                color_code=key[4],  # ty:ignore[invalid-argument-type]
-                dye_lot_no=key[5],  # ty:ignore[invalid-argument-type]
-                rolls_balance=value[0],
-                meters_balance=value[1],
+                processing_unit_id=row[0],
+                item_name=row[1],
+                item_code=row[2],
+                wool_content=row[3],
+                color_code=row[4],
+                dye_lot_no=row[5],
+                rolls_balance=row[6],
+                meters_balance=row[7],
             )
-            for key, value in balances.items()
-            if value[0] or value[1]
-        ]
+            for row in rows
+        ],
+        count=count,
     )
 
 
@@ -651,28 +696,37 @@ def list_ledger_entries(
     processing_unit_id: uuid.UUID,
     item_name: str,
     wool_content: str,
+    skip: int,
+    limit: int,
     item_code: str | None = None,
     color_code: str | None = None,
     dye_lot_no: str | None = None,
 ) -> InventoryLedgerEntriesPublic:
-    statement = select(InventoryLedgerEntry).where(
+    filters: list[Any] = [
         InventoryLedgerEntry.ledger_kind == ledger_kind,
         InventoryLedgerEntry.processing_unit_id == processing_unit_id,
         InventoryLedgerEntry.item_name == item_name,
         InventoryLedgerEntry.wool_content == wool_content,
         InventoryLedgerEntry.deleted_at.is_(None),  # ty:ignore[unresolved-attribute]
-    )
+    ]
     for column, value in (
         (InventoryLedgerEntry.item_code, item_code),
         (InventoryLedgerEntry.color_code, color_code),
         (InventoryLedgerEntry.dye_lot_no, dye_lot_no),
     ):
-        statement = statement.where(
+        filters.append(
             column.is_(None) if value is None else column == value  # ty:ignore[unresolved-attribute]
         )
+    count = session.exec(
+        select(func.count()).select_from(InventoryLedgerEntry).where(*filters)
+    ).one()
     entries = list(
         session.exec(
-            statement.order_by(InventoryLedgerEntry.business_date)  # ty:ignore[invalid-argument-type]
+            select(InventoryLedgerEntry)
+            .where(*filters)
+            .order_by(InventoryLedgerEntry.business_date, InventoryLedgerEntry.id)  # ty:ignore[invalid-argument-type]
+            .offset(skip)
+            .limit(limit)
         ).all()
     )
     data = [
@@ -694,7 +748,7 @@ def list_ledger_entries(
         )
         for entry in entries
     ]
-    return InventoryLedgerEntriesPublic(data=data, count=len(data))
+    return InventoryLedgerEntriesPublic(data=data, count=count)
 
 
 def list_suggestions(

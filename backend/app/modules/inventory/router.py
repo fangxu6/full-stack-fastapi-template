@@ -24,9 +24,14 @@ router = APIRouter(prefix="/inventory", tags=["inventory"])
 
 
 @router.get("/processing-units", response_model=MasterUnitsPublic)
-def read_processing_units(session: SessionDep, current_user: CurrentUser) -> Any:
+def read_processing_units(
+    session: SessionDep,
+    current_user: CurrentUser,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
+) -> Any:
     del current_user
-    return service.list_processing_units(session=session)
+    return service.list_processing_units(session=session, skip=skip, limit=limit)
 
 
 @router.post("/processing-units", response_model=MasterUnitPublic)
@@ -55,9 +60,14 @@ def update_processing_unit(
 
 
 @router.get("/receiving-units", response_model=MasterUnitsPublic)
-def read_receiving_units(session: SessionDep, current_user: CurrentUser) -> Any:
+def read_receiving_units(
+    session: SessionDep,
+    current_user: CurrentUser,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
+) -> Any:
     del current_user
-    return service.list_receiving_units(session=session)
+    return service.list_receiving_units(session=session, skip=skip, limit=limit)
 
 
 @router.post("/receiving-units", response_model=MasterUnitPublic)
@@ -101,6 +111,8 @@ def create_inventory_document(
 def read_inventory_documents(
     session: SessionDep,
     current_user: CurrentUser,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
     document_type: InventoryDocumentType | None = None,
     business_date_from: date | None = None,
     business_date_to: date | None = None,
@@ -112,6 +124,8 @@ def read_inventory_documents(
     del current_user
     return service.list_documents(
         session=session,
+        skip=skip,
+        limit=limit,
         document_type=document_type,
         business_date_from=business_date_from,
         business_date_to=business_date_to,
@@ -170,6 +184,8 @@ def restore_inventory_document(
 def read_raw_balances(
     session: SessionDep,
     current_user: CurrentUser,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
     processing_unit_id: uuid.UUID | None = None,
     item_name: str | None = None,
 ) -> Any:
@@ -177,6 +193,8 @@ def read_raw_balances(
     return service.list_balances(
         session=session,
         ledger_kind=InventoryLedgerKind.RAW,
+        skip=skip,
+        limit=limit,
         processing_unit_id=processing_unit_id,
         item_name=item_name,
     )
@@ -186,6 +204,8 @@ def read_raw_balances(
 def read_finished_balances(
     session: SessionDep,
     current_user: CurrentUser,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
     processing_unit_id: uuid.UUID | None = None,
     item_name: str | None = None,
 ) -> Any:
@@ -193,6 +213,8 @@ def read_finished_balances(
     return service.list_balances(
         session=session,
         ledger_kind=InventoryLedgerKind.FINISHED,
+        skip=skip,
+        limit=limit,
         processing_unit_id=processing_unit_id,
         item_name=item_name,
     )
@@ -206,6 +228,8 @@ def read_inventory_ledger(
     processing_unit_id: uuid.UUID,
     item_name: str,
     wool_content: str,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
     item_code: str | None = None,
     color_code: str | None = None,
     dye_lot_no: str | None = None,
@@ -217,6 +241,8 @@ def read_inventory_ledger(
         processing_unit_id=processing_unit_id,
         item_name=item_name,
         wool_content=wool_content,
+        skip=skip,
+        limit=limit,
         item_code=item_code,
         color_code=color_code,
         dye_lot_no=dye_lot_no,

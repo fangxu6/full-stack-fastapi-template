@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 import {
   App,
   Button,
@@ -13,7 +18,7 @@ import {
   Tag,
   Tooltip,
 } from "antd"
-import type { ColumnsType } from "antd/es/table"
+import type { ColumnsType, TableProps } from "antd/es/table"
 import type { Dayjs } from "dayjs"
 import { Edit3, Plus, RotateCcw, Trash2 } from "lucide-react"
 import { useState } from "react"
@@ -23,7 +28,17 @@ import {
   type InventoryDocumentPublic,
   InventoryService,
 } from "@/client"
+import {
+  readInventoryDocumentsPage,
+  readProcessingUnitsPage,
+  readReceivingUnitsPage,
+} from "@/features/inventory/api"
 import { DocumentEditorModal } from "@/features/inventory/components/DocumentEditorModal"
+import {
+  DEFAULT_PAGE_SIZE,
+  PAGE_SIZE_OPTIONS,
+  toOffset,
+} from "@/features/inventory/pagination"
 
 type DocumentPageProps = {
   types: InventoryDocumentCreate["document_type"][]
@@ -47,6 +62,8 @@ const documentLabels: Record<InventoryDocumentCreate["document_type"], string> =
 
 export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
   const [activeType, setActiveType] = useState(types[0])
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [editingDocument, setEditingDocument] =
     useState<InventoryDocumentPublic>()
   const [isEditorOpen, setEditorOpen] = useState(false)
@@ -56,24 +73,33 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
   const queryClient = useQueryClient()
   const documentsQuery = useQuery({
     queryFn: () =>
-      InventoryService.readInventoryDocuments({
+      readInventoryDocumentsPage({
         businessDateFrom: filters.business_dates?.[0]?.format("YYYY-MM-DD"),
         businessDateTo: filters.business_dates?.[1]?.format("YYYY-MM-DD"),
         documentType: activeType,
         documentNumber: filters.document_number?.trim() || undefined,
         includeDeleted: true,
+        limit: pageSize,
         processingUnitId: filters.processing_unit_id,
         receivingUnitId: filters.receiving_unit_id,
+        skip: toOffset(page, pageSize),
       }),
-    queryKey: ["inventory", "documents", activeType, filters],
+    queryKey: [
+      "inventory",
+      "documents",
+      activeType,
+      filters,
+      { page, pageSize },
+    ],
+    placeholderData: keepPreviousData,
   })
   const processingUnitsQuery = useQuery({
-    queryFn: () => InventoryService.readProcessingUnits(),
+    queryFn: () => readProcessingUnitsPage({ limit: 100, skip: 0 }),
     queryKey: ["inventory-processing-units"],
   })
   const receivingUnitsQuery = useQuery({
     enabled: activeType === "FINISHED_SHIPMENT",
-    queryFn: () => InventoryService.readReceivingUnits(),
+    queryFn: () => readReceivingUnitsPage({ limit: 100, skip: 0 }),
     queryKey: ["inventory-receiving-units"],
   })
   const invalidate = () =>
@@ -84,6 +110,7 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
     onError: () => message.error("删除失败，库存不足或数据已变更。"),
     onSuccess: () => {
       message.success("单据已软删除")
+      setPage(1)
       invalidate()
     },
   })
@@ -93,6 +120,7 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
     onError: () => message.error("恢复失败，恢复后库存不能为负数。"),
     onSuccess: () => {
       message.success("单据已恢复")
+      setPage(1)
       invalidate()
     },
   })
@@ -100,6 +128,13 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
   const openEditor = (document?: InventoryDocumentPublic) => {
     setEditingDocument(document)
     setEditorOpen(true)
+  }
+  const handleTableChange: TableProps<InventoryDocumentPublic>["onChange"] = (
+    pagination,
+  ) => {
+    const nextPageSize = pagination.pageSize ?? pageSize
+    setPageSize(nextPageSize)
+    setPage(nextPageSize === pageSize ? (pagination.current ?? 1) : 1)
   }
   const columns: ColumnsType<InventoryDocumentPublic> = [
     { dataIndex: "business_date", title: "日期", width: 116 },
@@ -194,12 +229,18 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
           key: type,
           label: documentLabels[type],
         }))}
-        onChange={(nextType) => setActiveType(nextType as typeof activeType)}
+        onChange={(nextType) => {
+          setActiveType(nextType as typeof activeType)
+          setPage(1)
+        }}
       />
       <Form
         form={filterForm}
         layout="inline"
-        onValuesChange={(_, values: DocumentFilters) => setFilters(values)}
+        onValuesChange={(_, values: DocumentFilters) => {
+          setFilters(values)
+          setPage(1)
+        }}
       >
         <Form.Item label="日期" name="business_dates">
           <DatePicker.RangePicker />
@@ -237,6 +278,7 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
           onClick={() => {
             filterForm.resetFields()
             setFilters({})
+            setPage(1)
           }}
         >
           清除筛选
@@ -245,9 +287,19 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
       <Table
         columns={columns}
         dataSource={documentsQuery.data?.data ?? []}
-        loading={documentsQuery.isLoading}
+        loading={documentsQuery.isFetching}
         locale={{ emptyText: "暂无单据" }}
-        pagination={{ pageSize: 20, showSizeChanger: false }}
+        onChange={handleTableChange}
+        pagination={{
+          current: page,
+          pageSize,
+          pageSizeOptions: PAGE_SIZE_OPTIONS,
+          responsive: true,
+          showQuickJumper: true,
+          showSizeChanger: true,
+          showTotal: (total, [start, end]) => `${start}-${end} / ${total}`,
+          total: documentsQuery.data?.count ?? 0,
+        }}
         rowKey="id"
         scroll={{ x: 680 }}
         size="middle"
@@ -257,6 +309,7 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
         documentType={activeType}
         key={editingDocument?.id ?? activeType}
         onClose={() => setEditorOpen(false)}
+        onSaved={() => setPage(1)}
         open={isEditorOpen}
       />
     </div>

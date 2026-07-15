@@ -120,6 +120,7 @@ class InventoryBalancePublic(SQLModel):
 
 class InventoryBalancesPublic(SQLModel):
     data: list[InventoryBalancePublic]
+    count: int
 
 
 class InventorySuggestionsPublic(SQLModel):

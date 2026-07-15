@@ -27,6 +27,189 @@ def _create_processing_unit(
     return response.json()
 
 
+def _create_receiving_unit(
+    client: TestClient, headers: dict[str, str]
+) -> dict[str, str]:
+    response = client.post(
+        f"{INVENTORY_PATH}/receiving-units",
+        headers=headers,
+        json={"name": f"Customer {uuid.uuid4()}"},
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
+def _create_raw_receipt(
+    client: TestClient,
+    headers: dict[str, str],
+    *,
+    processing_unit_id: str,
+    item_name: str,
+    item_code: str,
+    document_number: str | None = None,
+    business_date: date | None = None,
+    quantity_rolls: str = "1",
+) -> dict[str, object]:
+    payload = {
+        "document_type": "RAW_RECEIPT",
+        "business_date": str(business_date or date.today()),
+        "processing_unit_id": processing_unit_id,
+        "document_number": document_number or f"R-{uuid.uuid4()}",
+        "lines": [
+            {
+                "item_name": item_name,
+                "item_code": item_code,
+                "wool_content": "100% wool",
+                "quantity_rolls": quantity_rolls,
+            }
+        ],
+    }
+    response = client.post(f"{INVENTORY_PATH}/documents", headers=headers, json=payload)
+    assert response.status_code == 200, response.json()
+    return response.json()
+
+
+@pytest.mark.parametrize(
+    ("endpoint", "factory"),
+    [
+        ("processing-units", _create_processing_unit),
+        ("receiving-units", _create_receiving_unit),
+    ],
+)
+def test_master_unit_lists_are_offset_paginated(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    endpoint: str,
+    factory: object,
+) -> None:
+    for _ in range(3):
+        factory(client, superuser_token_headers)
+
+    response = client.get(
+        f"{INVENTORY_PATH}/{endpoint}",
+        headers=superuser_token_headers,
+        params={"skip": 1, "limit": 2},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["data"]) == 2
+    assert payload["count"] >= 3
+    assert payload["count"] > len(payload["data"])
+
+
+def test_document_list_paginates_after_filters(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    processing_unit = _create_processing_unit(client, superuser_token_headers)
+    prefix = f"PG-{uuid.uuid4()}"
+    for index in range(3):
+        _create_raw_receipt(
+            client,
+            superuser_token_headers,
+            processing_unit_id=processing_unit["id"],
+            item_name=f"Raw fabric {prefix}",
+            item_code=f"RF-{uuid.uuid4()}",
+            document_number=f"{prefix}-{index}",
+        )
+
+    response = client.get(
+        f"{INVENTORY_PATH}/documents",
+        headers=superuser_token_headers,
+        params={"document_number": prefix, "skip": 1, "limit": 2},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["data"]) == 2
+    assert payload["count"] == 3
+
+
+def test_balance_list_paginates_aggregated_rows(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    processing_unit = _create_processing_unit(client, superuser_token_headers)
+    prefix = f"Balance {uuid.uuid4()}"
+    for index in range(3):
+        _create_raw_receipt(
+            client,
+            superuser_token_headers,
+            processing_unit_id=processing_unit["id"],
+            item_name=f"{prefix}-{index}",
+            item_code=f"RB-{uuid.uuid4()}",
+        )
+
+    response = client.get(
+        f"{INVENTORY_PATH}/balances/raw",
+        headers=superuser_token_headers,
+        params={"item_name": prefix, "skip": 1, "limit": 2},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["data"]) == 2
+    assert payload["count"] == 3
+
+
+def test_ledger_list_paginates_matching_entries(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    processing_unit = _create_processing_unit(client, superuser_token_headers)
+    item_name = f"Ledger {uuid.uuid4()}"
+    item_code = f"RL-{uuid.uuid4()}"
+    for day in range(1, 4):
+        _create_raw_receipt(
+            client,
+            superuser_token_headers,
+            processing_unit_id=processing_unit["id"],
+            item_name=item_name,
+            item_code=item_code,
+            business_date=date(2026, 7, day),
+        )
+
+    response = client.get(
+        f"{INVENTORY_PATH}/ledger",
+        headers=superuser_token_headers,
+        params={
+            "ledger_kind": "RAW",
+            "processing_unit_id": processing_unit["id"],
+            "item_name": item_name,
+            "item_code": item_code,
+            "wool_content": "100% wool",
+            "skip": 1,
+            "limit": 1,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["data"]) == 1
+    assert payload["count"] == 3
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"skip": -1, "limit": 20},
+        {"skip": 0, "limit": 0},
+        {"skip": 0, "limit": 101},
+    ],
+)
+def test_inventory_lists_reject_invalid_pagination(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    params: dict[str, int],
+) -> None:
+    response = client.get(
+        f"{INVENTORY_PATH}/documents",
+        headers=superuser_token_headers,
+        params=params,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["request_id"]
+
+
 def test_raw_receipt_return_and_balance(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
