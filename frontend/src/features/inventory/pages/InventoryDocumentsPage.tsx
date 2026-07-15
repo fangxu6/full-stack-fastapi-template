@@ -60,6 +60,65 @@ const documentLabels: Record<InventoryDocumentCreate["document_type"], string> =
     RAW_RETURN: "坯布退走",
   }
 
+const MAX_VISIBLE_LINES = 3
+
+function compactValue(value: string | null | undefined) {
+  return value?.trim() || "-"
+}
+
+function renderLineDetails(
+  line: InventoryDocumentPublic["lines"][number],
+  documentType: InventoryDocumentPublic["document_type"],
+) {
+  const fields =
+    documentType === "FINISHED_SHIPMENT"
+      ? [
+          ["颜色", compactValue(line.color_code)],
+          ["缸号", compactValue(line.dye_lot_no)],
+          ["匹数", line.quantity_rolls],
+          ["米数", compactValue(line.quantity_meters)],
+        ]
+      : [
+          ["品号", compactValue(line.item_code)],
+          ["含毛量", compactValue(line.wool_content)],
+          ["匹数", line.quantity_rolls],
+        ]
+
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5" key={line.id}>
+      <div className="truncate font-medium">{compactValue(line.item_name)}</div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        {fields.map(([label, value]) => (
+          <span key={label}>
+            {label}: {value}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function renderLinesSummary(
+  document: InventoryDocumentPublic,
+  lines: InventoryDocumentPublic["lines"],
+) {
+  const visibleLines = lines.slice(0, MAX_VISIBLE_LINES)
+  const remainingCount = lines.length - visibleLines.length
+
+  return (
+    <div className="flex max-w-[440px] flex-col gap-2">
+      {visibleLines.map((line) =>
+        renderLineDetails(line, document.document_type),
+      )}
+      {remainingCount > 0 ? (
+        <div className="text-xs text-muted-foreground">
+          另 {remainingCount} 条明细
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
   const [activeType, setActiveType] = useState(types[0])
   const [page, setPage] = useState(1)
@@ -141,10 +200,10 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
     { dataIndex: "document_number", title: "单号", width: 160 },
     {
       dataIndex: "lines",
-      render: (lines: InventoryDocumentPublic["lines"]) =>
-        `${lines.length} 条明细`,
+      render: (lines: InventoryDocumentPublic["lines"], document) =>
+        renderLinesSummary(document, lines),
       title: "明细",
-      width: 90,
+      width: 420,
     },
     {
       dataIndex: "remarks",
@@ -301,7 +360,7 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
           total: documentsQuery.data?.count ?? 0,
         }}
         rowKey="id"
-        scroll={{ x: 680 }}
+        scroll={{ x: 1020 }}
         size="middle"
       />
       <DocumentEditorModal
