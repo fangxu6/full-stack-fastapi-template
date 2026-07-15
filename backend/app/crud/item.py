@@ -21,7 +21,10 @@ def get_items(
     owner_id: uuid.UUID | None = None,
 ) -> list[Item]:
     statement = (
-        select(Item).order_by(col(Item.created_at).desc()).offset(skip).limit(limit)
+        select(Item)
+        .order_by(col(Item.created_at).desc(), col(Item.id).desc())
+        .offset(skip)
+        .limit(limit)
     )
     if owner_id is not None:
         statement = statement.where(Item.owner_id == owner_id)

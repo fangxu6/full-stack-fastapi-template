@@ -23,6 +23,7 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
 | [Directory Structure](./directory-structure.md) | Frontend layer ownership and thin-route rules | Customized |
 | [Component Guidelines](./component-guidelines.md) | Shared-vs-domain component placement rules | Customized |
 | [Hook Guidelines](./hook-guidelines.md) | Auth, server-state, and hook-boundary rules | Customized |
+| [Pagination Contract](./pagination-contract.md) | Ant Design server-side pagination, API mapping, query state, and regressions | Customized |
 | [Route Permission Navigation Contract](./route-permission-navigation-contract.md) | Route, guard, menu, and page-placement synchronization contract | Customized |
 | [State Management](./state-management.md) | Query state, auth persistence, and route-driven state | Customized |
 | [Quality Guidelines](./quality-guidelines.md) | Review guardrails, generated-file rules, regression checks | Customized |
@@ -35,8 +36,9 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
 1. Read [Directory Structure](./directory-structure.md) before placing files.
 2. Read [Component Guidelines](./component-guidelines.md) before moving code into `shared/*` or building new page components.
 3. Read [Route Permission Navigation Contract](./route-permission-navigation-contract.md) when adding pages, changing route guards, changing menu visibility, or moving page boundaries.
-4. Read [Hook Guidelines](./hook-guidelines.md) and [State Management](./state-management.md) before changing auth, query, or route-driven state.
-5. Use [Type Safety](./type-safety.md) and [Quality Guidelines](./quality-guidelines.md) as the final review checklist.
+4. Read [Pagination Contract](./pagination-contract.md) before adding a server-paginated list or Ant Design Table pagination.
+5. Read [Hook Guidelines](./hook-guidelines.md) and [State Management](./state-management.md) before changing auth, query, or route-driven state.
+6. Use [Type Safety](./type-safety.md) and [Quality Guidelines](./quality-guidelines.md) as the final review checklist.
 
 ### Trigger-Based Routing
 
@@ -46,6 +48,7 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
 | Route guard, menu, or permission change | [Route Permission Navigation Contract](./route-permission-navigation-contract.md), [State Management](./state-management.md), [Quality Guidelines](./quality-guidelines.md) |
 | Auth, current-user, logout, or token behavior | [Hook Guidelines](./hook-guidelines.md), [State Management](./state-management.md), [Route Permission Navigation Contract](./route-permission-navigation-contract.md) |
 | Generated client or API consumer change | [Type Safety](./type-safety.md), [State Management](./state-management.md), [../guides/cross-layer-thinking-guide.md](../guides/cross-layer-thinking-guide.md) |
+| Server-paginated list or Ant Design Table pagination | [Pagination Contract](./pagination-contract.md), [Component Guidelines](./component-guidelines.md), [State Management](./state-management.md), [Quality Guidelines](./quality-guidelines.md) |
 | Shared component/helper extraction | [Component Guidelines](./component-guidelines.md), [../guides/code-reuse-thinking-guide.md](../guides/code-reuse-thinking-guide.md) |
 | Ant Design component adoption | [Component Guidelines](./component-guidelines.md), [Quality Guidelines](./quality-guidelines.md) |
 

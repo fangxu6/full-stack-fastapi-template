@@ -36,6 +36,12 @@ Backend quality in this repo is mostly about preserving architectural direction:
 - Large files are a review smell. If a route, service, or helper grows because it owns several unrelated responsibilities, split by boundary before adding more behavior.
 - Comments should explain why, invariants, compatibility constraints, rollback notes, or side effects. Do not add comments that merely restate the next line of code.
 - Reads that will later feed pagination, counts, or bulk mutation should be reviewed for N+1 queries and Python-side filtering of full tables.
+- Offset-paginated routes must reject invalid offsets and page sizes at the
+  route boundary before database access. List queries must use a deterministic
+  order that ends with a unique tie-breaker; their `count` and page queries
+  must apply the same visibility and filter predicates. The current `items`
+  contract is `skip >= 0`, `1 <= limit <= 100`, ordered by
+  `created_at DESC, id DESC`.
 - Public schema changes should include a documentation/client-sync decision: generated client, frontend consumers, and feature docs are either updated or explicitly not affected.
 
 ---

@@ -1,9 +1,11 @@
 import uuid
+from datetime import UTC, datetime
 
 from sqlmodel import Session
 
 from app import crud, services
 from app.core.db import engine
+from app.models import Item
 from app.schemas.item import ItemCreate, ItemUpdate
 from tests.utils.item import create_random_item
 from tests.utils.user import create_random_user
@@ -75,6 +77,36 @@ def test_get_items_by_owner(db: Session) -> None:
     assert owned_item.id in item_ids
     assert other_item.id not in item_ids
     assert crud.count_items(session=db, owner_id=owned_item.owner_id) == len(items)
+
+
+def test_get_items_uses_id_as_stable_created_at_tie_breaker(db: Session) -> None:
+    user = create_random_user(db)
+    assert user.id is not None
+
+    created_at = datetime(2026, 1, 1, tzinfo=UTC)
+    lower_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
+    higher_id = uuid.UUID("00000000-0000-0000-0000-000000000002")
+    db.add_all(
+        [
+            Item(
+                id=lower_id,
+                title="lower-id",
+                owner_id=user.id,
+                created_at=created_at,
+            ),
+            Item(
+                id=higher_id,
+                title="higher-id",
+                owner_id=user.id,
+                created_at=created_at,
+            ),
+        ]
+    )
+    db.commit()
+
+    items = crud.get_items(session=db, owner_id=user.id)
+
+    assert [item.id for item in items] == [higher_id, lower_id]
 
 
 def test_update_item(db: Session) -> None:

@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-07-15
+
+- Added the frontend pagination contract for Ant Design 6 server-side lists.
+  It defines one-based UI pages mapped to the current `skip` / `limit` API,
+  requires `data + count` responses, makes `current`, `pageSize`, and `total`
+  controlled state, and prevents duplicate client-side/server-side pagination.
+- Added query-key, page-reset, deletion-recovery, error/empty-state, and test
+  requirements for paginated lists. `Pagination.onChange` is the single state
+  transition for both page and page-size changes; a page-size change resets the
+  selected page to `1` because Ant Design does not do so automatically.
+- Hardened the existing Items offset-paging endpoint: the route rejects
+  `skip < 0`, `limit < 1`, and `limit > 100` with the shared validation error
+  contract, while the CRUD query orders by `created_at DESC, id DESC` for a
+  stable page boundary. Added focused API and CRUD regression coverage.
+- Source inputs: Ant Design 6.5 Pagination official docs,
+  `frontend/package.json`, `frontend/src/shared/components/table/DataTable.tsx`,
+  `frontend/src/features/items/pages/ItemsPage.tsx`,
+  `backend/app/api/routes/items.py`, `backend/app/schemas/item.py`, and the
+  generated Items client.
+
 ## 2026-07-08
 
 - Refreshed specs after merging upstream `fastapi/full-stack-fastapi-template`

@@ -1,5 +1,6 @@
 import uuid
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
@@ -98,6 +99,31 @@ def test_read_items(
     assert response.status_code == 200
     content = response.json()
     assert len(content["data"]) >= 2
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"skip": -1},
+        {"limit": 0},
+        {"limit": 101},
+    ],
+)
+def test_read_items_rejects_invalid_pagination_params(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    params: dict[str, int],
+) -> None:
+    response = client.get(
+        f"{ITEMS_PATH}/",
+        headers=superuser_token_headers,
+        params=params,
+    )
+
+    assert response.status_code == 422
+    content = response.json()
+    assert content["detail"]
+    assert content["request_id"]
 
 
 def test_read_items_without_trailing_slash(
