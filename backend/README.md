@@ -138,7 +138,22 @@ Nevertheless, if it doesn't detect a change but a syntax error, it will just sto
 To test the backend run:
 
 ```console
-$ bash ./scripts/test.sh
+$ POSTGRES_DB=aiadmin_test bash ./scripts/test.sh
+```
+
+Backend tests are destructive and refuse to run unless `POSTGRES_DB` points to
+an isolated database whose name ends with `_test` or `_pytest`. Do not run them
+against the daily development database.
+
+For a local PostgreSQL setup:
+
+```powershell
+createdb -U postgres aiadmin_test
+cd backend
+$env:POSTGRES_DB = "aiadmin_test"
+uv run alembic upgrade head
+uv run python app/initial_data.py
+uv run pytest tests/
 ```
 
 The tests run with Pytest, modify and add tests to `./backend/tests/`.
