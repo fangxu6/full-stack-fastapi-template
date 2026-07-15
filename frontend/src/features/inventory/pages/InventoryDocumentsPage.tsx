@@ -313,7 +313,7 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
               label: unit.name,
               value: unit.id,
             }))}
-            showSearch
+            showSearch={{ optionFilterProp: "label" }}
           />
         </Form.Item>
         {activeType === "FINISHED_SHIPMENT" ? (
@@ -326,7 +326,7 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
                 label: unit.name,
                 value: unit.id,
               }))}
-              showSearch
+              showSearch={{ optionFilterProp: "label" }}
             />
           </Form.Item>
         ) : null}
