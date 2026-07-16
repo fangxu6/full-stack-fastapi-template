@@ -4,8 +4,10 @@ from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlmodel import Session
 
 from app.core.config import settings
+from app.models import InventoryDocument
 from app.schemas.inventory import InventoryLinePublic
 
 INVENTORY_PATH = f"{settings.API_V1_STR}/inventory"
@@ -161,10 +163,7 @@ def test_master_unit_lists_filter_by_name_and_status(
     )
     assert inactive_filtered_response.status_code == 200
     assert inactive_filtered_response.json()["count"] == 1
-    assert (
-        inactive_filtered_response.json()["data"][0]["name"]
-        == f"{prefix} Inactive"
-    )
+    assert inactive_filtered_response.json()["data"][0]["name"] == f"{prefix} Inactive"
 
 
 def test_document_list_paginates_after_filters(
@@ -578,6 +577,69 @@ def test_document_number_and_legacy_placeholders_are_rejected(
     assert (
         placeholder.json()["detail"]
         == "Legacy placeholder values cannot be used in new documents"
+    )
+
+
+def test_legacy_documents_cannot_be_updated_deleted_or_restored(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+) -> None:
+    processing_unit = _create_processing_unit(client, superuser_token_headers)
+    document = _create_raw_receipt(
+        client,
+        superuser_token_headers,
+        processing_unit_id=processing_unit["id"],
+        item_name="Legacy fabric",
+        item_code=f"LEGACY-{uuid.uuid4()}",
+    )
+    stored_document = db.get(InventoryDocument, uuid.UUID(str(document["id"])))
+    assert stored_document is not None
+    stored_document.is_legacy = True
+    db.add(stored_document)
+    db.commit()
+
+    update_response = client.put(
+        f"{INVENTORY_PATH}/documents/{stored_document.id}",
+        headers=superuser_token_headers,
+        json={
+            "document_type": "RAW_RECEIPT",
+            "business_date": str(date.today()),
+            "processing_unit_id": processing_unit["id"],
+            "document_number": f"LEGACY-EDIT-{uuid.uuid4()}",
+            "lines": [
+                {
+                    "item_name": "Legacy fabric",
+                    "item_code": "LEGACY-CODE",
+                    "wool_content": "100% wool",
+                    "quantity_rolls": 1,
+                }
+            ],
+        },
+    )
+    delete_response = client.delete(
+        f"{INVENTORY_PATH}/documents/{stored_document.id}",
+        headers=superuser_token_headers,
+    )
+    restore_response = client.post(
+        f"{INVENTORY_PATH}/documents/{stored_document.id}/restore",
+        headers=superuser_token_headers,
+    )
+
+    assert update_response.status_code == 400
+    assert (
+        update_response.json()["detail"]
+        == "Legacy inventory documents cannot be edited"
+    )
+    assert delete_response.status_code == 400
+    assert (
+        delete_response.json()["detail"]
+        == "Legacy inventory documents cannot be deleted"
+    )
+    assert restore_response.status_code == 400
+    assert (
+        restore_response.json()["detail"]
+        == "Legacy inventory documents cannot be restored"
     )
 
 

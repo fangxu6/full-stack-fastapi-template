@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from openpyxl import Workbook, load_workbook
 from openpyxl.utils.datetime import CALENDAR_WINDOWS_1900
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.core.exceptions import BadRequestError
@@ -12,9 +13,12 @@ from app.models import (
     InventoryDocumentLine,
     InventoryImportBatch,
     InventoryLedgerEntry,
+    LegacyImportRow,
+    ProcessingUnit,
+    ReceivingUnit,
     User,
 )
-from app.models.inventory import InventoryDocumentType
+from app.models.inventory import InventoryDocumentType, InventoryMovementType
 from app.modules.inventory.importer import (
     _date,
     _movement_definitions,
@@ -197,6 +201,18 @@ def test_import_rolls_back_batch_when_a_workbook_row_is_invalid(
     finished_workbook = tmp_path / "finished-empty.xlsx"
     _write_raw_workbook(raw_workbook, "not-a-quantity")
     _write_raw_workbook(finished_workbook, 0)
+    tracked_models = (
+        InventoryDocumentLine,
+        InventoryImportBatch,
+        InventoryLedgerEntry,
+        LegacyImportRow,
+        ProcessingUnit,
+        ReceivingUnit,
+    )
+    counts_before = {
+        model: db.exec(select(func.count()).select_from(model)).one()
+        for model in tracked_models
+    }
 
     with pytest.raises(BadRequestError, match="Invalid inventory quantity"):
         import_workbooks(
@@ -206,7 +222,70 @@ def test_import_rolls_back_batch_when_a_workbook_row_is_invalid(
             finished_workbook=finished_workbook,
         )
 
-    assert db.exec(select(InventoryImportBatch)).first() is None
+    assert {
+        model: db.exec(select(func.count()).select_from(model)).one()
+        for model in tracked_models
+    } == counts_before
+    assert (
+        db.exec(
+            select(ProcessingUnit).where(ProcessingUnit.normalized_name == "回滚加工厂")
+        ).first()
+        is None
+    )
+
+
+def test_import_reconciliation_opening_is_traceable_and_balances_by_key(
+    db: Session, tmp_path: Path
+) -> None:
+    actor = db.exec(select(User)).first()
+    assert actor is not None
+    raw_workbook = tmp_path / "raw-return.xlsx"
+    finished_workbook = tmp_path / "finished-empty.xlsx"
+    _write_raw_workbook(raw_workbook, -2)
+    _write_raw_workbook(finished_workbook, 0)
+
+    report = import_workbooks(
+        session=db,
+        actor_user_id=actor.id,
+        raw_workbook=raw_workbook,
+        finished_workbook=finished_workbook,
+    )
+
+    batch = db.exec(
+        select(InventoryImportBatch).order_by(InventoryImportBatch.imported_at.desc())
+    ).first()
+    assert batch is not None
+    assert batch.reconciliation_report == report
+    assert report["reconciliation_openings"] == 1
+
+    entries = db.exec(
+        select(InventoryLedgerEntry).where(
+            InventoryLedgerEntry.import_batch_id == batch.id,
+            InventoryLedgerEntry.item_name == "回滚坯布",
+        )
+    ).all()
+    opening = next(
+        entry
+        for entry in entries
+        if entry.movement_type is InventoryMovementType.MIGRATION_RECONCILIATION_OPENING
+    )
+    movement = next(
+        entry
+        for entry in entries
+        if entry.movement_type is InventoryMovementType.RAW_RETURN
+    )
+    assert opening.document_line_id is None
+    assert opening.legacy_import_row_id is not None
+    assert opening.import_batch_id == batch.id
+    assert opening.rolls_delta == Decimal("2")
+    assert opening.reason == "历史迁移对账期初"
+    assert movement.rolls_delta == Decimal("-2")
+    assert sum(entry.rolls_delta for entry in entries) == Decimal("0")
+
+    source = db.get(LegacyImportRow, opening.legacy_import_row_id)
+    assert source is not None
+    assert source.import_batch_id == batch.id
+    assert source.requires_cleanup is False
 
 
 def _write_finished_workbook(path: Path, rolls: float = 2) -> None:
