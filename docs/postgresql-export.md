@@ -161,10 +161,23 @@ pg_restore \
 如果要并行恢复目录格式或自定义格式：
 
 ```bash
-pg_restore --dbname="$PGDATABASE" --jobs=4 --no-owner --no-privileges app.dump
+pg_restore --username=postgres --dbname="$PGDATABASE"  --jobs=4 --no-owner --no-privileges app.dump
 ```
 
 `--clean` 会在创建对象前删除目标对象，可能造成数据丢失。除非明确需要覆盖目标库，否则不要使用该选项。
+
+pg_restore `
+  --host=localhost `
+  --port=5432 `
+  --username=postgres `
+  --dbname=aiadmin `
+  --jobs=4 `
+  --clean `
+  --if-exists `
+  --no-owner `
+  --no-privileges `
+  --exit-on-error `
+  .\app-20260715-100150.dump
 
 ### 4.2 恢复纯 SQL 文件
 
