@@ -1,0 +1,31 @@
+{
+  "id": "mastra-ai-orchestration-feasibility",
+  "name": "mastra-ai-orchestration-feasibility",
+  "title": "Mastra AI orchestration feasibility and first pilot plan",
+  "description": "Parent task for the Mastra inventory read-only pilot: owns approved product/architecture contracts, child-task ordering, and final cross-layer acceptance.",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "fangxu",
+  "assignee": "fangxu",
+  "createdAt": "2026-07-16",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "07-16-ai-backend-security-boundary",
+    "07-16-mastra-inventory-orchestrator",
+    "07-16-ai-inventory-superadmin-frontend",
+    "07-16-ai-inventory-evaluation-operations"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
