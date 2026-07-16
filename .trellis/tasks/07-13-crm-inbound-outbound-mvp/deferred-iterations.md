@@ -30,7 +30,7 @@
 | R-004 | 前端筛选与规格联想 | 已完成构建验证 | 单据列表已接入日期、加工单位、收货单位和单号筛选；编辑器已接入 `/inventory/suggestions` 的品名、品号、含毛量、颜色和缸号联想。 |
 | R-005 | 前端运行与 E2E 验收 | 已完成 | 使用可清理的 `aiadmin_test` 运行真实 Chromium 场景；登录、主数据、坯布入库、余额追溯、软删除/恢复和成品出货扣减全部通过，库存 E2E `3 passed`。 |
 | R-006 | 后端测试覆盖 | 已完成 | 新增历史单据不可编辑/删除/恢复、导入失败全量回滚、迁移对账期初来源/数量/按库存键非负余额断言；库存 API `22 passed`、导入器 `18 passed`。 |
-| R-007 | 任务质量收尾 | 已完成 | 完整后端测试 `137 passed, 1 skipped`；mypy、ty、Ruff、Ruff format、前端 lint/build 和库存 E2E 均通过。`backend/scripts/lint.sh` 在当前 Windows/WSL 环境因找不到 `uv` 未直接运行，已用等价 `uv run` 命令完成检查。 |
+| R-007 | 任务质量收尾 | 已完成 | 完整后端测试 `137 passed, 1 skipped`；`backend/scripts/lint.sh`（mypy、ty、Ruff、Ruff format）、前端 lint/build 和库存 E2E 均通过。 |
 
 ## Suggested Continuation Order
 
