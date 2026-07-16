@@ -57,6 +57,14 @@ type SuggestionField =
   | "color_code"
   | "dye_lot_no"
 
+const suggestionLabels: Record<SuggestionField, string> = {
+  color_code: "颜色/色号",
+  dye_lot_no: "缸号",
+  item_code: "品号",
+  item_name: "品名",
+  wool_content: "含毛量",
+}
+
 function InventorySuggestionInput({
   field,
   ledgerKind,
@@ -83,7 +91,7 @@ function InventorySuggestionInput({
       options={(suggestionsQuery.data?.data ?? []).map((value) => ({ value }))}
       value={value}
     >
-      <Input />
+      <Input aria-label={suggestionLabels[field]} />
     </AutoComplete>
   )
 }
@@ -194,7 +202,7 @@ export function DocumentEditorModal({
             name="document_number"
             rules={[{ required: true }]}
           >
-            <Input maxLength={64} />
+            <Input aria-label="单号" maxLength={64} />
           </Form.Item>
           <Form.Item
             label="加工单位"

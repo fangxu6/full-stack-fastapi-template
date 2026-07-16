@@ -24,8 +24,8 @@ psql --version
 export PGHOST=127.0.0.1
 export PGPORT=5432
 export PGUSER=postgres
-export PGDATABASE=app
-export PGPASSWORD='change-this-password'
+export PGDATABASE=aiadmin
+export PGPASSWORD='postgres'
 ```
 
 生产环境更建议使用 `.pgpass` 或 PostgreSQL 客户端的密码提示，不要长期设置 `PGPASSWORD`。Windows PowerShell 对应写法为：

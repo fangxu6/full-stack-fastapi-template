@@ -32,14 +32,14 @@ bunx playwright install chromium
 
 不要对日常开发使用的 `aiadmin` 数据库执行本流程。`backend/tests/conftest.py` 的测试夹具会在结束时删除库存、主数据和用户等测试数据，因此必须使用独立数据库。
 
-以下示例创建名为 `aiadmin_inventory_test` 的数据库；如本地 PostgreSQL 用户不是 `postgres`，替换为实际用户名。
+以下示例创建名为 `aiadmin_test` 的数据库；如本地 PostgreSQL 用户不是 `postgres`，替换为实际用户名。
 
 ```powershell
 Set-Location D:\Workspace\full-stack-fastapi-template
-createdb -U postgres aiadmin_inventory_test
+createdb -U postgres aiadmin_test
 
 Set-Location backend
-$env:POSTGRES_DB = 'aiadmin_inventory_test'
+$env:POSTGRES_DB = 'aiadmin_test'
 uv run alembic upgrade head
 uv run python app/initial_data.py
 ```
@@ -54,7 +54,7 @@ uv run python app/initial_data.py
 
 ```powershell
 Set-Location D:\Workspace\full-stack-fastapi-template\backend
-$env:POSTGRES_DB = 'aiadmin_inventory_test'
+$env:POSTGRES_DB = 'aiadmin_test'
 uv run fastapi dev app/main.py --host 127.0.0.1 --port 8000
 ```
 
@@ -127,7 +127,7 @@ bunx playwright install chromium
 不再需要测试数据时，停止后端后执行：
 
 ```powershell
-dropdb -U postgres aiadmin_inventory_test
+dropdb -U postgres aiadmin_test
 ```
 
 ## 9. 与 Codex 交互式浏览器的区别
