@@ -12,6 +12,9 @@
   and allowlisted operational logs.
 - Source inputs: `sidecar/**`, `compose.yml`, and
   `.trellis/tasks/07-16-mastra-inventory-orchestrator/`.
+- Recorded the FastAPI client implementation: separate orchestration token,
+  30-second no-retry request, completed-run provider/model audit, and
+  fail-before-503 behavior for unavailable or invalid sidecar responses.
 
 ## 2026-07-15
 

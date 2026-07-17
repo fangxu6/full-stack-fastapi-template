@@ -34,6 +34,10 @@
 - FastAPI owns authorization and sends `AI_ORCHESTRATOR_SERVICE_TOKEN`; the
   sidecar calls inventory projections with the separate
   `AI_INTERNAL_SERVICE_TOKEN` and forwards the actor grant/request ID.
+- FastAPI calls the sidecar with a 30-second `httpx` timeout and no retry. A
+  completed envelope completes the matching `ai_run` with provider/model
+  metadata; HTTP, timeout, or envelope-validation failure marks that run
+  failed before returning the standard backend 503 error.
 - `OPENAI_MODEL` is exactly `gpt-5.6-luna`, with `reasoning.effort=medium`.
   The tool registry is exactly `balances`, `documents`, `ledger`,
   `processing_units`, and `receiving_units`; web, file, MCP, shell, memory,
