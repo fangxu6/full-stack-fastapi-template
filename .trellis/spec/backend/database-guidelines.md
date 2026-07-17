@@ -55,6 +55,122 @@ The backend uses SQLModel + SQLAlchemy on PostgreSQL. Model and schema conventio
 
 ---
 
+## Scenario: Module Database Object Namespace
+
+### 1. Scope / Trigger
+
+When a bounded business module introduces one or more durable database objects,
+give that module a stable lowercase domain prefix. Apply it to new tables,
+explicitly named indexes, constraints, sequences, and Alembic revision
+descriptions. This prevents unrelated features from creating ambiguous names
+such as `run`, `log`, `state`, or `record`, which made later inspection and
+operations harder in the CRM inbound/outbound work.
+
+This is a forward-only convention. Do not rename existing production tables
+solely to comply; a rename requires its own compatibility, migration, and
+rollback task.
+
+### 2. Signatures
+
+Use a stable module identifier as the domain namespace:
+
+| Object kind | Required form | AI example |
+| --- | --- | --- |
+| Table | `<domain>_<noun>` | `ai_run`, `ai_tool_call` |
+| Index | `ix_<domain>_<table-noun>_<columns>` | `ix_ai_run_request_id` |
+| Unique constraint | `uq_<domain>_<table-noun>_<columns>` | `uq_ai_tool_call_run_sequence` |
+| Check constraint | `ck_<domain>_<table-noun>_<rule>` | `ck_ai_run_tool_calls` |
+| Foreign key | `fk_<domain>_<table-noun>_<target>` | `fk_ai_tool_call_run` |
+| Sequence | `seq_<domain>_<noun>` | `seq_ai_run_number` |
+| Alembic description | `create_<domain>_<objects>` | `create_ai_audit_tables` |
+
+The conventional object-kind prefix (`ix_`, `uq_`, `fk_`, and so on) comes
+first; the domain prefix must immediately follow it. For a module with domain
+`ai`, every new persistent object is therefore discoverable with `ai_` in its
+name.
+
+### 3. Contracts
+
+- Choose the domain prefix in the task `prd.md`/`design.md` before generating
+  the first migration. It must describe the bounded capability, not a temporary
+  screen or implementation detail.
+- Use the same prefix across all child tasks of one initiative. A sidecar,
+  frontend, or evaluation task that later adds persistence inherits the parent
+  module prefix instead of inventing another namespace.
+- Explicitly name multi-column indexes and constraints. Do not rely on a
+  generated database name that drops the domain context.
+- Keep existing shared/platform tables in their existing namespace. A new
+  cross-module table needs an explicit owner and prefix decision in its design.
+- Models, schemas, Python classes, and API routes do not need to start with the
+  database prefix; this rule owns persisted database object names only.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| New table lacks the approved domain prefix | Stop migration review; rename it before applying the migration. |
+| Explicit index or constraint omits the domain prefix | Give it an explicit compliant name before merge. |
+| Existing production table lacks a prefix | Preserve it; create a separate compatibility task if a rename is truly required. |
+| Child task proposes a different prefix for the same module | Reject the divergence and use the parent module prefix. |
+| New cross-module/shared table has no clear owner | Resolve owner and namespace in the design before migration generation. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: the AI module creates `ai_run`, `ai_tool_call`,
+  `ix_ai_run_request_id`, and `uq_ai_tool_call_run_sequence`; operations can
+  list the entire module family by searching `ai_`.
+- Base: an existing `inventory_document` remains unchanged while a new AI
+  audit table references it or `user`; the new object still uses `ai_`.
+- Bad: a new CRM or AI feature adds generic `run`, `events`, or `log_entries`
+  tables and unnamed constraints. Operators cannot reliably group, audit, or
+  clean up the feature's persistence footprint.
+
+### 6. Tests Required
+
+- Migration test: inspect the migrated schema/metadata and assert each new
+  table has the approved `<domain>_` prefix.
+- Schema test: assert explicitly named indexes, unique/check/foreign-key
+  constraints, and sequences use the corresponding kind-plus-domain form.
+- Upgrade/downgrade test: run only against an isolated `_test` or `_pytest`
+  database and verify no existing unrelated table was renamed.
+- Review test: when a public schema/API change accompanies the migration,
+  perform the existing generated-client impact review separately; database
+  naming does not exempt cross-layer contract checks.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+class Run(SQLModel, table=True):
+    __tablename__ = "run"
+
+    request_id: str
+
+
+Index("request_id_index", Run.request_id)
+```
+
+The table and index do not identify their owning module, so operational schema
+inspection cannot distinguish them from other feature runs.
+
+#### Correct
+
+```python
+class AiRun(SQLModel, table=True):
+    __tablename__ = "ai_run"
+
+    request_id: str
+
+
+Index("ix_ai_run_request_id", AiRun.request_id)
+```
+
+The model name remains idiomatic Python while every persisted object carries a
+stable AI namespace.
+
+---
+
 ## Audit Field Contract
 
 ### 1. Scope / Trigger
