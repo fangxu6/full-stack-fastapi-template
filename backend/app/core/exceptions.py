@@ -16,7 +16,6 @@ from starlette.status import (
     HTTP_409_CONFLICT,
     HTTP_422_UNPROCESSABLE_ENTITY,
     HTTP_500_INTERNAL_SERVER_ERROR,
-    HTTP_503_SERVICE_UNAVAILABLE,
 )
 
 REQUEST_ID_HEADER = "X-Request-ID"
@@ -67,11 +66,6 @@ class BadRequestError(AppError):
 class ConflictError(AppError):
     status_code = HTTP_409_CONFLICT
     detail = "Conflict"
-
-
-class ServiceUnavailableError(AppError):
-    status_code = HTTP_503_SERVICE_UNAVAILABLE
-    detail = "Service unavailable"
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):

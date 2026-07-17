@@ -30,7 +30,7 @@
 
 2. **建立后端 AI 边界与持久化审计**
    - 在 `backend/app` 的明确模块边界内创建 AI application/service、schemas 和 ORM migration；不把 AI 逻辑塞入现有 inventory router。
-   - 创建 `ai_` 前缀的 run 与 tool-call 审计模型/DTO、索引、约束和 migration 描述，保留最小元数据和来源摘要，不复制完整生产库存 payload 或凭据。
+   - 创建 run 与 tool-call 审计模型/DTO，保留最小元数据和来源摘要，不复制完整生产库存 payload 或凭据。
    - 实现超级管理员依赖、输入长度限制、统一应用错误和 `request_id` 关联。
    - 为新 public API 定义 OpenAPI-visible request/response schemas。
 

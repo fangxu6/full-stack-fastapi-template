@@ -8,8 +8,6 @@ from app.core.config import settings
 from app.core.db import engine, init_db
 from app.main import app
 from app.models import (
-    AiRun,
-    AiToolCall,
     InventoryDocument,
     InventoryDocumentLine,
     InventoryImportBatch,
@@ -52,8 +50,6 @@ def db() -> Generator[Session]:
         init_db(session)
         yield session
         for model in (
-            AiToolCall,
-            AiRun,
             InventoryLedgerEntry,
             InventoryDocumentLine,
             LegacyImportRow,

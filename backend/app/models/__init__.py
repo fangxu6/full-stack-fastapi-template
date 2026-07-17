@@ -1,6 +1,5 @@
 from sqlmodel import SQLModel
 
-from .ai import AiRun, AiToolCall
 from .inventory import (
     InventoryDocument,
     InventoryDocumentLine,
@@ -15,8 +14,6 @@ from .user import User
 
 __all__ = [
     "SQLModel",
-    "AiRun",
-    "AiToolCall",
     "InventoryDocument",
     "InventoryDocumentLine",
     "InventoryImportBatch",
