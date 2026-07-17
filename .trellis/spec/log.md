@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-07-17
+
+- Added the AI inventory sidecar contract. It freezes the private BFF endpoint,
+  two separate service tokens, five-tool allowlist, structured result/error
+  envelopes, `gpt-5.6-luna` with medium reasoning, private Docker networking,
+  and allowlisted operational logs.
+- Source inputs: `sidecar/**`, `compose.yml`, and
+  `.trellis/tasks/07-16-mastra-inventory-orchestrator/`.
+
 ## 2026-07-15
 
 - Added the frontend pagination contract for Ant Design 6 server-side lists.

@@ -136,6 +136,29 @@ services:
       # Enable redirection for HTTP and HTTPS
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.middlewares=https-redirect
 
+  inventory-ai-sidecar:
+    build:
+      context: .
+      dockerfile: sidecar/Dockerfile
+    restart: always
+    networks:
+      - default
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      AI_INTERNAL_BASE_URL: http://backend:8000
+      AI_INTERNAL_SERVICE_TOKEN: ${AI_INTERNAL_SERVICE_TOKEN?Variable not set}
+      AI_ORCHESTRATOR_SERVICE_TOKEN: ${AI_ORCHESTRATOR_SERVICE_TOKEN?Variable not set}
+      OPENAI_API_KEY: ${OPENAI_API_KEY?Variable not set}
+      OPENAI_MODEL: gpt-5.6-luna
+    healthcheck:
+      test: ["CMD", "bun", "-e", "const response = await fetch('http://127.0.0.1:3000/health'); if (!response.ok) process.exit(1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
   frontend:
     image: '${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}'
     restart: always
