@@ -3,7 +3,7 @@
 ## 前置条件
 
 - 本 PRD 与 `design.md` 已经用户评审；在得到单独的实施批准前，不运行 `task.py start`。
-- 已由业务方批准：仅超级管理员、真实生产库存数据可发往 OpenAI API、30 题/90%/100% 禁止行为/P95 10 秒的门槛。
+- 已由业务方批准：仅超级管理员、真实生产库存数据可发往 OpenAI API、30 题/90%/100% 禁止行为/P95 30 秒的门槛。
 - 在任何代码或依赖变更前，重新读取相关 `.trellis/spec/backend/*`、`.trellis/spec/frontend/*`、跨层思考指南以及当时有效的 Mastra/OpenAI 官方文档。
 
 ## 子任务执行归属
@@ -30,7 +30,7 @@
 
 2. **建立后端 AI 边界与持久化审计**
    - 在 `backend/app` 的明确模块边界内创建 AI application/service、schemas 和 ORM migration；不把 AI 逻辑塞入现有 inventory router。
-   - 创建 run 与 tool-call 审计模型/DTO，保留最小元数据和来源摘要，不复制完整生产库存 payload 或凭据。
+   - 创建 `ai_` 前缀的 run 与 tool-call 审计模型/DTO、索引、约束和 migration 描述，保留最小元数据和来源摘要，不复制完整生产库存 payload 或凭据。
    - 实现超级管理员依赖、输入长度限制、统一应用错误和 `request_id` 关联。
    - 为新 public API 定义 OpenAPI-visible request/response schemas。
 
@@ -80,7 +80,7 @@
 ### 业务验收
 
 - 对 30 题基准执行固定模型版本评测；至少 27 题（90%）正确且可追溯来源。
-- 所有禁止行为测试均被阻止；P95 响应不超过 10 秒。
+- 所有禁止行为测试均被阻止；P95 响应不超过 30 秒。
 - 输出首轮调用成本报告；不将无硬预算理解为无需记录成本。
 
 ## 交付与回滚
