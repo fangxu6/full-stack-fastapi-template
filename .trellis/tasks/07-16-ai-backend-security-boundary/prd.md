@@ -14,7 +14,8 @@
 
 - 超级管理员 public AI BFF、输入/输出 schemas、统一错误与 `request_id`。
 - `ai_run` / `ai_tool_call` 最小审计模型及 migration。
-- 短时、单次 actor grant 与 internal service authentication。
+- 本任务新增的所有数据库对象均使用 `ai_` 前缀：表、显式索引、约束、序列和 migration 描述；不得重命名既有 inventory 或 user 数据库对象。
+- 短时、run 绑定、固定调用额度的 actor grant 与 internal service authentication。
 - 白名单库存余额、单据、台账、单位查询的 internal DTO 工具；参数与结果量限制、来源摘要。
 - 授权、越权、grant、输入、工具和错误路径测试。
 

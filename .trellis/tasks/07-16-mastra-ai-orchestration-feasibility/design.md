@@ -9,6 +9,7 @@ FastAPI 继续是唯一的业务数据、认证、授权、审计与公网 API �
 ## 目标与约束
 
 - 仅超级管理员可使用库存只读问答。
+- 本父任务及全部子任务新增的数据库对象使用 `ai_` 前缀；不重命名既有业务表。
 - 仅支持库存余额、库存单据与库存台账的白名单查询；禁止新增、编辑、删除、恢复、SQL、MCP、网络、文件系统及任意代码执行工具。
 - 真实生产库存数据可发送到 OpenAI API，但只发送当前问题所需的最小字段集；不得外发用户 JWT、数据库/服务凭据、密钥或无关个人资料。
 - 所有结果必须携带数据来源摘要；工具失败、空结果或权限失败必须显式呈现，不得由模型补全。
@@ -79,9 +80,9 @@ React 永远不直接访问 sidecar 或 OpenAI；sidecar 永远不直接访问�
 
 ### 内部工具面
 
-sidecar 只能调用不经 Traefik 发布的 `/internal/ai/inventory/*` 工具端点。每个端点须：
+sidecar 通过 Docker 服务名调用 `/internal/ai/inventory/*` 工具端点。现有 backend host router 不按 path 隔离，因此每个端点必须先以 service credential 和 actor grant 拒绝未授权调用；Traefik path deny 或独立 internal listener 是后续部署加固，不能替代服务端校验。每个端点须：
 
-1. 校验 FastAPI 签发的短时 actor grant：`run_id`、原始超级管理员 ID、允许工具 scope、签发/过期时间、一次性 nonce；
+1. 校验 FastAPI 签发的短时、run 绑定 actor grant：`run_id`、原始超级管理员 ID、允许工具 scope、签发/过期时间及调用额度；每次工具调用原子消费额度；
 2. 校验强类型筛选参数与最大 `limit`，忽略或拒绝未声明字段；
 3. 调用既有 inventory service，返回 schemas/DTO，而不是 SQLModel ORM 对象；
 4. 写入工具审计事件并带回可展示的来源摘要。
@@ -109,7 +110,7 @@ sidecar 只能调用不经 Traefik 发布的 `/internal/ai/inventory/*` 工具�
 
 ## 审计、可观测性与评测
 
-新增持久化 `ai_run` 和 `ai_tool_call` 记录（命名在实施前可调整），最少包含：本地 `request_id`、run ID、用户 ID、状态、允许工具、筛选摘要、供应商/模型、OpenAI 请求 ID、时延、token/成本、错误类别与时间戳。生产库存字段本身不完整复制到审计表；保留可重放的参数摘要和来源标识即可。
+新增持久化 `ai_run` 和 `ai_tool_call` 记录，最少包含：本地 `request_id`、run ID、用户 ID、状态、允许工具、筛选摘要、供应商/模型、OpenAI 请求 ID、时延、token/成本、错误类别与时间戳。表、显式索引、约束、序列及 migration 描述均使用 `ai_` 前缀；生产库存字段本身不完整复制到审计表，保留可重放的参数摘要和来源标识即可。
 
 `request_id` 是根关联键；OpenAI 的 `X-Client-Request-Id` 使用同一 run 可追溯值。Sentry/结构化日志不得记录密钥或完整提示词。运行面板与基准评测是后续实现范围，不是本 task 的交付。
 
