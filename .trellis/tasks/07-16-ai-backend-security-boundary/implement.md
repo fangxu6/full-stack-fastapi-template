@@ -72,11 +72,16 @@
 - 单位 projection：`processing-units` 与 `receiving-units` 各自绑定独立 scope，
   复用同一受限单位 DTO，并仅委托现有 inventory unit service；
 - 模型/服务/API focused tests、完整后端 pytest（144 passed）及 mypy、ty、Ruff
-  静态门。
+  静态门；
+- FastAPI BFF sidecar client：使用独立 `AI_ORCHESTRATOR_SERVICE_TOKEN`，以 30 秒
+  无重试请求发送冻结的 headers、`run_id` 和 question；completed response 完成
+  `ai_run` 的 provider/model 审计，sidecar 不可用或 envelope 无效时先将 run 标记
+  failed，再保持统一 503 `{detail, request_id}`；
+- 在隔离 `aiadmin_test` 运行 AI focused tests（16 passed）和完整 mypy、ty、Ruff。
 
-下一步从 internal read router 开始：先为 service-token + grant 依赖与五个
-白名单 projection schema 编写 red tests，再复用现有 inventory service；随后实现
-sidecar client、BFF 编排与失败状态收尾。Docker 级测试仍待具备 Docker CLI 的环境执行。
+剩余工作为 Docker 内网实链路、真实 provider 可用性/数据控制核验，以及与评测任务
+共同执行 BFF → sidecar → internal tools 的端到端基准；均不应在本地生产数据库或未批准
+的容器环境中运行。
 
 ### Sidecar 协议依赖
 
