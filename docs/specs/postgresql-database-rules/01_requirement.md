@@ -30,6 +30,8 @@
 - AC3: 规范明确新表默认优先 `BIGINT GENERATED ALWAYS AS IDENTITY`，同时写清当前仓库既有 `UUID` 模型的兼容例外。
 - AC4: 规范覆盖约束、索引、关系、软删除、分区、RLS、JSONB 和 Schema 演进流程。
 - AC5: 文档与当前仓库 `SQLModel + Alembic + FastAPI + OpenAPI client` 工作流保持一致。
+- AC6: 文档明确新表自身 `BIGINT` 主键可与既有 UUID 外键共存，并规定业务编号、
+  UUID 例外、请求中技术 ID、403/404 与 JavaScript 精度告警边界。
 
 ## Constraints
 

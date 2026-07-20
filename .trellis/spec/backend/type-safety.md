@@ -44,7 +44,9 @@ Reference anchors:
 
 ## Required Patterns
 
-- Use `uuid.UUID` for durable entity identifiers and public schema IDs.
+- Preserve `uuid.UUID` types for existing UUID entities and foreign keys. New
+  independent entities use typed Python `int` fields backed by an explicitly
+  reviewed PostgreSQL BIGINT identity migration.
 - Use timezone-aware UTC timestamps for persisted creation times, following
   `get_datetime_utc` in the model layer.
 - Keep nullable fields explicit with `| None`; do not rely on implicit optional
@@ -52,6 +54,9 @@ Reference anchors:
 - Use schema classes for API boundaries instead of route-local dictionaries.
 - Use typed service signatures instead of broad `dict[str, Any]` payloads when
   the shape is known.
+- Keep technical `id` fields out of create/update DTOs and use
+  `extra="forbid"` when the endpoint must reject caller-supplied identity
+  values with 422.
 - Use `model_validate(...)`, `model_dump(exclude_unset=True)`, and
   `sqlmodel_update(...)` patterns for schema/entity transformations and partial
   updates.
@@ -87,6 +92,9 @@ Do not patch `frontend/src/client/**` manually to hide backend typing mistakes.
   impact.
 - Serializing UUID/datetime fields manually in ad hoc helpers unless the route
   or integration has a documented external format requirement.
+- Treating a JSON numeric BIGINT ID as precise above `2^53 - 1`; the current
+  policy is alert-only, so a future cross-layer redesign is required before
+  relying on those values in JavaScript.
 
 ---
 
@@ -95,7 +103,10 @@ Do not patch `frontend/src/client/**` manually to hide backend typing mistakes.
 - [ ] Public payload shape is owned by a schema class.
 - [ ] Service signatures and return types match the schema/entity flow.
 - [ ] Nullable and optional fields are explicit.
-- [ ] UUID and datetime fields are not converted through ad hoc string helpers.
+- [ ] UUID, numeric IDs, and datetime fields use the documented schema type at
+      each boundary.
+- [ ] New entity IDs are database-generated; create/update DTOs reject a
+      caller-supplied `id`.
 - [ ] Model changes include migration review.
 - [ ] Public API changes include generated-client review.
 - [ ] Backend checks include `bash backend/scripts/lint.sh` and relevant tests

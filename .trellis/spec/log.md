@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-07-20
+
+- Established the forward PostgreSQL primary-key contract: new independent
+  entities use `BIGINT GENERATED ALWAYS AS IDENTITY`; existing UUID tables are
+  preserved; a BIGINT entity may reference an existing UUID target through a
+  UUID foreign key.
+- Distinguished technical primary keys, domain business identifiers, and
+  module-declared resource access domains. Added future migration/model/API
+  checks for generated IDs, 422 input rejection, 403/404 authorization, and
+  generated-client review.
+- Recorded PostgreSQL's signed `2^63 - 1` identity limit and the accepted
+  alert-only JavaScript numeric-precision risk at `2^53 - 1`.
+- Source inputs: `docs/rules/数据库规则.md`, current SQLModel UUID models,
+  `docs/specs/postgresql-database-rules/`, and
+  `.trellis/tasks/07-20-bigint-identity-primary-key-policy/`.
+
 ## 2026-07-17
 
 - Added the AI inventory sidecar contract. It freezes the private BFF endpoint,

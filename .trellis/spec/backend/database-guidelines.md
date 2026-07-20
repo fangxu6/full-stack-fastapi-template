@@ -48,10 +48,125 @@ The backend uses SQLModel + SQLAlchemy on PostgreSQL. Model and schema conventio
 ## Modeling Rules
 
 - Keep SQLModel table classes in `models/*` and transport contracts in `schemas/*`.
-- Use UUID `id` fields for durable entity identifiers.
+- Preserve UUID identifiers on existing tables. New independent entities follow
+  the BIGINT identity contract below.
 - Use `<resource>_id` for foreign-key fields such as `owner_id`.
 - Keep timestamp fields in UTC with timezone-aware storage.
 - Public list wrappers should keep the existing `data + count` shape, for example `UsersPublic` and `ItemsPublic`.
+
+---
+
+## Scenario: New Entity Primary Keys
+
+### 1. Scope / Trigger
+
+Apply this contract when a new durable business table, document, ledger, or
+independently addressable document line is introduced. It is forward-only and
+does not migrate existing UUID primary keys.
+
+### 2. Signatures
+
+```sql
+id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY
+```
+
+- PostgreSQL `BIGINT` is signed and positive identity values end at `2^63 - 1`.
+  Do not use `BIGINT(20)`, unsigned ranges, `serial`, or `bigserial`.
+- A new BIGINT entity can reference an existing UUID table: its `user_id`,
+  `created_by`, or other foreign key remains UUID while its own `id` is BIGINT.
+
+### 3. Contracts
+
+- Each normal table has an independent sequence. IDs are immutable, never
+  reused, and may have gaps.
+- Pure association tables with no independent lifecycle may use their foreign
+  keys as a composite primary key. Independently referenced or audited lines
+  need their own BIGINT identity plus a domain unique constraint such as
+  `(document_id, line_no)`.
+- Business identifiers remain separate domain fields. They never replace a
+  technical primary key or authorize access to it.
+- UUID primary keys require a design rationale: cross-system/offline merge,
+  opaque external identity, or a one-to-one table sharing an existing UUID
+  parent's primary key.
+- Create and update DTOs use `extra="forbid"` and do not declare `id`; a
+  client-supplied ID is a 422 validation failure. Only controlled migrations
+  use `OVERRIDING SYSTEM VALUE` and then realign the identity sequence.
+- Each module must document whether its resource access domain is
+  internal-global, owner-scoped, unit-scoped, or administrator-scoped. Service
+  authorization returns 403 for an existing inaccessible row and 404 for a
+  missing or deleted row.
+- Public BIGINT IDs are JSON numbers. At `MAX(id) >= 2^53 - 1`, emit an
+  operational alert only. Precision loss above that boundary is an explicitly
+  accepted risk.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| New independent entity | BIGINT identity primary key in model and migration |
+| UUID parent/audit reference | UUID foreign-key column matching the target type |
+| Client supplies `id` on create/update | 422 through the shared error contract |
+| Existing row outside access domain | 403 through the shared error contract |
+| Missing or deleted row | 404 through the shared error contract |
+| `MAX(id) >= 2^53 - 1` | Operational alert; no automatic write block or API conversion |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a new `production_order` owns a BIGINT identity while `created_by`
+  remains a UUID foreign key to `user.id`.
+- Base: a UUID-keyed `user_preferences` one-to-one extension uses `user_id` as
+  both its UUID primary key and foreign key.
+- Bad: a new independent order switches to UUID solely because it references
+  `user.id`, or an API silently ignores a caller-provided identity value.
+
+### 6. Tests Required
+
+- Migration/model test: assert the primary-key type and generated-always
+  identity, target-matching foreign-key types, and any line-number or
+  association-table constraint.
+- API test: database assigns the ID; input `id` receives 422; the module's
+  declared authorization returns 403/404 correctly.
+- Cross-layer test: public numeric IDs compile through generated OpenAPI client
+  consumers whenever a new endpoint is introduced.
+- Operations check: document or implement a per-table `MAX(id)` alert at
+  `9007199254740991`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+class ProductionOrder(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_by: uuid.UUID = Field(foreign_key="user.id")
+```
+
+The new independent entity has no UUID requirement; the existing UUID foreign
+key does not determine its own primary-key type.
+
+#### Correct
+
+```python
+import uuid
+
+from sqlalchemy import BigInteger, Column, Identity
+from sqlmodel import Field, SQLModel
+
+
+class ProductionOrder(SQLModel, table=True):
+    id: int | None = Field(
+        default=None,
+        sa_column=Column(
+            BigInteger,
+            Identity(always=True),
+            primary_key=True,
+        ),
+    )
+    created_by: uuid.UUID = Field(foreign_key="user.id")
+```
+
+The production migration must explicitly emit the PostgreSQL BIGINT generated
+always identity column and match the model metadata.
 
 ---
 
@@ -356,7 +471,8 @@ change.
 
 - Treat `User` as a stable platform entity.
 - Treat `Item` as replaceable or extensible once real domain modeling arrives; do not overfit future architecture around it.
-- When adding real business entities, keep the same contract discipline: UUID keys, UTC timestamps, explicit public schema wrappers, and matching Alembic revisions.
+- When adding real business entities, use the new-entity primary-key contract,
+  UTC timestamps, explicit public schema wrappers, and matching Alembic revisions.
 
 ---
 

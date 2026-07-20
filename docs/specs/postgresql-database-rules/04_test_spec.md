@@ -13,6 +13,10 @@
 - TC5: 文档是否把 Schema 变更流程与 `docs/specs/`、Alembic、OpenAPI client 联动写清楚。
 - TC6: 文档是否避免与当前仓库真实模型、README 和 AGENTS.md 冲突。
 - TC7: `AI_CHANGELOG.md` 是否记录了本次规则升级。
+- TC8: 文档是否区分新表自身主键和外键目标类型，并定义实体、明细行、纯关联表的
+  主键边界。
+- TC9: 文档是否定义未来模块的 identity、DTO 422、授权 403/404、生成客户端和
+  `MAX(id)` 告警测试点。
 
 ## Manual Verification
 

@@ -26,4 +26,7 @@
 
 - 现有 `backend/app/models/user.py` 与 `backend/app/models/item.py` 使用 `UUID` 主键。
 - 新规范不能要求在无迁移方案的前提下修改这些既有表。
-- 新表若关联既有 `UUID` 表，则沿用 `UUID` 键类型；若是全新业务域且无兼容依赖，可优先评估 `BIGINT IDENTITY`。
+- 新表的外键必须匹配既有 UUID 目标表；这不决定新表自身主键。具有独立生命周期的
+  新表仍优先 `BIGINT IDENTITY`，而共享主键的一对一扩展可保留 UUID。
+- 新 API 的 BIGINT `id` 是只读 JSON number。create/update DTO 不接受 `id` 并返回
+  422；资源存在但不在模块声明的访问域时返回 403，不存在或已删除时返回 404。

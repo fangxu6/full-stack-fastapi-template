@@ -24,6 +24,11 @@ In most cases, updating `AI_CHANGELOG.md` alone is enough.
 
 ## Entries
 - YYYY-MM-DD: (placeholder)
+- Date: 2026-07-20
+- Scope: forward PostgreSQL primary-key policy
+- Decision: New independent business entities default to PostgreSQL `BIGINT GENERATED ALWAYS AS IDENTITY`; existing UUID tables remain unchanged, and new BIGINT entities may reference them through UUID foreign keys. Technical primary keys, business identifiers, and resource access domains are now separate concepts. UUID requires a written exception rationale for cross-system/offline, opaque-external, or shared-primary-key cases.
+- Reason: Existing database rules already preferred BIGINT for new tables, while Trellis backend specs still described UUID as universal. The contradiction made a new table's primary-key choice depend incorrectly on its UUID references.
+- Risk: Internal APIs continue to expose BIGINT IDs as JSON numbers. At `2^53 - 1` the system alerts only; values above that threshold can lose JavaScript precision, and that operational risk is explicitly accepted.
 - Date: 2026-05-07
 - Scope: frontend rules documentation alignment with scaffold batch 0 boundaries
 - Decision: Rewrote `docs/rules/前端开发规范.md` and `docs/rules/前端CRUD开发模板.md` to match the live frontend architecture after batch-0 boundary migration, replacing the old `routes + components/Common + components/Items/Admin` narrative with the current `app / platform / features / shared` layering, thin-route rule, grouped shared-component imports, and platform-vs-feature CRUD placement guidance.
