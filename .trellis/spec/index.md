@@ -30,6 +30,7 @@ merge:
 | Project Hooks | [trellis-hook-contract.md](./trellis-hook-contract.md) | Changing project-owned backend/frontend quality hooks |
 | AI Sidecar | [ai-sidecar-contract.md](./ai-sidecar-contract.md) | Changing the private inventory AI sidecar, its Compose service, or BFF protocol |
 | Thinking Guides | [guides/index.md](./guides/index.md) | Planning cross-layer work, deciding reuse boundaries, or reviewing architecture-impacting diffs |
+| Spec Templates | [templates/index.md](./templates/index.md) | Creating a new trigger-based scenario contract |
 
 ---
 
@@ -50,8 +51,9 @@ merge:
 
 ## Scenario Contract Standard
 
-Use [templates/scenario-contract-template.md](./templates/scenario-contract-template.md)
-when a lesson is specific enough to be triggered later. Good candidates include:
+Use [Spec Templates](./templates/index.md) when a lesson is specific enough to
+be triggered later. The [Scenario Contract template](./templates/scenario-contract-template.md)
+is appropriate for:
 
 - OpenAPI/client regeneration rules
 - unified error and request-id behavior

@@ -19,6 +19,8 @@
 - Source inputs: `docs/rules/数据库规则.md`, current SQLModel UUID models,
   `docs/specs/postgresql-database-rules/`, and
   `.trellis/tasks/07-20-bigint-identity-primary-key-policy/`.
+- Added the `templates/` directory index and linked it from the root catalog,
+  making scenario-contract template discovery and usage rules explicit.
 
 ## 2026-07-17
 
