@@ -19,7 +19,9 @@
 
 ### Main Changes
 
-- Detailed change bullets were not supplied; see the summary above.
+- Added an ADR and domain glossary that separate technical primary keys, business identifiers, and resource access domains.
+- Updated PostgreSQL, API, and Trellis backend guidance for new `BIGINT GENERATED ALWAYS AS IDENTITY` entity keys while retaining UUID foreign keys to existing resources.
+- Defined payload rejection, authorization semantics, UUID exceptions, and the JavaScript safe-integer operational alert.
 
 ### Git Commits
 
@@ -28,6 +30,40 @@
 | `54db6d0` | (see git log) |
 | `c38f84d` | (see git log) |
 | `15c4886` | (see git log) |
+
+### Testing
+
+- Passed scoped Markdown link resolution and `git diff --check`.
+- Validated the SQLModel `BigInteger` plus `Identity(always=True)` metadata example with the backend environment.
+- Backend lint, typing, and test suites were not run because this task changed documentation only.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 2: Adopt BIGINT identity primary-key policy
+
+**Date**: 2026-07-20
+**Task**: Adopt BIGINT identity primary-key policy
+
+### Summary
+
+Defined a forward-only PostgreSQL BIGINT GENERATED ALWAYS AS IDENTITY primary-key policy, including UUID compatibility, API validation, access semantics, and JavaScript precision alerting.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `979cf39` | (see git log) |
 
 ### Testing
 
