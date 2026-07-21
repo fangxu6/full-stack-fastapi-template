@@ -118,6 +118,15 @@
 
 ## 2026-07-21
 
+- Hardened the provider compatibility boundary for inventory answers. The
+  sidecar now accepts a verified tool-backed JSON string, Chinese alias
+  envelope, or natural-language answer, while retaining strict rejection of
+  ungrounded text and malformed JSON. Balance data given to the model is
+  reduced to five UUID-free records with the total count preserved.
+- Raised the FastAPI-to-sidecar no-retry timeout from 30 to 90 seconds after
+  production-like verification showed the provider could complete the internal
+  inventory tool call quickly but require longer for the final post-tool answer.
+  The public error contract remains unchanged.
 - Generalized the private inventory sidecar from an OpenAI-only environment to
   an explicit OpenAI-compatible provider contract. `AI_PROVIDER_API_KEY` is
   sidecar-only; `AI_PROVIDER_BASE_URL` may use HTTP only with explicit opt-in,

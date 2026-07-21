@@ -8,11 +8,15 @@ import {
 const actorUserId = "0d9e3194-3dd6-4ac8-8a3a-65e4a9f69ee0";
 const runId = "9a6a7fb3-c9bd-42ae-a9a1-2c173617f5b2";
 
-function actorGrantWithSubject(subject: string) {
-	const payload = Buffer.from(JSON.stringify({ sub: subject })).toString(
+function actorGrantWithPayload(payload: object) {
+	const encodedPayload = Buffer.from(JSON.stringify(payload)).toString(
 		"base64url",
 	);
-	return `header.${payload}.signature`;
+	return `header.${encodedPayload}.signature`;
+}
+
+function actorGrantWithSubject(subject: string) {
+	return actorGrantWithPayload({ sub: subject });
 }
 
 test("forwards the verified grant context to the balances projection", async () => {
@@ -57,6 +61,43 @@ test("forwards the verified grant context to the balances projection", async () 
 		skip: 0,
 	});
 	expect(result.source).toBe("inventory:balances");
+});
+
+test("accepts the standard claims in a FastAPI-issued actor grant", async () => {
+	let receivedRequest: Request | undefined;
+	const actorGrant = actorGrantWithPayload({
+		aud: "ai-inventory-orchestrator",
+		exp: 1_785_326_686,
+		iat: 1_785_326_386,
+		iss: "full-stack-fastapi-template.ai",
+		jti: "cd07c449-aa0d-4dc4-a6fd-b8ce04dd7c33",
+		run_id: runId,
+		scopes: ["inventory:balances"],
+		sub: actorUserId,
+	});
+	const client = createInventoryToolClient({
+		baseUrl: "http://backend:8000",
+		fetch: async (input, init) => {
+			receivedRequest = new Request(input, init);
+			return Response.json({
+				tool_name: "balances",
+				source: "inventory:balances",
+				result: { count: 0, data: [] },
+			});
+		},
+		serviceToken: "internal-service-token",
+	});
+
+	await client.readBalances(
+		{ actorGrant, requestId: "request-123", runId },
+		{ ledger_kind: "FINISHED" },
+	);
+
+	expect(receivedRequest?.headers.get("X-AI-Actor-Grant")).toBe(actorGrant);
+	expect(await receivedRequest?.json()).toMatchObject({
+		actor_user_id: actorUserId,
+		ledger_kind: "FINISHED",
+	});
 });
 
 test("calls the processing-units projection with bounded pagination", async () => {

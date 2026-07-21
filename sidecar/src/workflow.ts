@@ -15,6 +15,24 @@ import {
 	InventoryToolRejectedError,
 } from "./tools";
 
+const inventoryToolNames = [
+	"balances",
+	"documents",
+	"ledger",
+	"processing_units",
+	"receiving_units",
+] as const;
+
+const inventorySourceByToolName = {
+	balances: "inventory:balances",
+	documents: "inventory:documents",
+	ledger: "inventory:ledger",
+	processing_units: "inventory:processing_units",
+	receiving_units: "inventory:receiving_units",
+} as const;
+
+type InventoryToolName = keyof typeof inventorySourceByToolName;
+
 const finalAnswerSchema = z
 	.object({
 		answer: z.string().trim().min(1).max(8_000),
@@ -22,13 +40,7 @@ const finalAnswerSchema = z
 			.array(
 				z
 					.object({
-						tool_name: z.enum([
-							"balances",
-							"documents",
-							"ledger",
-							"processing_units",
-							"receiving_units",
-						]),
+						tool_name: z.enum(inventoryToolNames),
 						source: z.string().regex(/^inventory:[a-z_]+$/),
 						summary: z.string().trim().min(1).max(1_000),
 					})
@@ -41,6 +53,8 @@ const finalAnswerSchema = z
 
 type AgentResult = {
 	object?: unknown;
+	text?: string;
+	toolResults?: Array<{ payload?: { toolName?: string } }>;
 	response?: { headers?: Record<string, string | undefined> };
 	usage?: { inputTokens?: number; outputTokens?: number };
 };
@@ -104,6 +118,98 @@ function isTimeoutError(error: unknown): boolean {
 	);
 }
 
+function parseTextOutput(text: string | undefined): unknown {
+	if (!text) return undefined;
+
+	const trimmedText = text.trim();
+	const codeBlock = trimmedText.match(/^```(?:json)?\s*\n?([\s\S]*?)\s*```$/i);
+	const jsonText = codeBlock?.[1] ?? trimmedText;
+	try {
+		return JSON.parse(jsonText);
+	} catch {
+		return undefined;
+	}
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isInventoryToolName(value: unknown): value is InventoryToolName {
+	return (
+		typeof value === "string" && Object.hasOwn(inventorySourceByToolName, value)
+	);
+}
+
+function getExecutedToolNames(result: AgentResult): InventoryToolName[] {
+	return [
+		...new Set(
+			result.toolResults
+				?.map((toolResult) => toolResult.payload?.toolName)
+				.filter(isInventoryToolName),
+		),
+	];
+}
+
+function normalizeTextOutput(value: unknown, result: AgentResult): unknown {
+	if (!isRecord(value) || ("answer" in value && "citations" in value)) {
+		return value;
+	}
+
+	const answer = value.答案 ?? value.说明;
+	const citations = value.citation ? [value.citation] : value.citations;
+	if (answer === undefined || !Array.isArray(citations)) return value;
+
+	const executedToolNames = new Set(getExecutedToolNames(result));
+	return {
+		answer,
+		citations: citations.map((citation) => {
+			if (!isRecord(citation) || !isInventoryToolName(citation.tool_name)) {
+				return citation;
+			}
+			if (!executedToolNames.has(citation.tool_name)) return citation;
+			return {
+				...citation,
+				source: inventorySourceByToolName[citation.tool_name],
+				summary:
+					citation.summary ?? `已调用 ${citation.tool_name} 工具查询库存数据。`,
+			};
+		}),
+	};
+}
+
+function naturalLanguageTextOutput(
+	text: string | undefined,
+	result: AgentResult,
+): unknown {
+	const answer = text?.trim();
+	const toolNames = getExecutedToolNames(result);
+	if (!answer || toolNames.length === 0) return undefined;
+
+	return {
+		answer,
+		citations: toolNames.map((toolName) => ({
+			tool_name: toolName,
+			source: inventorySourceByToolName[toolName],
+			summary: `已调用 ${toolName} 工具查询库存数据。`,
+		})),
+	};
+}
+
+function parseFinalAnswer(result: AgentResult) {
+	const parsedText = parseTextOutput(result.text);
+	const output = result.object ?? parsedText;
+	const normalizedOutput = normalizeTextOutput(output, result);
+	const parsedOutput = finalAnswerSchema.safeParse(normalizedOutput);
+	if (parsedOutput.success) return parsedOutput.data;
+	if (result.object !== undefined || parsedText !== undefined) {
+		throw parsedOutput.error;
+	}
+	return finalAnswerSchema.parse(
+		naturalLanguageTextOutput(result.text, result),
+	);
+}
+
 export function createProviderModelConfig({
 	apiKey,
 	baseUrl,
@@ -156,7 +262,7 @@ export function createInventoryWorkflow({
 				experimental_output: z.toJSONSchema(finalAnswerSchema) as JSONSchema7,
 				maxSteps: 5,
 			});
-			const output = finalAnswerSchema.parse(result.object);
+			const output = parseFinalAnswer(result);
 			return completedQueryResponseSchema.parse({
 				...output,
 				status: "completed",

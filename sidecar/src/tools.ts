@@ -140,7 +140,7 @@ function getActorUserId(actorGrant: string): string {
 		const payload: unknown = JSON.parse(
 			Buffer.from(parts[1], "base64url").toString("utf-8"),
 		);
-		const parsed = z.object({ sub: z.uuid() }).strict().safeParse(payload);
+		const parsed = z.object({ sub: z.uuid() }).passthrough().safeParse(payload);
 		if (!parsed.success) {
 			throw new InventoryToolRejectedError();
 		}

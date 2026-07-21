@@ -34,7 +34,7 @@
 - FastAPI owns authorization and sends `AI_ORCHESTRATOR_SERVICE_TOKEN`; the
   sidecar calls inventory projections with the separate
   `AI_INTERNAL_SERVICE_TOKEN` and forwards the actor grant/request ID.
-- FastAPI calls the sidecar with a 30-second `httpx` timeout and no retry. A
+- FastAPI calls the sidecar with a 90-second `httpx` timeout and no retry. A
   completed envelope completes the matching `ai_run` with provider/model
   metadata; HTTP, timeout, or envelope-validation failure marks that run
   failed before returning the standard backend 503 error.
@@ -52,6 +52,15 @@
   `provider_metadata.provider`, fixed model, and nullable
   `provider_request_id`; it must not claim a third-party request came from
   OpenAI.
+- Providers that omit Mastra's parsed object may return a JSON string, the
+  Chinese aliases `说明` / `citation`, or natural-language text. The sidecar
+  may normalize those forms only after at least one allowlisted inventory tool
+  has completed: citations are derived from the executed tool names and use
+  the fixed `inventory:*` source mapping. JSON that parses but violates the
+  completed schema remains invalid; a natural-language answer without an
+  executed tool remains invalid. Balance tool results passed to the model are
+  compacted to a total count and at most five records without processing-unit
+  UUIDs; the internal HTTP response and audit record remain unchanged.
 - The Compose service joins only `default`, declares no `ports` or Traefik
   labels, and receives no PostgreSQL credentials. Keep runtime AI secrets in
   ignored `.env.ai.secrets` (or a deployment secret manager), injected with
@@ -96,7 +105,9 @@
 - Sidecar: run `bun test`, `bun run typecheck`, and `bunx biome check sidecar`.
   Assert that HTTP is rejected unless opted in, generic provider metadata is
   validated, the configured base URL is supplied to the model transport, and
-  direct-process host binding defaults to loopback.
+  direct-process host binding defaults to loopback. Cover JSON-string,
+  Chinese-alias, and executed-tool natural-language output normalization, plus
+  the five-record balance context cap.
 - Contract: cover every failure category, BFF token rejection, grant/header
   forwarding, bounded tool inputs, structured result validation, health, and
   allowlisted logging.

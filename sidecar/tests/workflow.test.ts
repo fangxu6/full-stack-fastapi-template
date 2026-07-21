@@ -71,6 +71,144 @@ test("returns a completed structured response with provider metadata", async () 
 	});
 });
 
+test("parses a JSON text response when the provider omits the structured object", async () => {
+	const workflow = createInventoryWorkflow({
+		providerApiKey: "provider-key",
+		providerBaseUrl: "http://llm-gateway:8080/v1",
+		providerName: "internal-gateway",
+		createAgent: () => ({
+			generate: async () => ({
+				text: JSON.stringify({
+					answer: "当前无成品库存余额。",
+					citations: [
+						{
+							source: "inventory:balances",
+							summary: "已查询成品库存余额，共 0 条",
+							tool_name: "balances",
+						},
+					],
+				}),
+			}),
+		}),
+		internalBaseUrl: "http://backend:8000",
+		internalServiceToken: "internal-token",
+	});
+
+	expect(
+		await workflow({
+			actorGrant: "grant",
+			question: "成品库存还有多少？",
+			requestId: "request-123",
+			runId,
+		}),
+	).toMatchObject({
+		status: "completed",
+		answer: "当前无成品库存余额。",
+	});
+});
+
+test("normalizes the provider's Chinese text envelope after its cited tool executes", async () => {
+	const workflow = createInventoryWorkflow({
+		providerApiKey: "provider-key",
+		providerBaseUrl: "http://llm-gateway:8080/v1",
+		providerName: "internal-gateway",
+		createAgent: () => ({
+			generate: async () => ({
+				text: JSON.stringify({
+					库存类型: "成品",
+					库存余额: [],
+					说明: "当前无成品库存余额记录。",
+					citation: {
+						tool_name: "balances",
+						source: "成品库存余额查询工具",
+						summary: "已查询成品库存余额，共 0 条",
+					},
+				}),
+				toolResults: [{ payload: { toolName: "balances" } }],
+			}),
+		}),
+		internalBaseUrl: "http://backend:8000",
+		internalServiceToken: "internal-token",
+	});
+
+	expect(
+		await workflow({
+			actorGrant: "grant",
+			question: "成品库存还有多少？",
+			requestId: "request-123",
+			runId,
+		}),
+	).toMatchObject({
+		status: "completed",
+		answer: "当前无成品库存余额记录。",
+		citations: [
+			{
+				tool_name: "balances",
+				source: "inventory:balances",
+			},
+		],
+	});
+});
+
+test("accepts a natural-language answer after an inventory tool executes", async () => {
+	const workflow = createInventoryWorkflow({
+		providerApiKey: "provider-key",
+		providerBaseUrl: "http://llm-gateway:8080/v1",
+		providerName: "internal-gateway",
+		createAgent: () => ({
+			generate: async () => ({
+				text: "当前成品库存余额已查询，共 290 条记录。",
+				toolResults: [{ payload: { toolName: "balances" } }],
+			}),
+		}),
+		internalBaseUrl: "http://backend:8000",
+		internalServiceToken: "internal-token",
+	});
+
+	expect(
+		await workflow({
+			actorGrant: "grant",
+			question: "成品库存还有多少？",
+			requestId: "request-123",
+			runId,
+		}),
+	).toMatchObject({
+		status: "completed",
+		answer: "当前成品库存余额已查询，共 290 条记录。",
+		citations: [
+			{
+				tool_name: "balances",
+				source: "inventory:balances",
+			},
+		],
+	});
+});
+
+test("rejects non-JSON text responses", async () => {
+	const workflow = createInventoryWorkflow({
+		providerApiKey: "provider-key",
+		providerBaseUrl: "http://llm-gateway:8080/v1",
+		providerName: "internal-gateway",
+		createAgent: () => ({
+			generate: async () => ({ text: "当前无成品库存余额。" }),
+		}),
+		internalBaseUrl: "http://backend:8000",
+		internalServiceToken: "internal-token",
+	});
+
+	expect(
+		await workflow({
+			actorGrant: "grant",
+			question: "成品库存还有多少？",
+			requestId: "request-123",
+			runId,
+		}),
+	).toEqual({
+		status: "failed",
+		error: { category: "invalid_response", retryable: false },
+	});
+});
+
 test("maps an OpenAI rate limit to a retryable structured failure", async () => {
 	const workflow = createInventoryWorkflow({
 		providerApiKey: "provider-key",

@@ -1,17 +1,23 @@
 import hashlib
+import uuid
+from typing import cast
 
+import httpx
 import pytest
 from sqlmodel import Session
 
 from app import crud
+from app.core.config import settings
 from app.core.exceptions import PermissionDeniedError
 from app.models.ai import AiRunStatus, AiToolCallStatus
 from app.modules.ai.service import (
-    create_ai_run,
-    issue_actor_grant,
+    AI_ORCHESTRATOR_TIMEOUT_SECONDS,
     authorize_internal_tool_call,
+    call_inventory_sidecar,
     complete_tool_call,
+    create_ai_run,
     fail_ai_run,
+    issue_actor_grant,
     reserve_tool_call,
     validate_actor_grant,
     validate_internal_service_token,
@@ -113,6 +119,52 @@ def test_internal_service_token_uses_a_strict_server_side_match() -> None:
             supplied_token="wrong-token",
             expected_token=expected_token,
         )
+
+
+def test_inventory_sidecar_call_uses_the_ninety_second_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "AI_ORCHESTRATOR_URL", "http://sidecar:3000")
+    monkeypatch.setattr(settings, "AI_ORCHESTRATOR_SERVICE_TOKEN", "service-token")
+    captured_timeout: float | None = None
+
+    def fake_post(*_: object, **kwargs: object) -> httpx.Response:
+        nonlocal captured_timeout
+        captured_timeout = cast(float, kwargs["timeout"])
+        return httpx.Response(
+            200,
+            json={
+                "status": "completed",
+                "answer": "当前无成品库存余额。",
+                "citations": [
+                    {
+                        "tool_name": "balances",
+                        "source": "inventory:balances",
+                        "summary": "已查询成品库存余额，共 0 条",
+                    }
+                ],
+                "provider_metadata": {
+                    "provider": "internal-gateway",
+                    "model": "gpt-5.6-luna",
+                    "provider_request_id": None,
+                    "latency_ms": 1,
+                    "input_tokens": None,
+                    "output_tokens": None,
+                },
+            },
+        )
+
+    monkeypatch.setattr("app.modules.ai.service.httpx.post", fake_post)
+
+    response = call_inventory_sidecar(
+        run_id=uuid.uuid4(),
+        question="查询成品库存",
+        request_id="request-timeout-90",
+        actor_grant="grant",
+    )
+
+    assert response.status == "completed"
+    assert captured_timeout == AI_ORCHESTRATOR_TIMEOUT_SECONDS == 90.0
 
 
 def test_completing_a_tool_call_records_only_its_source_summary(db: Session) -> None:

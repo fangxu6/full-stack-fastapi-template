@@ -9,6 +9,8 @@ type InventoryToolsConfig = {
 	context: InventoryToolContext;
 };
 
+const MAX_BALANCE_CONTEXT_RECORDS = 5;
+
 const nullableUuid = z.uuid().nullable();
 const nullableShortText = z.string().trim().min(1).max(255).nullable();
 const pagingInput = {
@@ -61,8 +63,33 @@ const ledgerInputSchema = z
 	})
 	.strict();
 
+const balanceContextSchema = z.object({
+	count: z.number().int().nonnegative(),
+	data: z.array(
+		z.object({
+			item_name: z.string(),
+			item_code: z.string().nullable(),
+			wool_content: z.string(),
+			color_code: z.string().nullable(),
+			dye_lot_no: z.string().nullable(),
+			rolls_balance: z.union([z.number(), z.string()]),
+			meters_balance: z.union([z.number(), z.string()]),
+		}),
+	),
+});
+
 function toToolSchema(schema: z.ZodType): JSONSchema7 {
 	return z.toJSONSchema(schema) as JSONSchema7;
+}
+
+export function compactBalancesForModel(result: unknown) {
+	const parsed = balanceContextSchema.parse(result);
+	const balances = parsed.data.slice(0, MAX_BALANCE_CONTEXT_RECORDS);
+	return {
+		total_balance_count: parsed.count,
+		sampled_balance_count: balances.length,
+		balances,
+	};
 }
 
 export function createInventoryTools({
@@ -75,13 +102,17 @@ export function createInventoryTools({
 			description: "查询来料或成品库存余额，仅返回最多 20 条只读记录。",
 			strict: true,
 			inputSchema: toToolSchema(balancesInputSchema),
-			execute: (input) => {
+			execute: async (input) => {
 				const parsed = balancesInputSchema.parse(input);
-				return client.readBalances(context, {
+				const response = await client.readBalances(context, {
 					...parsed,
 					processing_unit_id: parsed.processing_unit_id ?? undefined,
 					item_name: parsed.item_name ?? undefined,
 				});
+				return {
+					source: response.source,
+					...compactBalancesForModel(response.result),
+				};
 			},
 		}),
 		processing_units: createTool({

@@ -17,6 +17,7 @@ from app.schemas.ai import AiSidecarCompletedResponse
 ACTOR_GRANT_ALGORITHM = "HS256"
 ACTOR_GRANT_ISSUER = "full-stack-fastapi-template.ai"
 ACTOR_GRANT_AUDIENCE = "ai-inventory-orchestrator"
+AI_ORCHESTRATOR_TIMEOUT_SECONDS = 90.0
 
 
 def create_ai_run(
@@ -172,7 +173,7 @@ def call_inventory_sidecar(
                 "X-Request-ID": request_id,
             },
             json={"run_id": str(run_id), "question": question},
-            timeout=30.0,
+            timeout=AI_ORCHESTRATOR_TIMEOUT_SECONDS,
         )
         response.raise_for_status()
         return AiSidecarCompletedResponse.model_validate(response.json())
