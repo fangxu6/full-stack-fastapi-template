@@ -78,6 +78,12 @@
   `ai_run` 的 provider/model 审计，sidecar 不可用或 envelope 无效时先将 run 标记
   failed，再保持统一 503 `{detail, request_id}`；
 - 在隔离 `aiadmin_test` 运行 AI focused tests（16 passed）和完整 mypy、ty、Ruff。
+- 已将 sidecar 改为 provider-neutral 配置，支持 OpenAI-compatible base URL；
+  `http://` 必须显式 opt-in。provider key 保持 sidecar-only，完成 envelope 与
+  `ai_run` 审计使用实际 provider 名称和 generic request ID。sidecar 全量测试
+  （23 passed）、TypeScript typecheck/Biome 与 backend focused AI tests
+  （16 passed）及 mypy/ty/Ruff 均通过；本机未安装 Docker CLI，因此未运行
+  Compose/container 验证。
 
 剩余工作为 Docker 内网实链路、真实 provider 可用性/数据控制核验，以及与评测任务
 共同执行 BFF → sidecar → internal tools 的端到端基准；均不应在本地生产数据库或未批准

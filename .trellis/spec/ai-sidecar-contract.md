@@ -38,12 +38,25 @@
   completed envelope completes the matching `ai_run` with provider/model
   metadata; HTTP, timeout, or envelope-validation failure marks that run
   failed before returning the standard backend 503 error.
-- `OPENAI_MODEL` is exactly `gpt-5.6-luna`, with `reasoning.effort=medium`.
-  The tool registry is exactly `balances`, `documents`, `ledger`,
+- `AI_PROVIDER_MODEL` is exactly `gpt-5.6-luna`, with `reasoning.effort=medium`.
+  `AI_PROVIDER_NAME`, `AI_PROVIDER_BASE_URL`, and `AI_PROVIDER_API_KEY` are
+  required only by the sidecar; FastAPI never receives the provider API key.
+  `AI_PROVIDER_BASE_URL` accepts credential-free HTTP(S) URLs. HTTP requires
+  `AI_PROVIDER_ALLOW_INSECURE_HTTP=true`; use it only for an internal or local
+  test provider on the sidecar's private network. The tool registry is exactly
+  `balances`, `documents`, `ledger`,
   `processing_units`, and `receiving_units`; web, file, MCP, shell, memory,
   and write tools are forbidden.
+- The sidecar configures Mastra's OpenAI-compatible transport with
+  `model.url=AI_PROVIDER_BASE_URL`. A completed envelope records
+  `provider_metadata.provider`, fixed model, and nullable
+  `provider_request_id`; it must not claim a third-party request came from
+  OpenAI.
 - The Compose service joins only `default`, declares no `ports` or Traefik
-  labels, and receives no PostgreSQL credentials.
+  labels, and receives no PostgreSQL credentials. Keep runtime AI secrets in
+  ignored `.env.ai.secrets` (or a deployment secret manager), injected with
+  `docker compose --env-file .env --env-file .env.ai.secrets ...`; do not put
+  them in tracked root `.env`.
 - Operational logs may contain only request ID, HTTP status, and completed or
   failed outcome. Do not add question text, grants, credentials, raw tool data,
   or provider error text to logging calls.
@@ -57,21 +70,25 @@
 | Internal 401/403 | failed `tool_rejected`, not a provider failure | `sidecar/tests/workflow.test.ts` |
 | Internal non-2xx or invalid JSON/schema | failed `tool_failed` or `invalid_response` | `sidecar/tests/workflow.test.ts`, `sidecar/tests/tools.test.ts` |
 | Provider 429, timeout/abort, or other unavailable failure | `rate_limited`, `timeout`, or `provider_unavailable`; only these are retryable | `sidecar/tests/workflow.test.ts` |
+| HTTP provider URL without explicit opt-in | sidecar fails at startup | `sidecar/tests/config.test.ts` |
 | Public exposure or direct database access | prohibited by Compose/service contract | review `compose.yml` and `sidecar/Dockerfile` |
 
 ## 5. Good / Base / Bad Cases
 
 - Good: FastAPI passes a run-bound grant and separate BFF token, sidecar
   returns a validated envelope, and only allowlisted metadata is logged.
-- Base: tests use an injected agent and mocked FastAPI `fetch`; no real OpenAI
+- Base: tests use an injected agent and mocked FastAPI `fetch`; no real provider
   request is needed to verify protocol behavior.
 - Bad: returning provider exception text, registering a model-hosted tool not
-  in the allowlist, reusing the two service tokens, adding Traefik labels, or
-  making `GET /health` externally routable.
+  in the allowlist, reusing the two service tokens, enabling arbitrary HTTP
+  without the opt-in, adding Traefik labels, or making `GET /health` externally
+  routable.
 
 ## 6. Tests Required
 
 - Sidecar: run `bun test`, `bun run typecheck`, and `bunx biome check sidecar`.
+  Assert that HTTP is rejected unless opted in, generic provider metadata is
+  validated, and the configured base URL is supplied to the model transport.
 - Contract: cover every failure category, BFF token rejection, grant/header
   forwarding, bounded tool inputs, structured result validation, health, and
   allowlisted logging.

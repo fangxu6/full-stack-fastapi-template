@@ -11,4 +11,12 @@ def test_ai_enabled_requires_internal_backend_configuration(monkeypatch: pytest.
     monkeypatch.delenv("AI_ACTOR_GRANT_SIGNING_KEY", raising=False)
 
     with pytest.raises(ValidationError, match="AI_ENABLED requires"):
-        Settings(AI_ENABLED=True)
+        Settings(
+            _env_file=None,
+            AI_ENABLED=True,
+            FIRST_SUPERUSER="test@example.com",
+            FIRST_SUPERUSER_PASSWORD="test-password",
+            POSTGRES_SERVER="localhost",
+            POSTGRES_USER="test",
+            PROJECT_NAME="test",
+        )

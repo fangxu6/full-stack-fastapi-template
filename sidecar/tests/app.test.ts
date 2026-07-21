@@ -35,8 +35,9 @@ test("forwards an authenticated BFF query to the inventory workflow", async () =
 					},
 				],
 				provider_metadata: {
+					provider: "internal-gateway",
 					model: "gpt-5.6-luna",
-					openai_request_id: null,
+					provider_request_id: null,
 					latency_ms: 123,
 					input_tokens: null,
 					output_tokens: null,

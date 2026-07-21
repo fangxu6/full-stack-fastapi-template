@@ -115,3 +115,17 @@
   a continuation prompt rather than allowing the turn to finish.
 - Source inputs: `.codex/hooks.json`, `.codex/hooks/stop-quality-gate.py`, and
   `hooks/tests/test_stop_quality_gate.py`.
+
+## 2026-07-21
+
+- Generalized the private inventory sidecar from an OpenAI-only environment to
+  an explicit OpenAI-compatible provider contract. `AI_PROVIDER_API_KEY` is
+  sidecar-only; `AI_PROVIDER_BASE_URL` may use HTTP only with explicit opt-in,
+  and completed metadata/audit now records the actual provider rather than an
+  incorrect OpenAI label.
+- Recorded the tracked-root-`.env` deployment hazard: runtime AI secrets belong
+  in ignored `.env.ai.secrets` or a secret manager, while Compose explicitly
+  maps only the BFF's internal AI settings to backend/prestart.
+- Source inputs: `sidecar/src/{config,protocol,server,workflow}.ts`,
+  `compose.yml`, `backend/app/{schemas/ai.py,modules/ai/router.py}`, and their
+  focused tests.

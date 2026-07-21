@@ -15,8 +15,11 @@ from tests.utils.utils import random_email, random_lower_string
 
 
 def test_inventory_ai_query_fails_closed_when_disabled(
-    client: TestClient, superuser_token_headers: dict[str, str]
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(settings, "AI_ENABLED", False)
     response = client.post(
         "/api/v1/ai/inventory/query",
         headers=superuser_token_headers,
@@ -80,8 +83,9 @@ def test_enabled_inventory_bff_returns_the_completed_sidecar_response(
                 }
             ],
             provider_metadata={
+                "provider": "internal-gateway",
                 "model": "gpt-5.6-luna",
-                "openai_request_id": "req_123",
+                "provider_request_id": "req_123",
                 "latency_ms": 123,
                 "input_tokens": 12,
                 "output_tokens": 34,
@@ -99,7 +103,7 @@ def test_enabled_inventory_bff_returns_the_completed_sidecar_response(
     run = db.exec(select(AiRun).order_by(AiRun.created_at.desc())).first()
     assert run is not None
     assert run.status is AiRunStatus.COMPLETED
-    assert run.provider == "openai"
+    assert run.provider == "internal-gateway"
     assert run.model == "gpt-5.6-luna"
     assert response.json() == {
         "run_id": str(run.id),

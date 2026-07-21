@@ -75,6 +75,27 @@ sidecar 每次工具调用同时提交 `AI_INTERNAL_SERVICE_TOKEN` 和 actor gra
 - FastAPI internal endpoint 始终要求 service token + actor grant；
 - 与 sidecar 子任务共同在 Traefik 增加 `/internal/ai` 拒绝规则，或采用独立 internal listener；在该部署加固完成前，不得把路径可达性当作安全保证。
 
+### OpenAI-compatible provider 配置
+
+provider 并不必是 OpenAI。sidecar 使用 `AI_PROVIDER_NAME`、
+`AI_PROVIDER_BASE_URL`、`AI_PROVIDER_API_KEY` 和固定的
+`AI_PROVIDER_MODEL=gpt-5.6-luna`；Mastra 的 OpenAI-compatible model
+transport 接收该 base URL。`AI_PROVIDER_API_KEY` 只注入 sidecar，FastAPI
+只接收 `AI_ENABLED`、orchestrator/internal service token 和 grant signing key。
+
+根 `.env` 在本仓库被跟踪且被 Compose 的 backend/prestart `env_file` 读取，
+不得保存以上任何运行时 AI secret。部署以忽略的 `.env.ai.secrets` 或 secret
+manager 为来源，并用 `docker compose --env-file .env --env-file
+.env.ai.secrets ...` 注入。Compose 必须显式将 FastAPI 所需的内部配置映射给
+backend/prestart，而不得映射 provider API key。
+
+`AI_PROVIDER_BASE_URL` 允许无凭据的 `https://`；对内网或本地测试 provider
+允许 `http://`，但只有 `AI_PROVIDER_ALLOW_INSECURE_HTTP=true` 才能启动。
+HTTP provider 必须处于 sidecar 的私有网络或 loopback/等效防火墙边界内，不能
+以该开关作为公网明文出站许可。完成 envelope 使用 `provider` 和
+`provider_request_id`，审计 `ai_run.provider` 保存实际 provider 名称，避免将
+第三方调用错误标记为 OpenAI。
+
 ## 错误、日志与关联
 
 已有 `RequestIdMiddleware` 将 request ID 写入 state/response。BFF 使用该值创建 `ai_run.request_id`，internal calls 带同一关联 ID。预期错误包括超级管理员拒绝、input validation、AI disabled、grant 拒绝、tool limit、sidecar timeout/health failure；它们均通过全局 AppError handler 返回统一 shape。

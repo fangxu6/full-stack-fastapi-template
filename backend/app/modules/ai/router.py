@@ -76,7 +76,7 @@ def query_inventory(
         session=session,
         run=run,
         actor_user_id=current_user.id,
-        provider="openai",
+        provider=sidecar_response.provider_metadata.provider,
         model=sidecar_response.provider_metadata.model,
     )
     return AiInventoryQueryResponse(

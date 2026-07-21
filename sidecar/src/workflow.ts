@@ -60,10 +60,17 @@ type WorkflowInput = {
 };
 
 type WorkflowConfig = {
-	apiKey: string;
 	createAgent?: (input: WorkflowInput) => InventoryAgent;
 	internalBaseUrl: string;
 	internalServiceToken: string;
+	providerApiKey: string;
+	providerBaseUrl: string;
+	providerName: string;
+};
+
+type ProviderModelConfigInput = {
+	apiKey: string;
+	baseUrl: string;
 };
 
 function failed(
@@ -97,11 +104,24 @@ function isTimeoutError(error: unknown): boolean {
 	);
 }
 
-export function createInventoryWorkflow({
+export function createProviderModelConfig({
 	apiKey,
+	baseUrl,
+}: ProviderModelConfigInput) {
+	return {
+		apiKey,
+		id: "openai/gpt-5.6-luna" as const,
+		url: baseUrl,
+	};
+}
+
+export function createInventoryWorkflow({
 	createAgent,
 	internalBaseUrl,
 	internalServiceToken,
+	providerApiKey,
+	providerBaseUrl,
+	providerName,
 }: WorkflowConfig) {
 	return async function runInventoryWorkflow(
 		input: WorkflowInput,
@@ -119,7 +139,10 @@ export function createInventoryWorkflow({
 							"你只能使用已注册的库存只读工具。必须基于工具结果回答中文问题，并为每个结论提供 citation。",
 						providerOptions: { openai: { reasoningEffort: "medium" } },
 					},
-					model: { apiKey, id: "openai/gpt-5.6-luna" },
+					model: createProviderModelConfig({
+						apiKey: providerApiKey,
+						baseUrl: providerBaseUrl,
+					}),
 					tools: createInventoryTools({
 						client: createInventoryToolClient({
 							baseUrl: internalBaseUrl,
@@ -138,8 +161,12 @@ export function createInventoryWorkflow({
 				...output,
 				status: "completed",
 				provider_metadata: {
+					provider: providerName,
 					model: "gpt-5.6-luna",
-					openai_request_id: result.response?.headers?.["x-request-id"] ?? null,
+					provider_request_id:
+						result.response?.headers?.["x-request-id"] ??
+						result.response?.headers?.["request-id"] ??
+						null,
 					latency_ms: Math.round(performance.now() - startedAt),
 					input_tokens: result.usage?.inputTokens ?? null,
 					output_tokens: result.usage?.outputTokens ?? null,

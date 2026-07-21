@@ -5,7 +5,9 @@ import { createInventoryWorkflow } from "./workflow";
 
 const config = loadConfig(Bun.env);
 const workflow = createInventoryWorkflow({
-	apiKey: config.OPENAI_API_KEY,
+	providerApiKey: config.AI_PROVIDER_API_KEY,
+	providerBaseUrl: config.AI_PROVIDER_BASE_URL,
+	providerName: config.AI_PROVIDER_NAME,
 	internalBaseUrl: config.AI_INTERNAL_BASE_URL,
 	internalServiceToken: config.AI_INTERNAL_SERVICE_TOKEN,
 });

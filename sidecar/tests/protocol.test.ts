@@ -17,8 +17,9 @@ test("accepts a completed response with a stable citation", () => {
 			},
 		],
 		provider_metadata: {
+			provider: "internal-gateway",
 			model: "gpt-5.6-luna",
-			openai_request_id: "req_123",
+			provider_request_id: "req_123",
 			latency_ms: 1234,
 			input_tokens: null,
 			output_tokens: null,

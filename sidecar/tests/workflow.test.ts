@@ -5,13 +5,31 @@ import {
 	InventoryToolInvalidResponseError,
 	InventoryToolRejectedError,
 } from "../src/tools";
-import { createInventoryWorkflow } from "../src/workflow";
+import {
+	createInventoryWorkflow,
+	createProviderModelConfig,
+} from "../src/workflow";
 
 const runId = "9a6a7fb3-c9bd-42ae-a9a1-2c173617f5b2";
 
+test("uses the configured provider URL for the OpenAI-compatible transport", () => {
+	expect(
+		createProviderModelConfig({
+			apiKey: "provider-key",
+			baseUrl: "http://llm-gateway:8080/v1",
+		}),
+	).toEqual({
+		apiKey: "provider-key",
+		id: "openai/gpt-5.6-luna",
+		url: "http://llm-gateway:8080/v1",
+	});
+});
+
 test("returns a completed structured response with provider metadata", async () => {
 	const workflow = createInventoryWorkflow({
-		apiKey: "sk-test",
+		providerApiKey: "provider-key",
+		providerBaseUrl: "http://llm-gateway:8080/v1",
+		providerName: "internal-gateway",
 		createAgent: () => ({
 			generate: async () => ({
 				object: {
@@ -46,7 +64,8 @@ test("returns a completed structured response with provider metadata", async () 
 		provider_metadata: {
 			input_tokens: 12,
 			model: "gpt-5.6-luna",
-			openai_request_id: "req_123",
+			provider: "internal-gateway",
+			provider_request_id: "req_123",
 			output_tokens: 34,
 		},
 	});
@@ -54,7 +73,9 @@ test("returns a completed structured response with provider metadata", async () 
 
 test("maps an OpenAI rate limit to a retryable structured failure", async () => {
 	const workflow = createInventoryWorkflow({
-		apiKey: "sk-test",
+		providerApiKey: "provider-key",
+		providerBaseUrl: "http://llm-gateway:8080/v1",
+		providerName: "internal-gateway",
 		createAgent: () => ({
 			generate: async () => {
 				throw Object.assign(new Error("rate limited"), { status: 429 });
@@ -79,7 +100,9 @@ test("maps an OpenAI rate limit to a retryable structured failure", async () => 
 
 test("maps internal authorization rejection to a non-retryable failure", async () => {
 	const workflow = createInventoryWorkflow({
-		apiKey: "sk-test",
+		providerApiKey: "provider-key",
+		providerBaseUrl: "http://llm-gateway:8080/v1",
+		providerName: "internal-gateway",
 		createAgent: () => ({
 			generate: async () => {
 				throw new InventoryToolRejectedError();
@@ -104,7 +127,9 @@ test("maps internal authorization rejection to a non-retryable failure", async (
 
 test("maps an internal tool failure to a non-retryable structured failure", async () => {
 	const workflow = createInventoryWorkflow({
-		apiKey: "sk-test",
+		providerApiKey: "provider-key",
+		providerBaseUrl: "http://llm-gateway:8080/v1",
+		providerName: "internal-gateway",
 		createAgent: () => ({
 			generate: async () => {
 				throw new InventoryToolFailedError();
@@ -129,7 +154,9 @@ test("maps an internal tool failure to a non-retryable structured failure", asyn
 
 test("maps an invalid internal tool response to a non-retryable failure", async () => {
 	const workflow = createInventoryWorkflow({
-		apiKey: "sk-test",
+		providerApiKey: "provider-key",
+		providerBaseUrl: "http://llm-gateway:8080/v1",
+		providerName: "internal-gateway",
 		createAgent: () => ({
 			generate: async () => {
 				throw new InventoryToolInvalidResponseError();

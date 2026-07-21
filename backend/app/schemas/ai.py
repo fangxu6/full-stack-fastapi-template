@@ -29,8 +29,9 @@ class AiSidecarCitation(AiInventoryCitation):
 
 
 class AiSidecarProviderMetadata(BaseModel):
+    provider: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{0,63}$")
     model: Literal["gpt-5.6-luna"]
-    openai_request_id: str | None
+    provider_request_id: str | None
     latency_ms: int = Field(ge=0)
     input_tokens: int | None = Field(default=None, ge=0)
     output_tokens: int | None = Field(default=None, ge=0)

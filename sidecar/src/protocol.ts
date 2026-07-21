@@ -25,8 +25,9 @@ export const citationSchema = z
 
 export const providerMetadataSchema = z
 	.object({
+		provider: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,63}$/),
 		model: z.literal("gpt-5.6-luna"),
-		openai_request_id: z.string().min(1).nullable(),
+		provider_request_id: z.string().min(1).nullable(),
 		latency_ms: z.number().int().nonnegative(),
 		input_tokens: z.number().int().nonnegative().nullable(),
 		output_tokens: z.number().int().nonnegative().nullable(),

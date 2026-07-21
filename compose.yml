@@ -75,6 +75,11 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
+      - AI_ENABLED=${AI_ENABLED-false}
+      - AI_ORCHESTRATOR_URL=${AI_ORCHESTRATOR_URL-}
+      - AI_ORCHESTRATOR_SERVICE_TOKEN=${AI_ORCHESTRATOR_SERVICE_TOKEN-}
+      - AI_INTERNAL_SERVICE_TOKEN=${AI_INTERNAL_SERVICE_TOKEN-}
+      - AI_ACTOR_GRANT_SIGNING_KEY=${AI_ACTOR_GRANT_SIGNING_KEY-}
 
   backend:
     image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
@@ -108,6 +113,11 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
+      - AI_ENABLED=${AI_ENABLED-false}
+      - AI_ORCHESTRATOR_URL=${AI_ORCHESTRATOR_URL-}
+      - AI_ORCHESTRATOR_SERVICE_TOKEN=${AI_ORCHESTRATOR_SERVICE_TOKEN-}
+      - AI_INTERNAL_SERVICE_TOKEN=${AI_INTERNAL_SERVICE_TOKEN-}
+      - AI_ACTOR_GRANT_SIGNING_KEY=${AI_ACTOR_GRANT_SIGNING_KEY-}
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
@@ -150,8 +160,11 @@ services:
       AI_INTERNAL_BASE_URL: http://backend:8000
       AI_INTERNAL_SERVICE_TOKEN: ${AI_INTERNAL_SERVICE_TOKEN?Variable not set}
       AI_ORCHESTRATOR_SERVICE_TOKEN: ${AI_ORCHESTRATOR_SERVICE_TOKEN?Variable not set}
-      OPENAI_API_KEY: ${OPENAI_API_KEY?Variable not set}
-      OPENAI_MODEL: gpt-5.6-luna
+      AI_PROVIDER_API_KEY: ${AI_PROVIDER_API_KEY?Variable not set}
+      AI_PROVIDER_ALLOW_INSECURE_HTTP: ${AI_PROVIDER_ALLOW_INSECURE_HTTP-false}
+      AI_PROVIDER_BASE_URL: ${AI_PROVIDER_BASE_URL?Variable not set}
+      AI_PROVIDER_MODEL: gpt-5.6-luna
+      AI_PROVIDER_NAME: ${AI_PROVIDER_NAME?Variable not set}
     healthcheck:
       test: ["CMD", "bun", "-e", "const response = await fetch('http://127.0.0.1:3000/health'); if (!response.ok) process.exit(1)"]
       interval: 15s

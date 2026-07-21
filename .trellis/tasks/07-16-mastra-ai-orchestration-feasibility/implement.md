@@ -25,7 +25,7 @@
 
 1. **冻结外部契约与配置**
    - 选择并锁定首轮 Mastra 与 OpenAI SDK/适配器版本、具体模型快照、Responses/存储选项以及 OpenAI 项目数据控制状态。
-   - 增加仅服务端使用的环境变量和部署密钥注入；不在前端、OpenAPI 示例或日志中暴露 `OPENAI_API_KEY`、internal service secret 或 actor grant。
+   - 增加仅服务端使用的环境变量和部署密钥注入；不在前端、OpenAPI 示例或日志中暴露 `AI_PROVIDER_API_KEY`、internal service secret 或 actor grant。
    - 为 OpenAI 的 `X-Client-Request-Id`、供应商请求 ID、模型和成本元数据定义审计字段。
 
 2. **建立后端 AI 边界与持久化审计**
