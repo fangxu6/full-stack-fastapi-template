@@ -10,7 +10,7 @@ node_modules/
 /upstream_prs.json
 
 .venv/
-
+/.env.ai.secrets
 __pycache__/
 *.pyc
 /.specify/scripts/powershell/create-new-feature.ps1
