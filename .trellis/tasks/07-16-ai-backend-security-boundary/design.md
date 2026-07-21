@@ -96,6 +96,15 @@ HTTP provider 必须处于 sidecar 的私有网络或 loopback/等效防火墙�
 `provider_request_id`，审计 `ai_run.provider` 保存实际 provider 名称，避免将
 第三方调用错误标记为 OpenAI。
 
+### 非 Docker 进程拓扑
+
+direct-process 模式中，FastAPI 以 `127.0.0.1:8000` 运行，并设置
+`AI_ORCHESTRATOR_URL=http://127.0.0.1:3000`；sidecar 以
+`AI_INTERNAL_BASE_URL=http://127.0.0.1:8000` 访问 internal tool。sidecar 的
+`AI_SIDECAR_HOST` 默认 `127.0.0.1`，仅允许显式值 `0.0.0.0` 供 Docker 容器
+内部绑定使用，拒绝任意 LAN 地址。这样不依赖 Docker 仍不会把 sidecar listener
+暴露到宿主机网络。
+
 ## 错误、日志与关联
 
 已有 `RequestIdMiddleware` 将 request ID 写入 state/response。BFF 使用该值创建 `ai_run.request_id`，internal calls 带同一关联 ID。预期错误包括超级管理员拒绝、input validation、AI disabled、grant 拒绝、tool limit、sidecar timeout/health failure；它们均通过全局 AppError handler 返回统一 shape。

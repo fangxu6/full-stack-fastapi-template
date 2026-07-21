@@ -17,7 +17,21 @@ test("loads the approved sidecar configuration", () => {
 		...validEnvironment,
 		AI_PROVIDER_ALLOW_INSECURE_HTTP: false,
 		AI_PROVIDER_REASONING_EFFORT: "medium",
+		AI_SIDECAR_HOST: "127.0.0.1",
 	});
+});
+
+test("allows an explicit all-interface bind only for container deployment", () => {
+	expect(
+		loadConfig({ ...validEnvironment, AI_SIDECAR_HOST: "0.0.0.0" })
+			.AI_SIDECAR_HOST,
+	).toBe("0.0.0.0");
+});
+
+test("rejects sidecar binds to arbitrary network interfaces", () => {
+	expect(() =>
+		loadConfig({ ...validEnvironment, AI_SIDECAR_HOST: "192.168.1.20" }),
+	).toThrow("AI_SIDECAR_HOST must be 127.0.0.1 or 0.0.0.0");
 });
 
 test("allows an HTTP provider endpoint only with an explicit opt-in", () => {

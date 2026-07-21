@@ -126,6 +126,8 @@
 - Recorded the tracked-root-`.env` deployment hazard: runtime AI secrets belong
   in ignored `.env.ai.secrets` or a secret manager, while Compose explicitly
   maps only the BFF's internal AI settings to backend/prestart.
+- Added a direct-process deployment boundary: the sidecar defaults to loopback
+  and permits all-interface binding only when Compose explicitly selects it.
 - Source inputs: `sidecar/src/{config,protocol,server,workflow}.ts`,
   `compose.yml`, `backend/app/{schemas/ai.py,modules/ai/router.py}`, and their
   focused tests.

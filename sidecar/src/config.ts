@@ -8,12 +8,13 @@ export type SidecarConfig = {
 	AI_PROVIDER_MODEL: "gpt-5.6-luna";
 	AI_PROVIDER_NAME: string;
 	AI_PROVIDER_REASONING_EFFORT: "medium";
+	AI_SIDECAR_HOST: "127.0.0.1" | "0.0.0.0";
 };
 
 type Environment = Record<string, string | undefined>;
 type RequiredConfigKey = Exclude<
 	keyof SidecarConfig,
-	"AI_PROVIDER_ALLOW_INSECURE_HTTP"
+	"AI_PROVIDER_ALLOW_INSECURE_HTTP" | "AI_SIDECAR_HOST"
 >;
 
 function required(environment: Environment, name: RequiredConfigKey): string {
@@ -88,6 +89,14 @@ function validateProviderName(value: string): string {
 	return value;
 }
 
+function loadSidecarHost(environment: Environment): "127.0.0.1" | "0.0.0.0" {
+	const host = environment.AI_SIDECAR_HOST?.trim() || "127.0.0.1";
+	if (host !== "127.0.0.1" && host !== "0.0.0.0") {
+		throw new Error("AI_SIDECAR_HOST must be 127.0.0.1 or 0.0.0.0");
+	}
+	return host;
+}
+
 export function loadConfig(environment: Environment): SidecarConfig {
 	const model = required(environment, "AI_PROVIDER_MODEL");
 	if (model !== "gpt-5.6-luna") {
@@ -121,5 +130,6 @@ export function loadConfig(environment: Environment): SidecarConfig {
 			required(environment, "AI_PROVIDER_NAME"),
 		),
 		AI_PROVIDER_REASONING_EFFORT: "medium",
+		AI_SIDECAR_HOST: loadSidecarHost(environment),
 	};
 }

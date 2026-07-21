@@ -41,6 +41,6 @@ const app = createInventoryApp({
 
 Bun.serve({
 	fetch: app,
-	hostname: "0.0.0.0",
+	hostname: config.AI_SIDECAR_HOST,
 	port: 3000,
 });

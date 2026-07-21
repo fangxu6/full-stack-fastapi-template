@@ -165,6 +165,7 @@ services:
       AI_PROVIDER_BASE_URL: ${AI_PROVIDER_BASE_URL?Variable not set}
       AI_PROVIDER_MODEL: gpt-5.6-luna
       AI_PROVIDER_NAME: ${AI_PROVIDER_NAME?Variable not set}
+      AI_SIDECAR_HOST: 0.0.0.0
     healthcheck:
       test: ["CMD", "bun", "-e", "const response = await fetch('http://127.0.0.1:3000/health'); if (!response.ok) process.exit(1)"]
       interval: 15s

@@ -57,6 +57,11 @@
   ignored `.env.ai.secrets` (or a deployment secret manager), injected with
   `docker compose --env-file .env --env-file .env.ai.secrets ...`; do not put
   them in tracked root `.env`.
+- `AI_SIDECAR_HOST` defaults to `127.0.0.1` for non-Docker runs and accepts
+  only `127.0.0.1` or `0.0.0.0`. Compose explicitly supplies `0.0.0.0` inside
+  its private network; direct process runs must keep the default loopback bind.
+  In that mode FastAPI uses `AI_ORCHESTRATOR_URL=http://127.0.0.1:3000` and
+  sidecar uses `AI_INTERNAL_BASE_URL=http://127.0.0.1:8000`.
 - Operational logs may contain only request ID, HTTP status, and completed or
   failed outcome. Do not add question text, grants, credentials, raw tool data,
   or provider error text to logging calls.
@@ -71,6 +76,8 @@
 | Internal non-2xx or invalid JSON/schema | failed `tool_failed` or `invalid_response` | `sidecar/tests/workflow.test.ts`, `sidecar/tests/tools.test.ts` |
 | Provider 429, timeout/abort, or other unavailable failure | `rate_limited`, `timeout`, or `provider_unavailable`; only these are retryable | `sidecar/tests/workflow.test.ts` |
 | HTTP provider URL without explicit opt-in | sidecar fails at startup | `sidecar/tests/config.test.ts` |
+| Non-Docker sidecar without an explicit host | binds loopback only | `sidecar/tests/config.test.ts` |
+| Arbitrary sidecar host value | sidecar fails at startup | `sidecar/tests/config.test.ts` |
 | Public exposure or direct database access | prohibited by Compose/service contract | review `compose.yml` and `sidecar/Dockerfile` |
 
 ## 5. Good / Base / Bad Cases
@@ -88,7 +95,8 @@
 
 - Sidecar: run `bun test`, `bun run typecheck`, and `bunx biome check sidecar`.
   Assert that HTTP is rejected unless opted in, generic provider metadata is
-  validated, and the configured base URL is supplied to the model transport.
+  validated, the configured base URL is supplied to the model transport, and
+  direct-process host binding defaults to loopback.
 - Contract: cover every failure category, BFF token rejection, grant/header
   forwarding, bounded tool inputs, structured result validation, health, and
   allowlisted logging.
