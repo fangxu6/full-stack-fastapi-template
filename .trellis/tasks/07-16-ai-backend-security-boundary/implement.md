@@ -87,6 +87,9 @@
 - 非 Docker 模式下 sidecar 默认绑定 `127.0.0.1`；Compose 显式覆盖为
   `0.0.0.0`，且配置拒绝任意其他监听地址。focused sidecar config tests、
   TypeScript typecheck/Biome 和 Compose YAML parse 已通过。
+- 已新增 `docs/ai-inventory-fastapi-sidecar-operation-guide.md` 和
+  `docs/ai-inventory-yaak-guide.md`，覆盖非 Docker 启动、secret 边界、迁移、
+  Yaak 调用和当前 provider structured-output 兼容性限制。
 
 剩余工作为 Docker 内网实链路、真实 provider 可用性/数据控制核验，以及与评测任务
 共同执行 BFF → sidecar → internal tools 的端到端基准；均不应在本地生产数据库或未批准
