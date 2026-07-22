@@ -13,6 +13,7 @@ import {
   Popconfirm,
   Select,
   Space,
+  Spin,
   Table,
   Tabs,
   Tag,
@@ -28,17 +29,14 @@ import {
   type InventoryDocumentPublic,
   InventoryService,
 } from "@/client"
-import {
-  readInventoryDocumentsPage,
-  readProcessingUnitsPage,
-  readReceivingUnitsPage,
-} from "@/features/inventory/api"
+import { readInventoryDocumentsPage } from "@/features/inventory/api"
 import { DocumentEditorModal } from "@/features/inventory/components/DocumentEditorModal"
 import {
   DEFAULT_PAGE_SIZE,
   PAGE_SIZE_OPTIONS,
   toOffset,
 } from "@/features/inventory/pagination"
+import { useUnitSelectOptions } from "@/features/inventory/unit-select-options"
 
 type DocumentPageProps = {
   types: InventoryDocumentCreate["document_type"][]
@@ -130,6 +128,20 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
   const [filterForm] = Form.useForm<DocumentFilters>()
   const { message } = App.useApp()
   const queryClient = useQueryClient()
+  const selectedProcessingUnitId = Form.useWatch(
+    "processing_unit_id",
+    filterForm,
+  )
+  const selectedReceivingUnitId = Form.useWatch("receiving_unit_id", filterForm)
+  const processingUnitOptions = useUnitSelectOptions({
+    kind: "processing",
+    selectedValue: selectedProcessingUnitId,
+  })
+  const receivingUnitOptions = useUnitSelectOptions({
+    enabled: activeType === "FINISHED_SHIPMENT",
+    kind: "receiving",
+    selectedValue: selectedReceivingUnitId,
+  })
   const documentsQuery = useQuery({
     queryFn: () =>
       readInventoryDocumentsPage({
@@ -151,15 +163,6 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
       { page, pageSize },
     ],
     placeholderData: keepPreviousData,
-  })
-  const processingUnitsQuery = useQuery({
-    queryFn: () => readProcessingUnitsPage({ limit: 100, skip: 0 }),
-    queryKey: ["inventory-processing-units"],
-  })
-  const receivingUnitsQuery = useQuery({
-    enabled: activeType === "FINISHED_SHIPMENT",
-    queryFn: () => readReceivingUnitsPage({ limit: 100, skip: 0 }),
-    queryKey: ["inventory-receiving-units"],
   })
   const invalidate = () =>
     void queryClient.invalidateQueries({ queryKey: ["inventory"] })
@@ -308,12 +311,19 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
           <Select
             allowClear
             className="min-w-40"
-            loading={processingUnitsQuery.isLoading}
-            options={(processingUnitsQuery.data?.data ?? []).map((unit) => ({
-              label: unit.name,
-              value: unit.id,
-            }))}
-            showSearch={{ optionFilterProp: "label" }}
+            loading={processingUnitOptions.isLoading}
+            notFoundContent={
+              processingUnitOptions.isLoading ? (
+                <Spin size="small" />
+              ) : processingUnitOptions.isError ? (
+                "加载失败"
+              ) : (
+                "暂无匹配单位"
+              )
+            }
+            onSearch={processingUnitOptions.onSearch}
+            options={processingUnitOptions.options}
+            showSearch={{ filterOption: false }}
           />
         </Form.Item>
         {activeType === "FINISHED_SHIPMENT" ? (
@@ -321,12 +331,19 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
             <Select
               allowClear
               className="min-w-40"
-              loading={receivingUnitsQuery.isLoading}
-              options={(receivingUnitsQuery.data?.data ?? []).map((unit) => ({
-                label: unit.name,
-                value: unit.id,
-              }))}
-              showSearch={{ optionFilterProp: "label" }}
+              loading={receivingUnitOptions.isLoading}
+              notFoundContent={
+                receivingUnitOptions.isLoading ? (
+                  <Spin size="small" />
+                ) : receivingUnitOptions.isError ? (
+                  "加载失败"
+                ) : (
+                  "暂无匹配单位"
+                )
+              }
+              onSearch={receivingUnitOptions.onSearch}
+              options={receivingUnitOptions.options}
+              showSearch={{ filterOption: false }}
             />
           </Form.Item>
         ) : null}

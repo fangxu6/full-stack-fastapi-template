@@ -67,6 +67,21 @@ The main frontend risk in this repo is false sharing: pushing page-specific or b
 - Do not adopt `@ant-design/pro-components` until its peer dependencies and
   project need are reviewed in a dedicated task.
 
+## Remote Business Selects
+
+- For business Select fields whose option set can outgrow a small bounded list,
+  use the existing server-side list endpoint with a domain-local remote-search
+  hook. Do not load a fixed first page and apply client-side filtering.
+- Use Ant Design Select's remote-search contract: `showSearch`,
+  `filterOption={false}`, debounced query input, and explicit loading, empty,
+  and failure feedback.
+- Keep scope predicates aligned with the workflow: historical filters may need
+  inactive records, while create and edit forms must request only choices that
+  the server permits for writes.
+- Keep the remote option behavior in the owning feature when its API vocabulary
+  or eligibility rules are domain-specific; do not promote it to `shared/*`
+  prematurely.
+
 ---
 
 ## Shared Admission Test

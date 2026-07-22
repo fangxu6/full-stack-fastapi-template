@@ -9,6 +9,7 @@ import {
   InputNumber,
   Modal,
   Select,
+  Spin,
 } from "antd"
 import dayjs from "dayjs"
 import { Minus, Plus } from "lucide-react"
@@ -21,10 +22,7 @@ import {
   type InventoryLineCreate,
   InventoryService,
 } from "@/client"
-import {
-  readProcessingUnitsPage,
-  readReceivingUnitsPage,
-} from "@/features/inventory/api"
+import { useUnitSelectOptions } from "@/features/inventory/unit-select-options"
 
 type DocumentFormValues = {
   business_date: ReturnType<typeof dayjs>
@@ -114,14 +112,18 @@ export function DocumentEditorModal({
   const queryClient = useQueryClient()
   const isShipment = isFinishedShipment(documentType)
   const ledgerKind: InventoryLedgerKind = isShipment ? "FINISHED" : "RAW"
-  const processingUnitsQuery = useQuery({
-    queryFn: () => readProcessingUnitsPage({ limit: 100, skip: 0 }),
-    queryKey: ["inventory-processing-units"],
+  const selectedProcessingUnitId = Form.useWatch("processing_unit_id", form)
+  const selectedReceivingUnitId = Form.useWatch("receiving_unit_id", form)
+  const processingUnitOptions = useUnitSelectOptions({
+    isActive: true,
+    kind: "processing",
+    selectedValue: selectedProcessingUnitId,
   })
-  const receivingUnitsQuery = useQuery({
+  const receivingUnitOptions = useUnitSelectOptions({
     enabled: isShipment,
-    queryFn: () => readReceivingUnitsPage({ limit: 100, skip: 0 }),
-    queryKey: ["inventory-receiving-units"],
+    isActive: true,
+    kind: "receiving",
+    selectedValue: selectedReceivingUnitId,
   })
   const mutation = useMutation({
     mutationFn: (values: InventoryDocumentCreate) =>
@@ -211,14 +213,19 @@ export function DocumentEditorModal({
           >
             <Select
               aria-label="加工单位"
-              loading={processingUnitsQuery.isLoading}
-              options={(processingUnitsQuery.data?.data ?? [])
-                .filter(
-                  (unit) =>
-                    unit.is_active || unit.id === document?.processing_unit_id,
+              loading={processingUnitOptions.isLoading}
+              notFoundContent={
+                processingUnitOptions.isLoading ? (
+                  <Spin size="small" />
+                ) : processingUnitOptions.isError ? (
+                  "加载失败"
+                ) : (
+                  "暂无匹配单位"
                 )
-                .map((unit) => ({ label: unit.name, value: unit.id }))}
-              showSearch={{ optionFilterProp: "label" }}
+              }
+              onSearch={processingUnitOptions.onSearch}
+              options={processingUnitOptions.options}
+              showSearch={{ filterOption: false }}
             />
           </Form.Item>
           {isShipment ? (
@@ -229,14 +236,19 @@ export function DocumentEditorModal({
             >
               <Select
                 aria-label="收货单位"
-                loading={receivingUnitsQuery.isLoading}
-                options={(receivingUnitsQuery.data?.data ?? [])
-                  .filter(
-                    (unit) =>
-                      unit.is_active || unit.id === document?.receiving_unit_id,
+                loading={receivingUnitOptions.isLoading}
+                notFoundContent={
+                  receivingUnitOptions.isLoading ? (
+                    <Spin size="small" />
+                  ) : receivingUnitOptions.isError ? (
+                    "加载失败"
+                  ) : (
+                    "暂无匹配单位"
                   )
-                  .map((unit) => ({ label: unit.name, value: unit.id }))}
-                showSearch={{ optionFilterProp: "label" }}
+                }
+                onSearch={receivingUnitOptions.onSearch}
+                options={receivingUnitOptions.options}
+                showSearch={{ filterOption: false }}
               />
             </Form.Item>
           ) : null}

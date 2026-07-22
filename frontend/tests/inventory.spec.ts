@@ -72,6 +72,23 @@ async function selectOption(page: Page, label: string, option: string) {
   await page.getByText(option, { exact: true }).last().click()
 }
 
+function isProcessingUnitSearchRequest(
+  url: string,
+  name: string,
+  isActive: boolean | undefined,
+) {
+  const requestUrl = new URL(url)
+  return (
+    requestUrl.pathname === "/api/v1/inventory/processing-units" &&
+    requestUrl.searchParams.get("limit") === "20" &&
+    requestUrl.searchParams.get("name") === name &&
+    requestUrl.searchParams.get("skip") === "0" &&
+    (isActive === undefined
+      ? !requestUrl.searchParams.has("is_active")
+      : requestUrl.searchParams.get("is_active") === String(isActive))
+  )
+}
+
 test("Inventory master data, raw receipt, balance trace, and restore work together", async ({
   page,
 }) => {
@@ -224,4 +241,79 @@ test("Finished shipment page deducts the pre-existing finished balance", async (
   await expect(balanceRow).toContainText(
     String(Number(balance.rolls_balance) - 0.5),
   )
+})
+
+test("Remote processing-unit search selects a unit beyond the initial 100 results", async ({
+  page,
+}) => {
+  const processingUnitName = uniqueValue("E2E-remote-processing-unit")
+  const noisePrefix = uniqueValue("E2E-newer-processing-unit")
+
+  await page.goto("/inventory/raw")
+  await expect(page.getByRole("heading", { name: "坯布台账" })).toBeVisible()
+
+  await createInventoryFixture(page, "/processing-units", {
+    name: processingUnitName,
+  })
+  for (let index = 0; index < 100; index += 1) {
+    await createInventoryFixture(page, "/processing-units", {
+      name: `${noisePrefix}-${index}`,
+    })
+  }
+
+  const initialProcessingUnitPage = await readInventoryFixture<{
+    data: MasterUnitPublic[]
+  }>(page, "/processing-units?limit=100&skip=0")
+  expect(
+    initialProcessingUnitPage.data.some(
+      (unit) => unit.name === processingUnitName,
+    ),
+  ).toBeFalsy()
+
+  const filterSelect = page.getByRole("combobox", { name: "加工单位" })
+  await expect(filterSelect).toHaveCount(1)
+  const filterSearchResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "GET" &&
+      isProcessingUnitSearchRequest(
+        response.url(),
+        processingUnitName,
+        undefined,
+      ),
+  )
+  await filterSelect.click()
+  await filterSelect.fill(processingUnitName)
+  expect((await filterSearchResponse).ok()).toBeTruthy()
+
+  const filterOption = page.getByRole("option", {
+    exact: true,
+    name: processingUnitName,
+  })
+  await expect(filterOption).toHaveCount(1)
+  await filterOption.click()
+  await expect(filterSelect).toHaveValue(processingUnitName)
+
+  await page.getByRole("button", { name: "新建来料入库" }).click()
+  const receiptDialog = page.getByRole("dialog", { name: "新建坯布入库" })
+  await expect(receiptDialog).toBeVisible()
+  const editorSelect = receiptDialog.getByRole("combobox", {
+    name: "加工单位",
+  })
+  await expect(editorSelect).toHaveCount(1)
+  const editorSearchResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "GET" &&
+      isProcessingUnitSearchRequest(response.url(), processingUnitName, true),
+  )
+  await editorSelect.click()
+  await editorSelect.fill(processingUnitName)
+  expect((await editorSearchResponse).ok()).toBeTruthy()
+
+  const editorOption = page.getByRole("option", {
+    exact: true,
+    name: processingUnitName,
+  })
+  await expect(editorOption).toHaveCount(1)
+  await editorOption.click()
+  await expect(editorSelect).toHaveValue(processingUnitName)
 })
