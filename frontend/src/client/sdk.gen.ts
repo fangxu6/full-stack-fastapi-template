@@ -3,7 +3,28 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { DocsReadRuleDocumentsResponse, DocsReadRuleDocumentData, DocsReadRuleDocumentResponse, InventoryReadProcessingUnitsResponse, InventoryCreateProcessingUnitData, InventoryCreateProcessingUnitResponse, InventoryUpdateProcessingUnitData, InventoryUpdateProcessingUnitResponse, InventoryReadReceivingUnitsResponse, InventoryCreateReceivingUnitData, InventoryCreateReceivingUnitResponse, InventoryUpdateReceivingUnitData, InventoryUpdateReceivingUnitResponse, InventoryCreateInventoryDocumentData, InventoryCreateInventoryDocumentResponse, InventoryReadInventoryDocumentsData, InventoryReadInventoryDocumentsResponse, InventoryReadInventoryDocumentData, InventoryReadInventoryDocumentResponse, InventoryUpdateInventoryDocumentData, InventoryUpdateInventoryDocumentResponse, InventoryDeleteInventoryDocumentData, InventoryDeleteInventoryDocumentResponse, InventoryRestoreInventoryDocumentData, InventoryRestoreInventoryDocumentResponse, InventoryReadRawBalancesData, InventoryReadRawBalancesResponse, InventoryReadFinishedBalancesData, InventoryReadFinishedBalancesResponse, InventoryReadInventoryLedgerData, InventoryReadInventoryLedgerResponse, InventoryReadInventorySuggestionsData, InventoryReadInventorySuggestionsResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, ModulesModulesHealthCheckResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { AiQueryInventoryData, AiQueryInventoryResponse, DocsReadRuleDocumentsResponse, DocsReadRuleDocumentData, DocsReadRuleDocumentResponse, InventoryReadProcessingUnitsData, InventoryReadProcessingUnitsResponse, InventoryCreateProcessingUnitData, InventoryCreateProcessingUnitResponse, InventoryUpdateProcessingUnitData, InventoryUpdateProcessingUnitResponse, InventoryReadReceivingUnitsData, InventoryReadReceivingUnitsResponse, InventoryCreateReceivingUnitData, InventoryCreateReceivingUnitResponse, InventoryUpdateReceivingUnitData, InventoryUpdateReceivingUnitResponse, InventoryCreateInventoryDocumentData, InventoryCreateInventoryDocumentResponse, InventoryReadInventoryDocumentsData, InventoryReadInventoryDocumentsResponse, InventoryReadInventoryDocumentData, InventoryReadInventoryDocumentResponse, InventoryUpdateInventoryDocumentData, InventoryUpdateInventoryDocumentResponse, InventoryDeleteInventoryDocumentData, InventoryDeleteInventoryDocumentResponse, InventoryRestoreInventoryDocumentData, InventoryRestoreInventoryDocumentResponse, InventoryReadRawBalancesData, InventoryReadRawBalancesResponse, InventoryReadFinishedBalancesData, InventoryReadFinishedBalancesResponse, InventoryReadInventoryLedgerData, InventoryReadInventoryLedgerResponse, InventoryReadInventorySuggestionsData, InventoryReadInventorySuggestionsResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, ModulesModulesHealthCheckResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+
+export class AiService {
+    /**
+     * Query Inventory
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns AiInventoryQueryResponse Successful Response
+     * @throws ApiError
+     */
+    public static queryInventory(data: AiQueryInventoryData): CancelablePromise<AiQueryInventoryResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/ai/inventory/query',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
 
 export class DocsService {
     /**
@@ -44,13 +65,27 @@ export class DocsService {
 export class InventoryService {
     /**
      * Read Processing Units
+     * @param data The data for the request.
+     * @param data.name
+     * @param data.isActive
+     * @param data.skip
+     * @param data.limit
      * @returns MasterUnitsPublic Successful Response
      * @throws ApiError
      */
-    public static readProcessingUnits(): CancelablePromise<InventoryReadProcessingUnitsResponse> {
+    public static readProcessingUnits(data: InventoryReadProcessingUnitsData = {}): CancelablePromise<InventoryReadProcessingUnitsResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/v1/inventory/processing-units'
+            url: '/api/v1/inventory/processing-units',
+            query: {
+                name: data.name,
+                is_active: data.isActive,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
         });
     }
 
@@ -98,13 +133,27 @@ export class InventoryService {
 
     /**
      * Read Receiving Units
+     * @param data The data for the request.
+     * @param data.name
+     * @param data.isActive
+     * @param data.skip
+     * @param data.limit
      * @returns MasterUnitsPublic Successful Response
      * @throws ApiError
      */
-    public static readReceivingUnits(): CancelablePromise<InventoryReadReceivingUnitsResponse> {
+    public static readReceivingUnits(data: InventoryReadReceivingUnitsData = {}): CancelablePromise<InventoryReadReceivingUnitsResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/v1/inventory/receiving-units'
+            url: '/api/v1/inventory/receiving-units',
+            query: {
+                name: data.name,
+                is_active: data.isActive,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
         });
     }
 
@@ -172,6 +221,8 @@ export class InventoryService {
     /**
      * Read Inventory Documents
      * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
      * @param data.documentType
      * @param data.businessDateFrom
      * @param data.businessDateTo
@@ -187,6 +238,8 @@ export class InventoryService {
             method: 'GET',
             url: '/api/v1/inventory/documents',
             query: {
+                skip: data.skip,
+                limit: data.limit,
                 document_type: data.documentType,
                 business_date_from: data.businessDateFrom,
                 business_date_to: data.businessDateTo,
@@ -287,6 +340,8 @@ export class InventoryService {
     /**
      * Read Raw Balances
      * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
      * @param data.processingUnitId
      * @param data.itemName
      * @returns InventoryBalancesPublic Successful Response
@@ -297,6 +352,8 @@ export class InventoryService {
             method: 'GET',
             url: '/api/v1/inventory/balances/raw',
             query: {
+                skip: data.skip,
+                limit: data.limit,
                 processing_unit_id: data.processingUnitId,
                 item_name: data.itemName
             },
@@ -309,6 +366,8 @@ export class InventoryService {
     /**
      * Read Finished Balances
      * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
      * @param data.processingUnitId
      * @param data.itemName
      * @returns InventoryBalancesPublic Successful Response
@@ -319,6 +378,8 @@ export class InventoryService {
             method: 'GET',
             url: '/api/v1/inventory/balances/finished',
             query: {
+                skip: data.skip,
+                limit: data.limit,
                 processing_unit_id: data.processingUnitId,
                 item_name: data.itemName
             },
@@ -335,6 +396,8 @@ export class InventoryService {
      * @param data.processingUnitId
      * @param data.itemName
      * @param data.woolContent
+     * @param data.skip
+     * @param data.limit
      * @param data.itemCode
      * @param data.colorCode
      * @param data.dyeLotNo
@@ -350,6 +413,8 @@ export class InventoryService {
                 processing_unit_id: data.processingUnitId,
                 item_name: data.itemName,
                 wool_content: data.woolContent,
+                skip: data.skip,
+                limit: data.limit,
                 item_code: data.itemCode,
                 color_code: data.colorCode,
                 dye_lot_no: data.dyeLotNo
