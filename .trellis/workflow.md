@@ -170,8 +170,8 @@ Phase 3: Finish  → verify, update spec, commit, and wrap up
 
 - When `e2e-api-tests.md` exists, run its planned API cases against the local backend at `http://localhost:8000` or `http://127.0.0.1:8000` before marking them skipped.
 - Use the health endpoint `http://127.0.0.1:8000/api/v1/utils/health-check/` and verify the frontend separately at `http://localhost:5173` when the flow has a browser surface.
-- Start or recover the local stack with Docker Compose (`docker compose up -d --wait backend`, then `docker compose restart backend` if needed). Do not import pm2 or a different project's port/process assumptions.
-- Record a concrete environment blocker only after the local Compose path or an equivalent explicitly isolated test environment has been attempted.
+- Use an explicitly isolated test environment selected for the task; do not prescribe a deployment runtime or import another project's process assumptions.
+- Record a concrete environment blocker only after the planned isolated environment has been attempted.
 
 ### Parent / Child Task Trees
 

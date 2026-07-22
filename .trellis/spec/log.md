@@ -144,3 +144,7 @@
 ## [2026-07-22 14:01:05] update | Workflow planning and spec maintenance
 
 Added complex-plan grilling, API E2E planning guidance, and the project-owned spec wiki maintenance commands.
+
+## [2026-07-22 15:37:24] update | Runtime-neutral Trellis guidance
+
+Removed release and default-validation assumptions while preserving endpoint and isolated-environment requirements.

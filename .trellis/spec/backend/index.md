@@ -84,8 +84,6 @@ Future work should preserve that direction instead of drifting back toward route
   Python is `>=3.14,<4.0`, mypy is strict, Ruff targets `py314`, and `ty`
   treats warnings as errors.
 - Preferred backend quality gate from repo root: `bash backend/scripts/lint.sh`.
-- Full-stack test flow from repo root: `bash ./scripts/test.sh`
-- Running stack tests from repo root: `docker compose exec backend bash scripts/tests-start.sh`
 
 Assume backend verification uses `http://127.0.0.1:8000` unless the task says otherwise.
 

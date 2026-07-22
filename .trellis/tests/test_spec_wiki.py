@@ -90,6 +90,8 @@ class WorkflowParityTests(unittest.TestCase):
         self.assertIn("http://localhost:8000", workflow)
         self.assertIn("/api/v1/utils/health-check/", workflow)
         self.assertIn("http://localhost:5173", workflow)
+        self.assertIn("explicitly isolated test environment", workflow)
+        self.assertNotIn("Docker Compose", workflow)
 
     def test_inline_breadcrumbs_preserve_new_required_workflow_paths(self) -> None:
         workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
