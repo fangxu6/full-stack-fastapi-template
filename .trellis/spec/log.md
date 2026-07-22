@@ -148,3 +148,7 @@ Added complex-plan grilling, API E2E planning guidance, and the project-owned sp
 ## [2026-07-22 15:37:24] update | Runtime-neutral Trellis guidance
 
 Removed release and default-validation assumptions while preserving endpoint and isolated-environment requirements.
+
+## [2026-07-22 16:51:35] update | Document validation request identifiers
+
+Aligned the validation-error OpenAPI component and generated client with the existing request correlation contract.

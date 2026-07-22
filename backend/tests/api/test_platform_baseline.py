@@ -72,6 +72,16 @@ def test_validation_errors_return_structured_json() -> None:
     assert payload["detail"]
 
 
+def test_openapi_documents_request_id_for_validation_errors() -> None:
+    validation_error = app.openapi()["components"]["schemas"]["HTTPValidationError"]
+
+    assert validation_error["properties"]["request_id"] == {
+        "title": "Request Id",
+        "type": "string",
+    }
+    assert "request_id" in validation_error["required"]
+
+
 def test_unhandled_exceptions_are_logged() -> None:
     router = APIRouter()
 

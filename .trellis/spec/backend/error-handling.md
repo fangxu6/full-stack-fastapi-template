@@ -46,6 +46,15 @@ This applies to:
 - validation `422`
 - unexpected `500`
 
+## OpenAPI Contract
+
+FastAPI's default `HTTPValidationError` schema describes only the validation
+`detail` array. Because this project adds `request_id` in its global validation
+handler, `RequestIdOpenAPIFastAPI.openapi()` must also expose `request_id` as a
+required string on that shared component. After changing the error contract,
+regenerate `frontend/src/client/**` through `bash ./scripts/generate-client.sh`;
+do not hand-edit generated client types.
+
 ---
 
 ## Exception Usage Rules

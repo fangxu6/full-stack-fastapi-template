@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, cast
 
 import sentry_sdk
 from fastapi import FastAPI
@@ -25,10 +25,26 @@ def custom_generate_unique_id(route: APIRoute) -> str:
     return f"{tag}-{route.name}"
 
 
+class RequestIdOpenAPIFastAPI(FastAPI):
+    def openapi(self) -> dict[str, Any]:
+        openapi_schema = super().openapi()
+        validation_error = openapi_schema["components"]["schemas"][
+            "HTTPValidationError"
+        ]
+        validation_error["properties"]["request_id"] = {
+            "title": "Request Id",
+            "type": "string",
+        }
+        required = validation_error.setdefault("required", [])
+        if "request_id" not in required:
+            required.append("request_id")
+        return openapi_schema
+
+
 if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
     sentry_sdk.init(dsn=str(settings.SENTRY_DSN), enable_tracing=True)
 
-app = FastAPI(
+app = RequestIdOpenAPIFastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     generate_unique_id_function=custom_generate_unique_id,
