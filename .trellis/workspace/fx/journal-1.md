@@ -142,3 +142,36 @@ Added complex-plan grilling, API E2E planning artifacts, and a tested spec wiki 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Remove Docker assumptions from Trellis guidance
+
+**Date**: 2026-07-22
+**Task**: Remove Docker assumptions from Trellis guidance
+**Branch**: `master`
+
+### Summary
+
+Removed Docker/Compose release and default-validation instructions from Trellis workflow and non-sidecar specs; preserved isolated-environment requirements and the active sidecar contract; added regression coverage and validated the spec catalog.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `12ad458` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
