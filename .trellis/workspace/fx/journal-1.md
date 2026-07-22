@@ -175,3 +175,37 @@ Removed Docker/Compose release and default-validation instructions from Trellis 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: Document validation request IDs
+
+**Date**: 2026-07-22
+**Task**: Document validation request IDs
+**Branch**: `master`
+
+### Summary
+
+Regenerated the frontend OpenAPI client, documented required request_id on validation errors, and added backend regression coverage.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f92be66` | (see git log) |
+| `8652a35` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
