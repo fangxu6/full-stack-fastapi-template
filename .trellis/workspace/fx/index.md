@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 3
+- **Total Sessions**: 4
 - **Last Active**: 2026-07-22
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~111 | Active |
+| `journal-1.md` | ~144 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 4 | 2026-07-22 | Trellis workflow planning safeguards | `c0044fc` | `master` |
 | 3 | 2026-07-22 | Inventory unit remote search | `c1bbd13` | `master` |
 | 2 | 2026-07-20 | Adopt BIGINT identity primary-key policy | `979cf39` | `-` |
 | 1 | 2026-07-16 | 完成 CRM 入库与出货 MVP | `54db6d0`, `c38f84d`, `15c4886` | `master` |

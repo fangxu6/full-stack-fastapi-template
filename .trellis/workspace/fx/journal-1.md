@@ -109,3 +109,36 @@ Replaced fixed 100-row inventory unit selects with 20-row debounced server searc
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: Trellis workflow planning safeguards
+
+**Date**: 2026-07-22
+**Task**: Trellis workflow planning safeguards
+**Branch**: `master`
+
+### Summary
+
+Added complex-plan grilling, API E2E planning artifacts, and a tested spec wiki catalog, log, and lint maintenance loop localized to the FastAPI/React Docker Compose runtime.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c0044fc` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
