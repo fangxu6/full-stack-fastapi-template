@@ -33,13 +33,15 @@ Creates `.trellis/.developer` (gitignored) + `.trellis/workspace/<your-name>/`.
 
 ```bash
 python ./.trellis/scripts/get_context.py --mode packages   # list packages / layers
+python ./.trellis/scripts/spec_wiki.py index               # refresh generated file inventory
+python ./.trellis/scripts/spec_wiki.py lint                # check local spec links
 ```
 
 **When to update spec**: new pattern/convention found · bug-fix prevention to codify · new technical decision.
 
 ### Task System
 
-Every task has its own directory under `.trellis/tasks/{MM-DD-name}/` holding `task.json`, `prd.md`, optional `design.md`, optional `implement.md`, optional `research/`, and context manifests (`implement.jsonl`, `check.jsonl`) for sub-agent-capable platforms.
+Every task has its own directory under `.trellis/tasks/{MM-DD-name}/` holding `task.json`, `prd.md`, optional `design.md`, optional `implement.md`, optional `e2e-api-tests.md`, optional `research/`, and context manifests (`implement.jsonl`, `check.jsonl`) for sub-agent-capable platforms.
 
 ```bash
 # Task lifecycle
@@ -144,7 +146,7 @@ python ./.trellis/scripts/get_context.py --mode phase --step <X.Y>  # detailed g
 ## Phase Index
 
 ```
-Phase 1: Plan    → classify, get task-creation consent, then write planning artifacts
+Phase 1: Plan    → classify, stress-test complex plans, then write planning artifacts
 Phase 2: Execute → implement only after task status is in_progress
 Phase 3: Finish  → verify, update spec, commit, and wrap up
 ```
@@ -160,8 +162,16 @@ Phase 3: Finish  → verify, update spec, commit, and wrap up
 - `prd.md` — requirements, constraints, and acceptance criteria. Do not put technical design or execution checklists here.
 - `design.md` — technical design for complex tasks: boundaries, contracts, data flow, tradeoffs, compatibility, rollout / rollback shape.
 - `implement.md` — execution plan for complex tasks: ordered checklist, validation commands, review gates, and rollback points.
+- `e2e-api-tests.md` — API-level E2E test cases for API-facing or cross-layer complex tasks. Derive it from the reviewed requirements/design/implementation artifacts; include setup data, request, response, persistence, and failure-side-effect expectations.
 - `implement.jsonl` / `check.jsonl` — spec and research manifests for sub-agent context. They do not replace `implement.md`.
-- Lightweight tasks may be PRD-only. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start`.
+- Lightweight tasks may be PRD-only. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start`; API-facing or cross-layer complex tasks must also have reviewed `e2e-api-tests.md`.
+
+### Local E2E API Validation
+
+- When `e2e-api-tests.md` exists, run its planned API cases against the local backend at `http://localhost:8000` or `http://127.0.0.1:8000` before marking them skipped.
+- Use the health endpoint `http://127.0.0.1:8000/api/v1/utils/health-check/` and verify the frontend separately at `http://localhost:5173` when the flow has a browser surface.
+- Start or recover the local stack with Docker Compose (`docker compose up -d --wait backend`, then `docker compose restart backend` if needed). Do not import pm2 or a different project's port/process assumptions.
+- Record a concrete environment blocker only after the local Compose path or an equivalent explicitly isolated test environment has been attempted.
 
 ### Parent / Child Task Trees
 
@@ -181,7 +191,7 @@ Complex task: ask the user if you can create a Trellis task and enter the planni
 
 ### Phase 1: Plan
 - 1.0 Create task `[required · once]` (only after task-creation consent)
-- 1.1 Requirement exploration `[required · repeatable]` (`prd.md`; complex tasks also need `design.md` + `implement.md`)
+- 1.1 Requirement exploration `[required · repeatable]` (`prd.md`; complex tasks also need `design.md` + `implement.md`; API-facing/cross-layer tasks also need `e2e-api-tests.md`)
 - 1.2 Research `[optional · repeatable]`
 - 1.3 Configure context `[required · once]` — Claude Code, Cursor, OpenCode, Codex, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Reasonix (sub-agent-dispatch platforms only; inline platforms skip)
 - 1.4 Activate task `[required · once]` (review gate, then `task.py start`; status → in_progress)
@@ -191,7 +201,8 @@ Complex task: ask the user if you can create a Trellis task and enter the planni
 
 [workflow-state:planning]
 Load `trellis-brainstorm`; stay in planning.
-Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; ask for review before `task.py start`.
+For complex, risky, ambiguous, architecture, API, data-model, or explicitly requested plan review, load `grill-with-docs` before implementation; resolve decisions one at a time and persist them in task artifacts.
+Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; API-facing/cross-layer complex tasks must also create `e2e-api-tests.md`; ask for review before `task.py start`.
 Multi-deliverable scope: consider a parent task plus independently verifiable child tasks; dependencies must be written in child artifacts, not implied by tree position.
 Major scope with confirmed deferred work: read `.trellis/spec/guides/deferred-iterations-thinking-guide.md`; do not mix deferred items with current acceptance criteria.
 Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/research manifests before start.
@@ -205,7 +216,8 @@ Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/research mani
 
 [workflow-state:planning-inline]
 Load `trellis-brainstorm`; stay in planning.
-Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; ask for review before `task.py start`.
+For complex, risky, ambiguous, architecture, API, data-model, or explicitly requested plan review, load `grill-with-docs` before implementation; resolve decisions one at a time and persist them in task artifacts.
+Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; API-facing/cross-layer complex tasks must also create `e2e-api-tests.md`; ask for review before `task.py start`.
 Multi-deliverable scope: consider a parent task plus independently verifiable child tasks; dependencies must be written in child artifacts, not implied by tree position.
 Major scope with confirmed deferred work: read `.trellis/spec/guides/deferred-iterations-thinking-guide.md`; do not mix deferred items with current acceptance criteria.
 Inline mode: skip jsonl curation; Phase 2 reads artifacts/specs via `trellis-before-dev`.
@@ -226,9 +238,9 @@ Sub-agent dispatch protocol applies to all platforms and all sub-agents, includi
 
 [workflow-state:in_progress]
 Tools: `trellis-implement` / `trellis-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `trellis-update-spec` is a skill. `trellis-check` exists as both; prefer the Agent form when verifying after code changes.
-Flow: `trellis-implement` -> `trellis-check` -> `trellis-update-spec` -> commit (Phase 3.4) -> `/trellis:finish-work`.
+Flow: `trellis-implement` -> `trellis-check` (run `e2e-api-tests.md` when present) -> `trellis-update-spec` (run spec wiki maintenance when specs change) -> commit (Phase 3.4) -> `/trellis:finish-work`.
 Main-session default: dispatch implement/check sub-agents. Sub-agent self-exemption: if already running as `trellis-implement`, do NOT spawn another `trellis-implement` or `trellis-check`; if already running as `trellis-check`, do NOT spawn another `trellis-check` or `trellis-implement`. Dispatch is main session only.
-Dispatch prompt starts with `Active task: <task path from task.py current>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`.
+Dispatch prompt starts with `Active task: <task path from task.py current>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present` -> `e2e-api-tests.md if present`.
 [/workflow-state:in_progress]
 
 <!-- Per-turn breadcrumb: shown while status='in_progress' when
@@ -237,9 +249,9 @@ Dispatch prompt starts with `Active task: <task path from task.py current>`. Rea
      instead of dispatching sub-agents. -->
 
 [workflow-state:in_progress-inline]
-Flow: `trellis-before-dev` -> edit -> `trellis-check` -> validation -> `trellis-update-spec` -> commit (Phase 3.4) -> `/trellis:finish-work`.
+Flow: `trellis-before-dev` -> edit -> `trellis-check` -> validation (run `e2e-api-tests.md` when present) -> `trellis-update-spec` (run spec wiki maintenance when specs change) -> commit (Phase 3.4) -> `/trellis:finish-work`.
 Do not dispatch implement/check sub-agents in inline mode.
-Read context: `prd.md` -> `design.md if present` -> `implement.md if present`, plus relevant spec/research loaded by skills.
+Read context: `prd.md` -> `design.md if present` -> `implement.md if present` -> `e2e-api-tests.md if present`, plus relevant spec/research loaded by skills.
 [/workflow-state:in_progress-inline]
 
 ### Phase 3: Finish
@@ -277,6 +289,7 @@ When a user request matches one of these intents inside an active task, route fi
 [Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Reasonix, Trae]
 
 - Planning or unclear requirements -> `trellis-brainstorm`.
+- Complex/risky plan or explicit design stress-test request -> `grill-with-docs`.
 - `in_progress` implementation/check -> dispatch `trellis-implement` / `trellis-check`.
 - Repeated debugging -> `trellis-break-loop`; spec updates -> `trellis-update-spec`.
 
@@ -285,6 +298,7 @@ When a user request matches one of these intents inside an active task, route fi
 [codex-inline, Kilo, Antigravity, Devin]
 
 - Planning or unclear requirements -> `trellis-brainstorm`.
+- Complex/risky plan or explicit design stress-test request -> `grill-with-docs`.
 - Before editing -> `trellis-before-dev`; after editing -> `trellis-check`.
 - Repeated debugging -> `trellis-break-loop`; spec updates -> `trellis-update-spec`.
 
@@ -293,7 +307,7 @@ When a user request matches one of these intents inside an active task, route fi
 ### Guardrails
 
 - Task creation approval is not implementation approval; implementation waits for `task.py start` after artifact review.
-- PRD-only is valid for lightweight tasks; complex tasks need `design.md` + `implement.md`.
+- PRD-only is valid for lightweight tasks; complex tasks need `design.md` + `implement.md`; API-facing or cross-layer complex tasks also need `e2e-api-tests.md`.
 - Planning must be persisted to task artifacts; checks must run before reporting completion.
 
 ### Loading Step Detail
@@ -342,6 +356,18 @@ The brainstorm skill will guide you to:
 - For a major scope with explicitly deferred future deliverables, read `.trellis/spec/guides/deferred-iterations-thinking-guide.md`; record only deferred work in the current task's `deferred-iterations.md`.
 - Keep `prd.md` focused on requirements and acceptance criteria
 - For complex tasks, produce `design.md` and `implement.md` before implementation starts
+
+For complex, risky, ambiguous, architecture, API, data-model, security, or
+cross-layer work, run `grill-with-docs` once a coherent draft exists. Use it to
+resolve decisions one at a time; prefer repository evidence over questions that
+code, specs, or research can answer. Keep lightweight PRD-only tasks out of
+this path unless the user requests it or a concrete risk warrants it.
+
+For API-facing or cross-layer complex tasks, create `e2e-api-tests.md` after
+the PRD/design/implementation plan is coherent and before `task.py start`. Use
+the template at `.trellis/spec/templates/e2e-api-tests-template.md`. The
+document must specify endpoint paths, setup data, request payloads, expected
+responses, persistence assertions, and failure-side-effect assertions.
 
 When considering a parent/child split:
 - Use a parent task when one request contains several independently verifiable deliverables.
@@ -444,7 +470,7 @@ After artifact review, flip the task status to `in_progress`:
 python ./.trellis/scripts/task.py start <task-dir>
 ```
 
-For lightweight tasks, `prd.md` can be enough. For complex tasks, `prd.md`, `design.md`, and `implement.md` must exist and be reviewed before start. On sub-agent-dispatch platforms, `implement.jsonl` and `check.jsonl` must both have real curated entries before start. Runtime consumers tolerate missing or seed-only manifests for compatibility, but that tolerance is not a planning-ready state.
+For lightweight tasks, `prd.md` can be enough. For complex tasks, `prd.md`, `design.md`, and `implement.md` must exist and be reviewed before start. API-facing or cross-layer complex tasks must also have reviewed `e2e-api-tests.md`. On sub-agent-dispatch platforms, `implement.jsonl` and `check.jsonl` must both have real curated entries before start. Runtime consumers tolerate missing or seed-only manifests for compatibility, but that tolerance is not a planning-ready state.
 
 After this command succeeds, the breadcrumb auto-switches to `[workflow-state:in_progress]`, and the rest of Phase 2 / 3 follows.
 
@@ -460,6 +486,8 @@ If `task.py start` errors with a session-identity message (no context key from h
 | `research/` has artifacts (complex tasks) | recommended |
 | `design.md` exists (complex tasks) | ✅ |
 | `implement.md` exists (complex tasks) | ✅ |
+| `grill-with-docs` pass is completed when complexity/risk warrants it | ✅ when applicable |
+| `e2e-api-tests.md` exists (API-facing or cross-layer complex tasks) | ✅ when applicable |
 
 [Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Reasonix, Trae]
 
@@ -485,7 +513,7 @@ Spawn the implement sub-agent:
 
 The platform hook/plugin auto-handles:
 - Reads `implement.jsonl` and injects referenced spec/research files into the agent prompt
-- Injects `prd.md`, `design.md` if present, and `implement.md` if present
+- Injects `prd.md`, `design.md` if present, `implement.md` if present, and `e2e-api-tests.md` if present
 
 [/Claude Code, Cursor, OpenCode, CodeBuddy, Droid, Pi, Oh My Pi]
 
@@ -498,7 +526,7 @@ Spawn the implement sub-agent:
 - **Dispatch prompt guard**: The prompt MUST start with `Active task: <task path>`, then explicitly say the spawned agent is already `trellis-implement` and must implement directly without spawning another `trellis-implement` / `trellis-check`.
 
 The pull-based sub-agent definition auto-handles the context load requirement:
-- Resolves the active task with `task.py current --source`, then reads `prd.md`, `design.md` if present, and `implement.md` if present
+- Resolves the active task with `task.py current --source`, then reads `prd.md`, `design.md` if present, `implement.md` if present, and `e2e-api-tests.md` if present
 - Reads `implement.jsonl` and requires the agent to load each referenced spec/research file before coding
 
 [/codex-sub-agent, Gemini, Qoder, Copilot, ZCode, Reasonix, Trae]
@@ -513,14 +541,14 @@ Spawn the implement sub-agent:
 
 The platform prelude auto-handles the context load requirement:
 - Reads `implement.jsonl` and injects referenced spec/research files into the agent prompt
-- Injects `prd.md`, `design.md` if present, and `implement.md` if present
+- Injects `prd.md`, `design.md` if present, `implement.md` if present, and `e2e-api-tests.md` if present
 
 [/Kiro]
 
 [codex-inline, Kilo, Antigravity, Devin]
 
 1. Load the `trellis-before-dev` skill to read project guidelines
-2. Read `{TASK_DIR}/prd.md`, then `design.md` if present, then `implement.md` if present
+2. Read `{TASK_DIR}/prd.md`, then `design.md` if present, then `implement.md` if present, then `e2e-api-tests.md` if present
 3. Consult materials under `{TASK_DIR}/research/`
 4. Implement the code per reviewed artifacts
 5. Run project lint and type-check
@@ -534,14 +562,14 @@ The platform prelude auto-handles the context load requirement:
 Spawn the check sub-agent:
 
 - **Agent type**: `trellis-check`
-- **Task description**: Review all code changes against specs and task artifacts; fix any findings directly; ensure lint and type-check pass
+- **Task description**: Review all code changes against specs and task artifacts; fix any findings directly; ensure lint, type-check, and planned API E2E cases pass when applicable
 - **Dispatch prompt guard**: Tell the spawned agent it is already the `trellis-check` sub-agent and must review/fix directly, not spawn another `trellis-check` / `trellis-implement`.
 
 The check agent's job:
 - Review code changes against specs
-- Review code changes against `prd.md`, `design.md` if present, and `implement.md` if present
+- Review code changes against `prd.md`, `design.md` if present, `implement.md` if present, and `e2e-api-tests.md` if present
 - Auto-fix issues it finds
-- Run lint and typecheck to verify
+- Run lint, typecheck, and API E2E cases from `e2e-api-tests.md` when present
 
 [/Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Reasonix, Trae]
 
@@ -550,13 +578,14 @@ The check agent's job:
 Load the `trellis-check` skill and verify the code per its guidance:
 - Spec compliance
 - lint / type-check / tests
+- Run the API E2E cases defined in `e2e-api-tests.md` when present, or record a concrete isolated-environment blocker
 - Cross-layer consistency (when changes span layers)
 
 If issues are found → fix → re-check, until green.
 
 [/codex-inline, Kilo, Antigravity, Devin]
 
-**Final pass (before Phase 3.4 commit)**: the last 2.2 of a task must run full-scope, not just on the latest implement chunk. List all affected packages with `python ./.trellis/scripts/get_context.py --mode packages`, then load each package's spec index Quality Check section. This catches cross-layer / multi-package issues a mid-iteration local 2.2 cannot.
+**Final pass (before Phase 3.4 commit)**: the last 2.2 of a task must run full-scope, not just on the latest implement chunk. List all affected packages with `python ./.trellis/scripts/get_context.py --mode packages`, then load each package's spec index Quality Check section. Run the API E2E cases defined in `e2e-api-tests.md` when present. This catches cross-layer / multi-package issues a mid-iteration local 2.2 cannot.
 
 #### 2.3 Rollback `[on demand]`
 
@@ -587,6 +616,14 @@ Load the `trellis-update-spec` skill and review whether this task produced new k
 - New technical decisions
 
 Update the docs under `.trellis/spec/` accordingly. Even if the conclusion is "nothing to update", walk through the judgment.
+
+When a durable spec change is made, maintain the catalog and append-only log:
+
+```bash
+python ./.trellis/scripts/spec_wiki.py index
+python ./.trellis/scripts/spec_wiki.py log --type update --title "<short title>" --details "<what changed and why>"
+python ./.trellis/scripts/spec_wiki.py lint
+```
 
 #### 3.4 Commit changes `[required · once]`
 

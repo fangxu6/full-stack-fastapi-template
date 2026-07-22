@@ -9,6 +9,7 @@
 | Template | Purpose | Use When |
 | --- | --- | --- |
 | [Scenario Contract](./scenario-contract-template.md) | Defines a high-risk, trigger-scoped engineering contract with ownership, validation, and regression checks. | A durable rule applies only to a recognisable implementation scenario. |
+| [API E2E Test Plan](./e2e-api-tests-template.md) | Defines interface-level test cases, setup, expected responses, persistence, and failure side effects. | Planning an API-facing or cross-layer complex task. |
 
 ---
 

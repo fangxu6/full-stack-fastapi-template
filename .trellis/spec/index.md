@@ -73,3 +73,35 @@ The existing frontend route-permission-navigation contract is the local example:
 - Every durable rule should be backed by current code, tests, or repository docs.
 - Do not import source-project business rules, frontend-stack assumptions, or
   database/runtime assumptions from `.trellis-other/spec`.
+
+<!-- spec-wiki:file-index:start -->
+
+## Spec File Inventory
+
+- [AI Inventory Sidecar Contract](./ai-sidecar-contract.md)
+- [Database Guidelines](./backend/database-guidelines.md)
+- [Directory Structure](./backend/directory-structure.md)
+- [Error Handling](./backend/error-handling.md)
+- [Backend Development Guidelines](./backend/index.md)
+- [Logging Guidelines](./backend/logging-guidelines.md)
+- [Quality Guidelines](./backend/quality-guidelines.md)
+- [Backend Type Safety](./backend/type-safety.md)
+- [Component Guidelines](./frontend/component-guidelines.md)
+- [Directory Structure](./frontend/directory-structure.md)
+- [Hook Guidelines](./frontend/hook-guidelines.md)
+- [Frontend Development Guidelines](./frontend/index.md)
+- [Pagination Contract](./frontend/pagination-contract.md)
+- [Quality Guidelines](./frontend/quality-guidelines.md)
+- [Route Permission Navigation Contract](./frontend/route-permission-navigation-contract.md)
+- [State Management](./frontend/state-management.md)
+- [Type Safety](./frontend/type-safety.md)
+- [Code Reuse Thinking Guide](./guides/code-reuse-thinking-guide.md)
+- [Cross-Layer Thinking Guide](./guides/cross-layer-thinking-guide.md)
+- [Deferred Iterations Thinking Guide](./guides/deferred-iterations-thinking-guide.md)
+- [Thinking Guides](./guides/index.md)
+- [API E2E Test Plan Template](./templates/e2e-api-tests-template.md)
+- [Spec Templates](./templates/index.md)
+- [<Scenario Name> Contract](./templates/scenario-contract-template.md)
+- [Project Quality Hook Contract](./trellis-hook-contract.md)
+
+<!-- spec-wiki:file-index:end -->

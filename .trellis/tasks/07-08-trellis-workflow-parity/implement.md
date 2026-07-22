@@ -37,4 +37,22 @@
 
 ## Stop Gate
 
-Do not run `task.py start` for this task until the user has reviewed `prd.md`, `design.md`, and `implement.md` and asks to proceed.
+The user reviewed the plan and requested implementation on 2026-07-22.
+
+## Completed Validation
+
+- Added project-local `.trellis/scripts/spec_wiki.py` with `index`, `lint`, and
+  append-only `log` commands. The generated file inventory uses marker bounds
+  so the existing hand-maintained catalog content remains intact.
+- Added `.trellis/spec/templates/e2e-api-tests-template.md` and linked it from
+  the template index.
+- Updated workflow planning, execution, quality, and spec-update rules plus
+  the matching normal and Codex-inline breadcrumbs.
+- `python .trellis/tests/test_spec_wiki.py` passed: 5 tests.
+- `python ./.trellis/scripts/spec_wiki.py index --check` passed.
+- `python ./.trellis/scripts/spec_wiki.py lint` passed with 0 errors and 0
+  warnings.
+- `get_context.py --mode phase`, `--step 1.1`, and `--step 2.2` parsed the
+  updated workflow successfully.
+- `git diff --check` passed. The workflow contains no imported `9000`, pm2,
+  `fastapi-app`, `PMS`, `Tooling`, `JSE`, or `5174` runtime assumption.

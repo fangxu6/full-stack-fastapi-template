@@ -140,3 +140,7 @@
 - Source inputs: `sidecar/src/{config,protocol,server,workflow}.ts`,
   `compose.yml`, `backend/app/{schemas/ai.py,modules/ai/router.py}`, and their
   focused tests.
+
+## [2026-07-22 14:01:05] update | Workflow planning and spec maintenance
+
+Added complex-plan grilling, API E2E planning guidance, and the project-owned spec wiki maintenance commands.
