@@ -76,3 +76,36 @@ Defined a forward-only PostgreSQL BIGINT GENERATED ALWAYS AS IDENTITY primary-ke
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Inventory unit remote search
+
+**Date**: 2026-07-22
+**Task**: Inventory unit remote search
+**Branch**: `master`
+
+### Summary
+
+Replaced fixed 100-row inventory unit selects with 20-row debounced server search, added isolated UI coverage beyond 100 units, and documented the frontend rule.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c1bbd13` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
