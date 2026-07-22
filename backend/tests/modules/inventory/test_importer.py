@@ -56,8 +56,11 @@ WORKSPACE_ROOT = Path(__file__).resolve().parents[4]
 def test_row_values_recognizes_the_real_legacy_workbook_layouts(
     filename: str, expected_row: int, expected_values: dict[str, object]
 ) -> None:
+    workbook_path = WORKSPACE_ROOT / "hongxia" / filename
+    if not workbook_path.exists():
+        pytest.skip(f"Legacy workbook fixture is unavailable: {workbook_path}")
     workbook = load_workbook(
-        WORKSPACE_ROOT / "hongxia" / filename,
+        workbook_path,
         data_only=True,
         read_only=True,
     )

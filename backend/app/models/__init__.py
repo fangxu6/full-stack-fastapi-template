@@ -1,6 +1,7 @@
 from sqlmodel import SQLModel
 
 from .ai import AiRun, AiToolCall
+from .iam import IamPermission, IamRole, IamRolePermission, IamUserRole
 from .inventory import (
     InventoryDocument,
     InventoryDocumentLine,
@@ -25,5 +26,9 @@ __all__ = [
     "ProcessingUnit",
     "ReceivingUnit",
     "Item",
+    "IamPermission",
+    "IamRole",
+    "IamRolePermission",
+    "IamUserRole",
     "User",
 ]

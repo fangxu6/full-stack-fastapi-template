@@ -18,7 +18,9 @@
   "commit": null,
   "pr_url": null,
   "subtasks": [],
-  "children": [],
+  "children": [
+    "07-22-authorization-foundation"
+  ],
   "parent": null,
   "relatedFiles": [],
   "notes": "",

@@ -24,6 +24,11 @@ export type Body_login_login_access_token = {
     client_secret?: (string | null);
 };
 
+export type EffectivePermissionsPublic = {
+    roles: Array<RoleSummary>;
+    permissions: Array<(string)>;
+};
+
 export type HTTPValidationError = {
     detail?: Array<ValidationError>;
     request_id: string;
@@ -176,11 +181,66 @@ export type NewPassword = {
     new_password: string;
 };
 
+export type PermissionPublic = {
+    id: number;
+    code: string;
+    group_name: string;
+    label: string;
+    description: string;
+};
+
+export type PermissionsPublic = {
+    data: Array<PermissionPublic>;
+    count: number;
+};
+
 export type PrivateUserCreate = {
     email: string;
     password: string;
     full_name: string;
     is_verified?: boolean;
+};
+
+export type RoleCreate = {
+    code: string;
+    name: string;
+    description?: (string | null);
+    permission_codes?: Array<(string)>;
+};
+
+export type RolePermissionsReplace = {
+    permission_codes: Array<(string)>;
+};
+
+export type RolePublic = {
+    id: number;
+    code: string;
+    name: string;
+    is_builtin: boolean;
+    is_active: boolean;
+    description?: (string | null);
+    permission_codes: Array<(string)>;
+    created_at: string;
+    updated_at: string;
+};
+
+export type RolesPublic = {
+    data: Array<RolePublic>;
+    count: number;
+};
+
+export type RoleSummary = {
+    id: number;
+    code: string;
+    name: string;
+    is_builtin: boolean;
+    is_active: boolean;
+};
+
+export type RoleUpdate = {
+    name?: (string | null);
+    description?: (string | null);
+    is_active?: (boolean | null);
 };
 
 export type RuleDocumentPublic = {
@@ -214,24 +274,32 @@ export type UpdatePassword = {
 export type UserCreate = {
     email: string;
     is_active?: boolean;
-    is_superuser?: boolean;
     full_name?: (string | null);
     password: string;
+    role_ids?: Array<(number)>;
 };
 
 export type UserPublic = {
     email: string;
     is_active?: boolean;
-    is_superuser?: boolean;
     full_name?: (string | null);
     id: string;
     created_at?: (string | null);
+    roles?: Array<RoleSummary>;
 };
 
 export type UserRegister = {
     email: string;
     password: string;
     full_name?: (string | null);
+};
+
+export type UserRolesPublic = {
+    data: Array<RoleSummary>;
+};
+
+export type UserRolesReplace = {
+    role_ids: Array<(number)>;
 };
 
 export type UsersPublic = {
@@ -242,7 +310,6 @@ export type UsersPublic = {
 export type UserUpdate = {
     email?: (string | null);
     is_active?: boolean;
-    is_superuser?: boolean;
     full_name?: (string | null);
     password?: (string | null);
 };
@@ -275,6 +342,45 @@ export type DocsReadRuleDocumentData = {
 };
 
 export type DocsReadRuleDocumentResponse = (RuleDocumentPublic);
+
+export type IamReadMyPermissionsResponse = (EffectivePermissionsPublic);
+
+export type IamReadPermissionCatalogResponse = (PermissionsPublic);
+
+export type IamReadRolesResponse = (RolesPublic);
+
+export type IamCreateRoleData = {
+    requestBody: RoleCreate;
+};
+
+export type IamCreateRoleResponse = (RolePublic);
+
+export type IamUpdateRoleData = {
+    requestBody: RoleUpdate;
+    roleId: number;
+};
+
+export type IamUpdateRoleResponse = (RolePublic);
+
+export type IamDeleteRoleData = {
+    roleId: number;
+};
+
+export type IamDeleteRoleResponse = (Message);
+
+export type IamReplaceRolePermissionsData = {
+    requestBody: RolePermissionsReplace;
+    roleId: number;
+};
+
+export type IamReplaceRolePermissionsResponse = (RolePublic);
+
+export type IamReplaceUserRolesData = {
+    requestBody: UserRolesReplace;
+    userId: string;
+};
+
+export type IamReplaceUserRolesResponse = (UserRolesPublic);
 
 export type InventoryReadProcessingUnitsData = {
     isActive?: (boolean | null);

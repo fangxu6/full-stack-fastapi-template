@@ -10,6 +10,10 @@ from app.main import app
 from app.models import (
     AiRun,
     AiToolCall,
+    IamPermission,
+    IamRole,
+    IamRolePermission,
+    IamUserRole,
     InventoryDocument,
     InventoryDocumentLine,
     InventoryImportBatch,
@@ -62,6 +66,10 @@ def db() -> Generator[Session]:
             ProcessingUnit,
             ReceivingUnit,
             Item,
+            IamUserRole,
+            IamRolePermission,
+            IamRole,
+            IamPermission,
             User,
         ):
             session.execute(delete(model))

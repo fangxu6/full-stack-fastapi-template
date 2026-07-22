@@ -8,6 +8,7 @@ import type {
   InventoryLedgerEntryPublic,
   InventoryLedgerKind,
 } from "@/client"
+import { IamService } from "@/client"
 import {
   readFinishedBalancesPage,
   readInventoryLedgerPage,
@@ -30,6 +31,13 @@ const balanceConfig: Record<
 }
 
 export function InventoryBalancesPage() {
+  const permissionsQuery = useQuery({
+    queryKey: ["iam", "permissions"],
+    queryFn: IamService.readMyPermissions,
+  })
+  const canReadLedger =
+    permissionsQuery.data?.permissions.includes("inventory.ledger.read") ??
+    false
   const [activeKind, setActiveKind] = useState<BalanceKind>("raw")
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
@@ -52,7 +60,7 @@ export function InventoryBalancesPage() {
     placeholderData: keepPreviousData,
   })
   const ledgerQuery = useQuery({
-    enabled: Boolean(selectedBalance),
+    enabled: canReadLedger && Boolean(selectedBalance),
     queryFn: () =>
       readInventoryLedgerPage({
         colorCode: selectedBalance?.color_code ?? undefined,
@@ -130,13 +138,17 @@ export function InventoryBalancesPage() {
         dataSource={balancesQuery.data?.data ?? []}
         loading={balancesQuery.isFetching}
         locale={{ emptyText: "暂无库存余额" }}
-        onRow={(balance) => ({
-          onClick: () => {
-            setSelectedBalance(balance)
-            setLedgerPage(1)
-          },
-          style: { cursor: "pointer" },
-        })}
+        onRow={
+          canReadLedger
+            ? (balance) => ({
+                onClick: () => {
+                  setSelectedBalance(balance)
+                  setLedgerPage(1)
+                },
+                style: { cursor: "pointer" },
+              })
+            : undefined
+        }
         onChange={handleTableChange}
         pagination={{
           current: page,
@@ -160,46 +172,50 @@ export function InventoryBalancesPage() {
         }
         scroll={{ x: 760 }}
       />
-      <Drawer
-        onClose={() => {
-          setSelectedBalance(undefined)
-          setLedgerPage(1)
-        }}
-        open={Boolean(selectedBalance)}
-        title={
-          selectedBalance ? `${selectedBalance.item_name} 关联台账` : "关联台账"
-        }
-        width={760}
-      >
-        <Table
-          columns={[
-            { dataIndex: "business_date", title: "日期", width: 110 },
-            { dataIndex: "movement_type", title: "变动类型" },
-            { dataIndex: "rolls_delta", title: "匹数变动" },
-            { dataIndex: "meters_delta", title: "米数变动" },
-            {
-              dataIndex: "reason",
-              render: (value: string | null) => value ?? <Tag>业务单据</Tag>,
-              title: "来源",
-            },
-          ]}
-          dataSource={ledgerQuery.data?.data ?? []}
-          loading={ledgerQuery.isFetching}
-          onChange={handleLedgerTableChange}
-          pagination={{
-            current: ledgerPage,
-            pageSize: ledgerPageSize,
-            pageSizeOptions: PAGE_SIZE_OPTIONS,
-            responsive: true,
-            showQuickJumper: true,
-            showSizeChanger: true,
-            showTotal: (total, [start, end]) => `${start}-${end} / ${total}`,
-            total: ledgerQuery.data?.count ?? 0,
+      {canReadLedger ? (
+        <Drawer
+          onClose={() => {
+            setSelectedBalance(undefined)
+            setLedgerPage(1)
           }}
-          rowKey="id"
-          size="small"
-        />
-      </Drawer>
+          open={Boolean(selectedBalance)}
+          title={
+            selectedBalance
+              ? `${selectedBalance.item_name} 关联台账`
+              : "关联台账"
+          }
+          width={760}
+        >
+          <Table
+            columns={[
+              { dataIndex: "business_date", title: "日期", width: 110 },
+              { dataIndex: "movement_type", title: "变动类型" },
+              { dataIndex: "rolls_delta", title: "匹数变动" },
+              { dataIndex: "meters_delta", title: "米数变动" },
+              {
+                dataIndex: "reason",
+                render: (value: string | null) => value ?? <Tag>业务单据</Tag>,
+                title: "来源",
+              },
+            ]}
+            dataSource={ledgerQuery.data?.data ?? []}
+            loading={ledgerQuery.isFetching}
+            onChange={handleLedgerTableChange}
+            pagination={{
+              current: ledgerPage,
+              pageSize: ledgerPageSize,
+              pageSizeOptions: PAGE_SIZE_OPTIONS,
+              responsive: true,
+              showQuickJumper: true,
+              showSizeChanger: true,
+              showTotal: (total, [start, end]) => `${start}-${end} / ${total}`,
+              total: ledgerQuery.data?.count ?? 0,
+            }}
+            rowKey="id"
+            size="small"
+          />
+        </Drawer>
+      ) : null}
     </div>
   )
 }

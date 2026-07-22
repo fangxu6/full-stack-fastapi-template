@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
+    # Compatibility marker for template Items and AI only. RBAC owns new access checks.
+    is_superuser: bool = Field(default=False)
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore

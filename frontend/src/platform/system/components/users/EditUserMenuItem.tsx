@@ -1,11 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Select } from "antd"
 import { Pencil } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { type UserPublic, UsersService } from "@/client"
+import { IamService, type UserPublic, UsersService } from "@/client"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -41,7 +42,7 @@ const formSchema = z
       .optional()
       .or(z.literal("")),
     confirm_password: z.string().optional(),
-    is_superuser: z.boolean().optional(),
+    role_ids: z.array(z.number()),
     is_active: z.boolean().optional(),
   })
   .refine((data) => !data.password || data.password === data.confirm_password, {
@@ -71,14 +72,25 @@ export default function EditUserMenuItem({
     defaultValues: {
       email: user.email,
       full_name: user.full_name ?? undefined,
-      is_superuser: user.is_superuser,
+      role_ids: user.roles?.map((role) => role.id) ?? [],
       is_active: user.is_active,
     },
   })
+  const rolesQuery = useQuery({
+    queryKey: ["iam", "roles"],
+    queryFn: IamService.readRoles,
+  })
 
   const mutation = useMutation({
-    mutationFn: (data: FormData) =>
-      UsersService.updateUser({ userId: user.id, requestBody: data }),
+    mutationFn: async (data: FormData) => {
+      const { confirm_password: _, role_ids, ...userData } = data
+      if (!userData.password) delete userData.password
+      await UsersService.updateUser({ userId: user.id, requestBody: userData })
+      await IamService.replaceUserRoles({
+        userId: user.id,
+        requestBody: { role_ids },
+      })
+    },
     onSuccess: () => {
       showSuccessToast("User updated successfully")
       setIsOpen(false)
@@ -91,11 +103,7 @@ export default function EditUserMenuItem({
   })
 
   const onSubmit = (data: FormData) => {
-    const { confirm_password: _, ...submitData } = data
-    if (!submitData.password) {
-      delete submitData.password
-    }
-    mutation.mutate(submitData)
+    mutation.mutate(data)
   }
 
   return (
@@ -190,16 +198,31 @@ export default function EditUserMenuItem({
 
               <FormField
                 control={form.control}
-                name="is_superuser"
+                name="role_ids"
                 render={({ field }) => (
-                  <FormItem className="flex items-center gap-3 space-y-0">
+                  <FormItem>
+                    <FormLabel>Roles</FormLabel>
                     <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
+                      <Select
+                        getPopupContainer={(trigger) =>
+                          trigger.parentElement ?? document.body
+                        }
+                        loading={rolesQuery.isLoading}
+                        mode="multiple"
+                        onChange={field.onChange}
+                        options={(rolesQuery.data?.data ?? [])
+                          .filter(
+                            (role) =>
+                              role.is_active || field.value.includes(role.id),
+                          )
+                          .map((role) => ({
+                            label: `${role.name}${role.is_active ? "" : " (inactive)"}`,
+                            value: role.id,
+                          }))}
+                        value={field.value}
                       />
                     </FormControl>
-                    <FormLabel className="font-normal">Is superuser?</FormLabel>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

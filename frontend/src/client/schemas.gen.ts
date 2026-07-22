@@ -111,6 +111,28 @@ export const Body_login_login_access_tokenSchema = {
     title: 'Body_login-login_access_token'
 } as const;
 
+export const EffectivePermissionsPublicSchema = {
+    properties: {
+        roles: {
+            items: {
+                '$ref': '#/components/schemas/RoleSummary'
+            },
+            type: 'array',
+            title: 'Roles'
+        },
+        permissions: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Permissions'
+        }
+    },
+    type: 'object',
+    required: ['roles', 'permissions'],
+    title: 'EffectivePermissionsPublic'
+} as const;
+
 export const HTTPValidationErrorSchema = {
     properties: {
         detail: {
@@ -927,6 +949,53 @@ export const NewPasswordSchema = {
     title: 'NewPassword'
 } as const;
 
+export const PermissionPublicSchema = {
+    properties: {
+        id: {
+            type: 'integer',
+            title: 'Id'
+        },
+        code: {
+            type: 'string',
+            title: 'Code'
+        },
+        group_name: {
+            type: 'string',
+            title: 'Group Name'
+        },
+        label: {
+            type: 'string',
+            title: 'Label'
+        },
+        description: {
+            type: 'string',
+            title: 'Description'
+        }
+    },
+    type: 'object',
+    required: ['id', 'code', 'group_name', 'label', 'description'],
+    title: 'PermissionPublic'
+} as const;
+
+export const PermissionsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/PermissionPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'PermissionsPublic'
+} as const;
+
 export const PrivateUserCreateSchema = {
     properties: {
         email: {
@@ -950,6 +1019,209 @@ export const PrivateUserCreateSchema = {
     type: 'object',
     required: ['email', 'password', 'full_name'],
     title: 'PrivateUserCreate'
+} as const;
+
+export const RoleCreateSchema = {
+    properties: {
+        code: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 2,
+            title: 'Code'
+        },
+        name: {
+            type: 'string',
+            maxLength: 128,
+            minLength: 1,
+            title: 'Name'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        permission_codes: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Permission Codes'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['code', 'name'],
+    title: 'RoleCreate'
+} as const;
+
+export const RolePermissionsReplaceSchema = {
+    properties: {
+        permission_codes: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Permission Codes'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['permission_codes'],
+    title: 'RolePermissionsReplace'
+} as const;
+
+export const RolePublicSchema = {
+    properties: {
+        id: {
+            type: 'integer',
+            title: 'Id'
+        },
+        code: {
+            type: 'string',
+            title: 'Code'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        is_builtin: {
+            type: 'boolean',
+            title: 'Is Builtin'
+        },
+        is_active: {
+            type: 'boolean',
+            title: 'Is Active'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        permission_codes: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Permission Codes'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'code', 'name', 'is_builtin', 'is_active', 'permission_codes', 'created_at', 'updated_at'],
+    title: 'RolePublic'
+} as const;
+
+export const RoleSummarySchema = {
+    properties: {
+        id: {
+            type: 'integer',
+            title: 'Id'
+        },
+        code: {
+            type: 'string',
+            title: 'Code'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        is_builtin: {
+            type: 'boolean',
+            title: 'Is Builtin'
+        },
+        is_active: {
+            type: 'boolean',
+            title: 'Is Active'
+        }
+    },
+    type: 'object',
+    required: ['id', 'code', 'name', 'is_builtin', 'is_active'],
+    title: 'RoleSummary'
+} as const;
+
+export const RoleUpdateSchema = {
+    properties: {
+        name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 128,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        is_active: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Is Active'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    title: 'RoleUpdate'
+} as const;
+
+export const RolesPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/RolePublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'RolesPublic'
 } as const;
 
 export const RuleDocumentPublicSchema = {
@@ -1065,11 +1337,6 @@ export const UserCreateSchema = {
             title: 'Is Active',
             default: true
         },
-        is_superuser: {
-            type: 'boolean',
-            title: 'Is Superuser',
-            default: false
-        },
         full_name: {
             anyOf: [
                 {
@@ -1087,8 +1354,16 @@ export const UserCreateSchema = {
             maxLength: 128,
             minLength: 8,
             title: 'Password'
+        },
+        role_ids: {
+            items: {
+                type: 'integer'
+            },
+            type: 'array',
+            title: 'Role Ids'
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['email', 'password'],
     title: 'UserCreate'
@@ -1106,11 +1381,6 @@ export const UserPublicSchema = {
             type: 'boolean',
             title: 'Is Active',
             default: true
-        },
-        is_superuser: {
-            type: 'boolean',
-            title: 'Is Superuser',
-            default: false
         },
         full_name: {
             anyOf: [
@@ -1140,6 +1410,13 @@ export const UserPublicSchema = {
                 }
             ],
             title: 'Created At'
+        },
+        roles: {
+            items: {
+                '$ref': '#/components/schemas/RoleSummary'
+            },
+            type: 'array',
+            title: 'Roles'
         }
     },
     type: 'object',
@@ -1174,9 +1451,41 @@ export const UserRegisterSchema = {
             title: 'Full Name'
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['email', 'password'],
     title: 'UserRegister'
+} as const;
+
+export const UserRolesPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/RoleSummary'
+            },
+            type: 'array',
+            title: 'Data'
+        }
+    },
+    type: 'object',
+    required: ['data'],
+    title: 'UserRolesPublic'
+} as const;
+
+export const UserRolesReplaceSchema = {
+    properties: {
+        role_ids: {
+            items: {
+                type: 'integer'
+            },
+            type: 'array',
+            title: 'Role Ids'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['role_ids'],
+    title: 'UserRolesReplace'
 } as const;
 
 export const UserUpdateSchema = {
@@ -1198,11 +1507,6 @@ export const UserUpdateSchema = {
             type: 'boolean',
             title: 'Is Active',
             default: true
-        },
-        is_superuser: {
-            type: 'boolean',
-            title: 'Is Superuser',
-            default: false
         },
         full_name: {
             anyOf: [
@@ -1230,6 +1534,7 @@ export const UserUpdateSchema = {
             title: 'Password'
         }
     },
+    additionalProperties: false,
     type: 'object',
     title: 'UserUpdate'
 } as const;

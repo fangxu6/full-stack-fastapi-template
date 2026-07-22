@@ -23,8 +23,8 @@ import type { ColumnsType, TableProps } from "antd/es/table"
 import type { Dayjs } from "dayjs"
 import { Edit3, Plus, RotateCcw, Trash2 } from "lucide-react"
 import { useState } from "react"
-
 import {
+  IamService,
   type InventoryDocumentCreate,
   type InventoryDocumentPublic,
   InventoryService,
@@ -118,6 +118,13 @@ function renderLinesSummary(
 }
 
 export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
+  const permissionsQuery = useQuery({
+    queryKey: ["iam", "permissions"],
+    queryFn: IamService.readMyPermissions,
+  })
+  const canManage =
+    permissionsQuery.data?.permissions.includes("inventory.documents.manage") ??
+    false
   const [activeType, setActiveType] = useState(types[0])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
@@ -227,7 +234,7 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
     {
       key: "actions",
       render: (_, document) =>
-        document.deleted_at ? (
+        !canManage ? null : document.deleted_at ? (
           <Tooltip title="恢复单据">
             <Button
               aria-label="恢复单据"
@@ -277,13 +284,15 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
             单据保存后即时重算对应库存余额。
           </p>
         </div>
-        <Button
-          icon={<Plus size={16} />}
-          onClick={() => openEditor()}
-          type="primary"
-        >
-          新建{documentLabels[activeType]}
-        </Button>
+        {canManage ? (
+          <Button
+            icon={<Plus size={16} />}
+            onClick={() => openEditor()}
+            type="primary"
+          >
+            新建{documentLabels[activeType]}
+          </Button>
+        ) : null}
       </div>
       <Tabs
         activeKey={activeType}
@@ -380,14 +389,16 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
         scroll={{ x: 1020 }}
         size="middle"
       />
-      <DocumentEditorModal
-        document={editingDocument}
-        documentType={activeType}
-        key={editingDocument?.id ?? activeType}
-        onClose={() => setEditorOpen(false)}
-        onSaved={() => setPage(1)}
-        open={isEditorOpen}
-      />
+      {canManage ? (
+        <DocumentEditorModal
+          document={editingDocument}
+          documentType={activeType}
+          key={editingDocument?.id ?? activeType}
+          onClose={() => setEditorOpen(false)}
+          onSaved={() => setPage(1)}
+          open={isEditorOpen}
+        />
+      ) : null}
     </div>
   )
 }

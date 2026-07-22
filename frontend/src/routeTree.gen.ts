@@ -18,11 +18,13 @@ import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
 import { Route as LayoutRulesRouteImport } from './routes/_layout/rules'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
+import { Route as LayoutForbiddenRouteImport } from './routes/_layout/forbidden'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutInventoryShipmentsRouteImport } from './routes/_layout/inventory/shipments'
 import { Route as LayoutInventoryRawRouteImport } from './routes/_layout/inventory/raw'
 import { Route as LayoutInventoryMastersRouteImport } from './routes/_layout/inventory/masters'
 import { Route as LayoutInventoryBalancesRouteImport } from './routes/_layout/inventory/balances'
+import { Route as LayoutAdminRolesRouteImport } from './routes/_layout/admin/roles'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -68,6 +70,11 @@ const LayoutItemsRoute = LayoutItemsRouteImport.update({
   path: '/items',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutForbiddenRoute = LayoutForbiddenRouteImport.update({
+  id: '/forbidden',
+  path: '/forbidden',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutAdminRoute = LayoutAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -94,6 +101,11 @@ const LayoutInventoryBalancesRoute = LayoutInventoryBalancesRouteImport.update({
   path: '/inventory/balances',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutAdminRolesRoute = LayoutAdminRolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => LayoutAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
@@ -101,10 +113,12 @@ export interface FileRoutesByFullPath {
   '/recover-password': typeof RecoverPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/admin': typeof LayoutAdminRoute
+  '/admin': typeof LayoutAdminRouteWithChildren
+  '/forbidden': typeof LayoutForbiddenRoute
   '/items': typeof LayoutItemsRoute
   '/rules': typeof LayoutRulesRoute
   '/settings': typeof LayoutSettingsRoute
+  '/admin/roles': typeof LayoutAdminRolesRoute
   '/inventory/balances': typeof LayoutInventoryBalancesRoute
   '/inventory/masters': typeof LayoutInventoryMastersRoute
   '/inventory/raw': typeof LayoutInventoryRawRoute
@@ -115,11 +129,13 @@ export interface FileRoutesByTo {
   '/recover-password': typeof RecoverPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/admin': typeof LayoutAdminRoute
+  '/admin': typeof LayoutAdminRouteWithChildren
+  '/forbidden': typeof LayoutForbiddenRoute
   '/items': typeof LayoutItemsRoute
   '/rules': typeof LayoutRulesRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
+  '/admin/roles': typeof LayoutAdminRolesRoute
   '/inventory/balances': typeof LayoutInventoryBalancesRoute
   '/inventory/masters': typeof LayoutInventoryMastersRoute
   '/inventory/raw': typeof LayoutInventoryRawRoute
@@ -132,11 +148,13 @@ export interface FileRoutesById {
   '/recover-password': typeof RecoverPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/_layout/admin': typeof LayoutAdminRoute
+  '/_layout/admin': typeof LayoutAdminRouteWithChildren
+  '/_layout/forbidden': typeof LayoutForbiddenRoute
   '/_layout/items': typeof LayoutItemsRoute
   '/_layout/rules': typeof LayoutRulesRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/': typeof LayoutIndexRoute
+  '/_layout/admin/roles': typeof LayoutAdminRolesRoute
   '/_layout/inventory/balances': typeof LayoutInventoryBalancesRoute
   '/_layout/inventory/masters': typeof LayoutInventoryMastersRoute
   '/_layout/inventory/raw': typeof LayoutInventoryRawRoute
@@ -151,9 +169,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/admin'
+    | '/forbidden'
     | '/items'
     | '/rules'
     | '/settings'
+    | '/admin/roles'
     | '/inventory/balances'
     | '/inventory/masters'
     | '/inventory/raw'
@@ -165,10 +185,12 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/admin'
+    | '/forbidden'
     | '/items'
     | '/rules'
     | '/settings'
     | '/'
+    | '/admin/roles'
     | '/inventory/balances'
     | '/inventory/masters'
     | '/inventory/raw'
@@ -181,10 +203,12 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/_layout/admin'
+    | '/_layout/forbidden'
     | '/_layout/items'
     | '/_layout/rules'
     | '/_layout/settings'
     | '/_layout/'
+    | '/_layout/admin/roles'
     | '/_layout/inventory/balances'
     | '/_layout/inventory/masters'
     | '/_layout/inventory/raw'
@@ -264,6 +288,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutItemsRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/forbidden': {
+      id: '/_layout/forbidden'
+      path: '/forbidden'
+      fullPath: '/forbidden'
+      preLoaderRoute: typeof LayoutForbiddenRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/admin': {
       id: '/_layout/admin'
       path: '/admin'
@@ -299,11 +330,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutInventoryBalancesRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/admin/roles': {
+      id: '/_layout/admin/roles'
+      path: '/roles'
+      fullPath: '/admin/roles'
+      preLoaderRoute: typeof LayoutAdminRolesRouteImport
+      parentRoute: typeof LayoutAdminRoute
+    }
   }
 }
 
+interface LayoutAdminRouteChildren {
+  LayoutAdminRolesRoute: typeof LayoutAdminRolesRoute
+}
+
+const LayoutAdminRouteChildren: LayoutAdminRouteChildren = {
+  LayoutAdminRolesRoute: LayoutAdminRolesRoute,
+}
+
+const LayoutAdminRouteWithChildren = LayoutAdminRoute._addFileChildren(
+  LayoutAdminRouteChildren,
+)
+
 interface LayoutRouteChildren {
-  LayoutAdminRoute: typeof LayoutAdminRoute
+  LayoutAdminRoute: typeof LayoutAdminRouteWithChildren
+  LayoutForbiddenRoute: typeof LayoutForbiddenRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
   LayoutRulesRoute: typeof LayoutRulesRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
@@ -315,7 +366,8 @@ interface LayoutRouteChildren {
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
-  LayoutAdminRoute: LayoutAdminRoute,
+  LayoutAdminRoute: LayoutAdminRouteWithChildren,
+  LayoutForbiddenRoute: LayoutForbiddenRoute,
   LayoutItemsRoute: LayoutItemsRoute,
   LayoutRulesRoute: LayoutRulesRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,

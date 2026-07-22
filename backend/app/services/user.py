@@ -7,11 +7,11 @@ from app.core.config import settings
 from app.core.exceptions import (
     BadRequestError,
     ConflictError,
-    PermissionDeniedError,
     UserNotFoundError,
 )
 from app.core.security import get_password_hash, verify_password
 from app.models import User
+from app.modules.iam import service as iam_service
 from app.schemas.security import Message
 from app.schemas.user import (
     UpdatePassword,
@@ -34,8 +34,22 @@ def read_users(*, session: Session, skip: int = 0, limit: int = 100) -> UsersPub
     )
     users = session.exec(statement).all()
 
-    users_public = [UserPublic.model_validate(user) for user in users]
+    users_public = [user_public(session=session, user=user) for user in users]
     return UsersPublic(data=users_public, count=count)
+
+
+def user_public(*, session: Session, user: User) -> UserPublic:
+    return UserPublic.model_validate(
+        user,
+        update={
+            "roles": [
+                role.model_dump()
+                for role in iam_service.get_user_role_summaries(
+                    session=session, user_id=user.id
+                )
+            ]
+        },
+    )
 
 
 def create_user(*, session: Session, user_in: UserCreate) -> User:
@@ -43,7 +57,18 @@ def create_user(*, session: Session, user_in: UserCreate) -> User:
     if user:
         raise BadRequestError("The user with this email already exists in the system.")
 
-    user = crud.create_user(session=session, user_create=user_in)
+    try:
+        user = crud.create_user(session=session, user_create=user_in, commit=False)
+        if user_in.role_ids:
+            iam_service.replace_user_roles(
+                session=session, user_id=user.id, role_ids=user_in.role_ids
+            )
+        else:
+            session.commit()
+            session.refresh(user)
+    except Exception:
+        session.rollback()
+        raise
     if settings.emails_enabled and user_in.email:
         email_data = generate_new_account_email(
             email_to=user_in.email, username=user_in.email, password=user_in.password
@@ -63,20 +88,8 @@ def _get_required_user(*, session: Session, user_id: uuid.UUID) -> User:
     return user
 
 
-def read_user_by_id(
-    *,
-    session: Session,
-    current_user: User,
-    user_id: uuid.UUID,
-) -> User:
-    user = crud.get_user_by_id(session=session, user_id=user_id)
-    if user is not None and user == current_user:
-        return user
-    if not current_user.is_superuser:
-        raise PermissionDeniedError("The user doesn't have enough privileges")
-    if user is None:
-        raise UserNotFoundError()
-    return user
+def read_user_by_id(*, session: Session, user_id: uuid.UUID) -> User:
+    return _get_required_user(session=session, user_id=user_id)
 
 
 def update_user_me(
@@ -127,14 +140,29 @@ def update_user(*, session: Session, user_id: uuid.UUID, user_in: UserUpdate) ->
         if existing_user and existing_user.id != user_id:
             raise ConflictError("User with this email already exists")
 
-    db_user = crud.update_user(session=session, db_user=db_user, user_in=user_in)
-    return db_user
+    try:
+        was_active = db_user.is_active
+        if was_active and user_in.is_active is False:
+            iam_service.ensure_user_deactivation_is_safe(session=session, user=db_user)
+        db_user = crud.update_user(
+            session=session, db_user=db_user, user_in=user_in, commit=False
+        )
+        session.commit()
+        session.refresh(db_user)
+        return db_user
+    except Exception:
+        session.rollback()
+        raise
 
 
-def delete_user(*, session: Session, current_user: User, user_id: uuid.UUID) -> Message:
+def delete_user(*, session: Session, user_id: uuid.UUID) -> Message:
     user = _get_required_user(session=session, user_id=user_id)
-    if user == current_user and current_user.is_superuser:
-        raise PermissionDeniedError("Super users are not allowed to delete themselves")
-    crud.delete_items_by_owner(session=session, owner_id=user_id)
-    crud.delete_user(session=session, db_user=user)
-    return Message(message="User deleted successfully")
+    try:
+        iam_service.ensure_user_deactivation_is_safe(session=session, user=user)
+        crud.delete_items_by_owner(session=session, owner_id=user_id)
+        crud.delete_user(session=session, db_user=user, commit=False)
+        session.commit()
+        return Message(message="User deleted successfully")
+    except Exception:
+        session.rollback()
+        raise

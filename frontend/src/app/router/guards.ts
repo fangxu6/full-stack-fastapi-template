@@ -1,8 +1,12 @@
 import { redirect } from "@tanstack/react-router"
 
-import { UsersService } from "@/client"
+import { ApiError, IamService } from "@/client"
 import { isLoggedIn } from "@/hooks/useAuth"
-import { canAccessAdmin } from "@/shared/permissions"
+import {
+  hasPermission,
+  isSafeInternalPath,
+  type PermissionCode,
+} from "@/shared/permissions"
 
 export async function requireLogin() {
   if (!isLoggedIn()) {
@@ -12,11 +16,26 @@ export async function requireLogin() {
   }
 }
 
-export async function requireSuperuser() {
-  const user = await UsersService.readUserMe()
-  if (!canAccessAdmin(user)) {
-    throw redirect({
-      to: "/",
-    })
+export function requirePermission(permission: PermissionCode) {
+  return async ({
+    location,
+  }: {
+    location: { pathname: string; searchStr: string }
+  }) => {
+    try {
+      const result = await IamService.readMyPermissions()
+      if (!hasPermission(result.permissions, permission)) {
+        const returnTo = `${location.pathname}${location.searchStr}`
+        throw redirect({
+          to: "/forbidden",
+          search: { returnTo: isSafeInternalPath(returnTo) ? returnTo : "/" },
+        })
+      }
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        throw redirect({ to: "/login" })
+      }
+      throw error
+    }
   }
 }

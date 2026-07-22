@@ -28,6 +28,16 @@ def create_random_user(db: Session) -> User:
     return user
 
 
+def create_legacy_superuser(db: Session) -> User:
+    """Create an ORM-only compatibility administrator for legacy test paths."""
+    user = create_random_user(db)
+    user.is_superuser = True
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def authentication_token_from_email(
     *, client: TestClient, email: str, db: Session
 ) -> dict[str, str]:

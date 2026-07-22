@@ -20,7 +20,10 @@ def test_get_users_superuser_me(
     current_user = r.json()
     assert current_user
     assert current_user["is_active"] is True
-    assert current_user["is_superuser"]
+    assert "is_superuser" not in current_user
+    assert any(
+        role["code"] == "platform_administrator" for role in current_user["roles"]
+    )
     assert current_user["email"] == settings.FIRST_SUPERUSER
 
 
@@ -31,7 +34,8 @@ def test_get_users_normal_user_me(
     current_user = r.json()
     assert current_user
     assert current_user["is_active"] is True
-    assert current_user["is_superuser"] is False
+    assert "is_superuser" not in current_user
+    assert current_user["roles"] == []
     assert current_user["email"] == settings.EMAIL_TEST_USER
 
 
@@ -130,7 +134,7 @@ def test_get_existing_user_permissions_error(
     )
     assert r.status_code == 403
     payload = r.json()
-    assert payload["detail"] == "The user doesn't have enough privileges"
+    assert payload["detail"] == "The user does not have the required permission"
     assert payload["request_id"]
 
 
@@ -146,7 +150,7 @@ def test_get_non_existing_user_permissions_error(
     )
     assert r.status_code == 403
     payload = r.json()
-    assert payload["detail"] == "The user doesn't have enough privileges"
+    assert payload["detail"] == "The user does not have the required permission"
     assert payload["request_id"]
 
 
@@ -468,9 +472,9 @@ def test_delete_user_me_as_superuser(
         f"{settings.API_V1_STR}/users/me",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 403
+    assert r.status_code == 409
     response = r.json()
-    assert response["detail"] == "Super users are not allowed to delete themselves"
+    assert response["detail"] == "At least one active Platform Administrator is required"
 
 
 def test_delete_user_super_user(
@@ -514,8 +518,8 @@ def test_delete_user_current_super_user_error(
         f"{settings.API_V1_STR}/users/{user_id}",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 403
-    assert r.json()["detail"] == "Super users are not allowed to delete themselves"
+    assert r.status_code == 409
+    assert r.json()["detail"] == "At least one active Platform Administrator is required"
 
 
 def test_delete_user_without_privileges(
@@ -531,4 +535,4 @@ def test_delete_user_without_privileges(
         headers=normal_user_token_headers,
     )
     assert r.status_code == 403
-    assert r.json()["detail"] == "The user doesn't have enough privileges"
+    assert r.json()["detail"] == "The user does not have the required permission"

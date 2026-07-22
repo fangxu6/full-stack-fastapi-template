@@ -5,13 +5,11 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 
-from app import crud
 from app.core.config import settings
 from app.models.ai import AiRun, AiRunStatus, AiToolCall, AiToolCallStatus
 from app.modules.ai.service import create_ai_run, issue_actor_grant
 from app.schemas.ai import AiSidecarCompletedResponse
-from app.schemas.user import UserCreate
-from tests.utils.utils import random_email, random_lower_string
+from tests.utils.user import create_legacy_superuser
 
 
 def test_inventory_ai_query_fails_closed_when_disabled(
@@ -124,14 +122,7 @@ def test_internal_balances_requires_credentials_then_uses_inventory_projection(
     signing_key = "test-grant-signing-key-at-least-32-bytes"
     monkeypatch.setattr(settings, "AI_INTERNAL_SERVICE_TOKEN", service_token)
     monkeypatch.setattr(settings, "AI_ACTOR_GRANT_SIGNING_KEY", signing_key)
-    actor = crud.create_user(
-        session=db,
-        user_create=UserCreate(
-            email=random_email(),
-            password=random_lower_string(),
-            is_superuser=True,
-        ),
-    )
+    actor = create_legacy_superuser(db)
     run = create_ai_run(
         session=db,
         actor_user_id=actor.id,
@@ -197,14 +188,7 @@ def test_internal_units_use_their_scoped_inventory_projection(
     signing_key = "test-grant-signing-key-at-least-32-bytes"
     monkeypatch.setattr(settings, "AI_INTERNAL_SERVICE_TOKEN", service_token)
     monkeypatch.setattr(settings, "AI_ACTOR_GRANT_SIGNING_KEY", signing_key)
-    actor = crud.create_user(
-        session=db,
-        user_create=UserCreate(
-            email=random_email(),
-            password=random_lower_string(),
-            is_superuser=True,
-        ),
-    )
+    actor = create_legacy_superuser(db)
     run = create_ai_run(
         session=db,
         actor_user_id=actor.id,
@@ -241,14 +225,7 @@ def test_internal_documents_use_read_only_inventory_projection(
     signing_key = "test-grant-signing-key-at-least-32-bytes"
     monkeypatch.setattr(settings, "AI_INTERNAL_SERVICE_TOKEN", service_token)
     monkeypatch.setattr(settings, "AI_ACTOR_GRANT_SIGNING_KEY", signing_key)
-    actor = crud.create_user(
-        session=db,
-        user_create=UserCreate(
-            email=random_email(),
-            password=random_lower_string(),
-            is_superuser=True,
-        ),
-    )
+    actor = create_legacy_superuser(db)
     run = create_ai_run(
         session=db,
         actor_user_id=actor.id,
@@ -285,12 +262,7 @@ def test_internal_ledger_uses_a_scoped_exact_inventory_key(
     signing_key = "test-grant-signing-key-at-least-32-bytes"
     monkeypatch.setattr(settings, "AI_INTERNAL_SERVICE_TOKEN", service_token)
     monkeypatch.setattr(settings, "AI_ACTOR_GRANT_SIGNING_KEY", signing_key)
-    actor = crud.create_user(
-        session=db,
-        user_create=UserCreate(
-            email=random_email(), password=random_lower_string(), is_superuser=True
-        ),
-    )
+    actor = create_legacy_superuser(db)
     run = create_ai_run(
         session=db,
         actor_user_id=actor.id,

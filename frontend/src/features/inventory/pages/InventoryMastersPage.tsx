@@ -21,7 +21,7 @@ import type { ColumnsType, TableProps } from "antd/es/table"
 import { Pencil, Plus } from "lucide-react"
 import { useState } from "react"
 
-import { InventoryService, type MasterUnitPublic } from "@/client"
+import { IamService, InventoryService, type MasterUnitPublic } from "@/client"
 import {
   readProcessingUnitsPage,
   readReceivingUnitsPage,
@@ -40,6 +40,13 @@ const unitConfig: Record<UnitKind, { label: string; queryKey: string }> = {
 }
 
 export function InventoryMastersPage() {
+  const permissionsQuery = useQuery({
+    queryKey: ["iam", "permissions"],
+    queryFn: IamService.readMyPermissions,
+  })
+  const canManage =
+    permissionsQuery.data?.permissions.includes("inventory.masters.manage") ??
+    false
   const [activeKind, setActiveKind] = useState<UnitKind>("processing")
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
@@ -122,6 +129,7 @@ export function InventoryMastersPage() {
       dataIndex: "is_active",
       render: (isActive: boolean, unit) => (
         <Switch
+          disabled={!canManage}
           checked={isActive}
           checkedChildren="启用"
           loading={activeMutation.isPending}
@@ -135,20 +143,21 @@ export function InventoryMastersPage() {
       width: 120,
     },
     {
-      render: (_, unit) => (
-        <Tooltip title="编辑名称">
-          <Button
-            aria-label="编辑名称"
-            icon={<Pencil size={16} />}
-            onClick={() => {
-              setEditingUnit(unit)
-              form.setFieldsValue({ name: unit.name })
-              setModalOpen(true)
-            }}
-            type="text"
-          />
-        </Tooltip>
-      ),
+      render: (_, unit) =>
+        canManage ? (
+          <Tooltip title="编辑名称">
+            <Button
+              aria-label="编辑名称"
+              icon={<Pencil size={16} />}
+              onClick={() => {
+                setEditingUnit(unit)
+                form.setFieldsValue({ name: unit.name })
+                setModalOpen(true)
+              }}
+              type="text"
+            />
+          </Tooltip>
+        ) : null,
       title: "操作",
       width: 80,
     },
@@ -176,9 +185,11 @@ export function InventoryMastersPage() {
             停用后不能用于新单据，历史记录保持可追溯。
           </p>
         </div>
-        <Button icon={<Plus size={16} />} onClick={openCreate} type="primary">
-          新建{unitConfig[activeKind].label}
-        </Button>
+        {canManage ? (
+          <Button icon={<Plus size={16} />} onClick={openCreate} type="primary">
+            新建{unitConfig[activeKind].label}
+          </Button>
+        ) : null}
       </div>
       <Tabs
         activeKey={activeKind}
@@ -244,39 +255,41 @@ export function InventoryMastersPage() {
         }}
         rowKey="id"
       />
-      <Modal
-        destroyOnHidden
-        footer={null}
-        onCancel={() => setModalOpen(false)}
-        open={modalOpen}
-        title={`${editingUnit ? "编辑" : "新建"}${unitConfig[activeKind].label}`}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={(values) => saveMutation.mutate(values)}
+      {canManage ? (
+        <Modal
+          destroyOnHidden
+          footer={null}
+          onCancel={() => setModalOpen(false)}
+          open={modalOpen}
+          title={`${editingUnit ? "编辑" : "新建"}${unitConfig[activeKind].label}`}
         >
-          <Form.Item
-            label="名称"
-            name="name"
-            rules={[{ required: true, whitespace: true }]}
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={(values) => saveMutation.mutate(values)}
           >
-            <Input autoFocus maxLength={255} />
-          </Form.Item>
-          <div className="flex justify-end">
-            <Space>
-              <Button onClick={() => setModalOpen(false)}>取消</Button>
-              <Button
-                htmlType="submit"
-                loading={saveMutation.isPending}
-                type="primary"
-              >
-                保存
-              </Button>
-            </Space>
-          </div>
-        </Form>
-      </Modal>
+            <Form.Item
+              label="名称"
+              name="name"
+              rules={[{ required: true, whitespace: true }]}
+            >
+              <Input autoFocus maxLength={255} />
+            </Form.Item>
+            <div className="flex justify-end">
+              <Space>
+                <Button onClick={() => setModalOpen(false)}>取消</Button>
+                <Button
+                  htmlType="submit"
+                  loading={saveMutation.isPending}
+                  type="primary"
+                >
+                  保存
+                </Button>
+              </Space>
+            </div>
+          </Form>
+        </Modal>
+      ) : null}
     </div>
   )
 }

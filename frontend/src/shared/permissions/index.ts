@@ -1,7 +1,26 @@
-import type { UserPublic } from "@/client"
+export type PermissionCode =
+  | "system.users.read"
+  | "system.users.manage"
+  | "iam.roles.read"
+  | "iam.roles.manage"
+  | "inventory.masters.read"
+  | "inventory.masters.manage"
+  | "inventory.documents.read"
+  | "inventory.documents.manage"
+  | "inventory.balances.read"
+  | "inventory.ledger.read"
 
-type PermissionUser = Pick<UserPublic, "is_superuser"> | null | undefined
+export function hasPermission(
+  permissions: readonly string[] | undefined,
+  permission: PermissionCode,
+): boolean {
+  return Boolean(permissions?.includes(permission))
+}
 
-export function canAccessAdmin(user: PermissionUser): boolean {
-  return Boolean(user?.is_superuser)
+export function isSafeInternalPath(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.startsWith("/") &&
+    !value.startsWith("//")
+  )
 }

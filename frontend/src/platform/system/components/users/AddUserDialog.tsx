@@ -1,11 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Select } from "antd"
 import { Plus } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { type UserCreate, UsersService } from "@/client"
+import { IamService, type UserCreate, UsersService } from "@/client"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -42,7 +43,7 @@ const formSchema = z
     confirm_password: z
       .string()
       .min(1, { message: "Please confirm your password" }),
-    is_superuser: z.boolean(),
+    role_ids: z.array(z.number()),
     is_active: z.boolean(),
   })
   .refine((data) => data.password === data.confirm_password, {
@@ -66,14 +67,18 @@ export default function AddUserDialog() {
       full_name: "",
       password: "",
       confirm_password: "",
-      is_superuser: false,
-      is_active: false,
+      role_ids: [],
+      is_active: true,
     },
+  })
+  const rolesQuery = useQuery({
+    queryKey: ["iam", "roles"],
+    queryFn: IamService.readRoles,
   })
 
   const mutation = useMutation({
-    mutationFn: (data: UserCreate) =>
-      UsersService.createUser({ requestBody: data }),
+    mutationFn: ({ confirm_password: _, ...userData }: FormData) =>
+      UsersService.createUser({ requestBody: userData satisfies UserCreate }),
     onSuccess: () => {
       showSuccessToast("User created successfully")
       form.reset()
@@ -187,16 +192,29 @@ export default function AddUserDialog() {
 
               <FormField
                 control={form.control}
-                name="is_superuser"
+                name="role_ids"
                 render={({ field }) => (
-                  <FormItem className="flex items-center gap-3 space-y-0">
+                  <FormItem>
+                    <FormLabel>Roles</FormLabel>
                     <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
+                      <Select
+                        getPopupContainer={(trigger) =>
+                          trigger.parentElement ?? document.body
+                        }
+                        loading={rolesQuery.isLoading}
+                        mode="multiple"
+                        onChange={field.onChange}
+                        options={(rolesQuery.data?.data ?? [])
+                          .filter((role) => role.is_active)
+                          .map((role) => ({
+                            label: role.name,
+                            value: role.id,
+                          }))}
+                        placeholder="No RBAC roles"
+                        value={field.value}
                       />
                     </FormControl>
-                    <FormLabel className="font-normal">Is superuser?</FormLabel>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

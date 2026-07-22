@@ -5,33 +5,61 @@ import {
   Home,
   PackageSearch,
   Settings2,
+  ShieldCheck,
   Truck,
   Users,
 } from "lucide-react"
 import type { AppNavigationItem } from "@/app/navigation/types"
-import type { UserPublic } from "@/client"
-import { canAccessAdmin } from "@/shared/permissions"
+import { hasPermission } from "@/shared/permissions"
 
 export const baseMenuItems: AppNavigationItem[] = [
   { icon: Home, title: "Dashboard", path: "/" },
   { icon: FileText, title: "Rules", path: "/rules" },
   { icon: Briefcase, title: "Items", path: "/items" },
-  { icon: Settings2, title: "主数据", path: "/inventory/masters" },
-  { icon: PackageSearch, title: "坯布台账", path: "/inventory/raw" },
-  { icon: Truck, title: "成品出货", path: "/inventory/shipments" },
-  { icon: ClipboardList, title: "库存余额", path: "/inventory/balances" },
+  {
+    icon: Settings2,
+    title: "主数据",
+    path: "/inventory/masters",
+    permission: "inventory.masters.read",
+  },
+  {
+    icon: PackageSearch,
+    title: "坯布台账",
+    path: "/inventory/raw",
+    permission: "inventory.documents.read",
+  },
+  {
+    icon: Truck,
+    title: "成品出货",
+    path: "/inventory/shipments",
+    permission: "inventory.documents.read",
+  },
+  {
+    icon: ClipboardList,
+    title: "库存余额",
+    path: "/inventory/balances",
+    permission: "inventory.balances.read",
+  },
 ]
 
 export const adminMenuItem: AppNavigationItem = {
   icon: Users,
-  title: "Admin",
+  title: "用户管理",
   path: "/admin",
+  permission: "system.users.read",
+}
+
+export const rolesMenuItem: AppNavigationItem = {
+  icon: ShieldCheck,
+  title: "角色管理",
+  path: "/admin/roles",
+  permission: "iam.roles.read",
 }
 
 export function getMenuItemsForUser(
-  user?: UserPublic | null,
+  permissions?: readonly string[],
 ): AppNavigationItem[] {
-  return canAccessAdmin(user)
-    ? [...baseMenuItems, adminMenuItem]
-    : baseMenuItems
+  return [...baseMenuItems, adminMenuItem, rolesMenuItem].filter(
+    (item) => !item.permission || hasPermission(permissions, item.permission),
+  )
 }

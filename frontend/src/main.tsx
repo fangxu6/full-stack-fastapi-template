@@ -20,7 +20,15 @@ OpenAPI.TOKEN = async () => {
 }
 
 const handleApiError = (error: Error) => {
-  if (error instanceof ApiError && [401, 403].includes(error.status)) {
+  const isInvalidSession =
+    error instanceof ApiError &&
+    (error.status === 401 ||
+      (error.status === 403 &&
+        error.body &&
+        typeof error.body === "object" &&
+        "detail" in error.body &&
+        error.body.detail === "Could not validate credentials"))
+  if (isInvalidSession) {
     localStorage.removeItem("access_token")
     window.location.href = "/login"
   }

@@ -3,6 +3,7 @@ from sqlmodel import Session, create_engine, select
 from app import crud
 from app.core.config import settings
 from app.models import User
+from app.modules.iam import service as iam_service
 from app.schemas.user import UserCreate
 
 engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
@@ -29,6 +30,14 @@ def init_db(session: Session) -> None:
         user_in = UserCreate(
             email=settings.FIRST_SUPERUSER,
             password=settings.FIRST_SUPERUSER_PASSWORD,
-            is_superuser=True,
         )
-        user = crud.create_user(session=session, user_create=user_in)
+        user = crud.create_user(session=session, user_create=user_in, commit=False)
+        user.is_superuser = True
+        session.add(user)
+        session.flush()
+    try:
+        iam_service.ensure_bootstrap_state(session=session, first_superuser=user)
+    except Exception:
+        session.rollback()
+        iam_service.log_startup_invariant_failure()
+        raise

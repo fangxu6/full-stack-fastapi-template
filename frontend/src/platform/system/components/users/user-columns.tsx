@@ -39,12 +39,23 @@ export const userColumns: ColumnDef<UserTableData>[] = [
     ),
   },
   {
-    accessorKey: "is_superuser",
-    header: "Role",
+    accessorKey: "roles",
+    header: "Roles",
     cell: ({ row }) => (
-      <Badge variant={row.original.is_superuser ? "default" : "secondary"}>
-        {row.original.is_superuser ? "Superuser" : "User"}
-      </Badge>
+      <div className="flex flex-wrap gap-1">
+        {(row.original.roles ?? []).length > 0 ? (
+          row.original.roles?.map((role) => (
+            <Badge
+              key={role.id}
+              variant={role.is_active ? "default" : "secondary"}
+            >
+              {role.name}
+            </Badge>
+          ))
+        ) : (
+          <span className="text-muted-foreground">No role</span>
+        )}
+      </div>
     ),
   },
   {

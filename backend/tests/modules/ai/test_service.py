@@ -6,7 +6,6 @@ import httpx
 import pytest
 from sqlmodel import Session
 
-from app import crud
 from app.core.config import settings
 from app.core.exceptions import PermissionDeniedError
 from app.models.ai import AiRunStatus, AiToolCallStatus
@@ -22,19 +21,11 @@ from app.modules.ai.service import (
     validate_actor_grant,
     validate_internal_service_token,
 )
-from app.schemas.user import UserCreate
-from tests.utils.utils import random_email, random_lower_string
+from tests.utils.user import create_legacy_superuser
 
 
 def test_reserving_a_tool_call_creates_auditable_run_bound_slot(db: Session) -> None:
-    actor = crud.create_user(
-        session=db,
-        user_create=UserCreate(
-            email=random_email(),
-            password=random_lower_string(),
-            is_superuser=True,
-        ),
-    )
+    actor = create_legacy_superuser(db)
     question = "What is the finished inventory balance?"
     run = create_ai_run(
         session=db,
@@ -67,14 +58,7 @@ def test_reserving_a_tool_call_creates_auditable_run_bound_slot(db: Session) -> 
 
 
 def test_actor_grant_is_bound_to_its_run_actor_and_scope(db: Session) -> None:
-    actor = crud.create_user(
-        session=db,
-        user_create=UserCreate(
-            email=random_email(),
-            password=random_lower_string(),
-            is_superuser=True,
-        ),
-    )
+    actor = create_legacy_superuser(db)
     run = create_ai_run(
         session=db,
         actor_user_id=actor.id,
@@ -133,6 +117,7 @@ def test_inventory_sidecar_call_uses_the_ninety_second_timeout(
         captured_timeout = cast(float, kwargs["timeout"])
         return httpx.Response(
             200,
+            request=httpx.Request("POST", "http://sidecar:3000"),
             json={
                 "status": "completed",
                 "answer": "当前无成品库存余额。",
@@ -168,12 +153,7 @@ def test_inventory_sidecar_call_uses_the_ninety_second_timeout(
 
 
 def test_completing_a_tool_call_records_only_its_source_summary(db: Session) -> None:
-    actor = crud.create_user(
-        session=db,
-        user_create=UserCreate(
-            email=random_email(), password=random_lower_string(), is_superuser=True
-        ),
-    )
+    actor = create_legacy_superuser(db)
     run = create_ai_run(
         session=db,
         actor_user_id=actor.id,
@@ -202,12 +182,7 @@ def test_completing_a_tool_call_records_only_its_source_summary(db: Session) -> 
 
 
 def test_failing_a_run_records_only_its_error_category(db: Session) -> None:
-    actor = crud.create_user(
-        session=db,
-        user_create=UserCreate(
-            email=random_email(), password=random_lower_string(), is_superuser=True
-        ),
-    )
+    actor = create_legacy_superuser(db)
     run = create_ai_run(
         session=db,
         actor_user_id=actor.id,
@@ -230,14 +205,7 @@ def test_failing_a_run_records_only_its_error_category(db: Session) -> None:
 def test_internal_tool_authorization_validates_credentials_before_reserving_slot(
     db: Session,
 ) -> None:
-    actor = crud.create_user(
-        session=db,
-        user_create=UserCreate(
-            email=random_email(),
-            password=random_lower_string(),
-            is_superuser=True,
-        ),
-    )
+    actor = create_legacy_superuser(db)
     run = create_ai_run(
         session=db,
         actor_user_id=actor.id,

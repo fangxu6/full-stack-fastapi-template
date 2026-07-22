@@ -1,1 +1,1 @@
-"""IAM module skeleton."""
+"""Identity and access management module."""
