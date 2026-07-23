@@ -310,3 +310,36 @@ Delivered database-backed multi-role RBAC for user administration and inventory,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: Implement structured observability
+
+**Date**: 2026-07-23
+**Task**: Implement structured observability
+**Branch**: `master`
+
+### Summary
+
+Added structlog NDJSON events, request correlation, safe dependency/startup telemetry, Sentry scrubbing, and backend observability tests.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e369923` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
