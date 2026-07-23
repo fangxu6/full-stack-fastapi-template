@@ -276,3 +276,37 @@ Delivered database-backed multi-role RBAC for user administration and inventory,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: 清理存量厚路由并统一路由结构
+
+**Date**: 2026-07-23
+**Task**: 清理存量厚路由并统一路由结构
+**Branch**: `master`
+
+### Summary
+
+将 rules 与 reset-password 的搜索状态读取迁移至所属平台页面，路由仅保留配置；新增全量路由 AST 库存回归，所有当前路由通过。类型、Biome、质量钩子和 AST 测试通过。用户明确暂时延后 API/MailCatcher 支持的重置密码 E2E。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ded9537` | (see git log) |
+| `b44644e` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
