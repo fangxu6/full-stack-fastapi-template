@@ -63,6 +63,45 @@ def test_deactivated_role_stops_contributing_permissions(db: Session) -> None:
     assert service.get_effective_permissions(session=db, user_id=user.id).permissions == []
 
 
+def test_replace_user_roles_retains_existing_inactive_role(db: Session) -> None:
+    user = _create_user(db)
+    role = service.create_role(
+        session=db,
+        role_in=RoleCreate(
+            code="retained_inactive_role",
+            name="Retained inactive role",
+        ),
+    )
+    service.replace_user_roles(session=db, user_id=user.id, role_ids=[role.id])
+    service.update_role(
+        session=db, role_id=role.id, role_in=RoleUpdate(is_active=False)
+    )
+
+    roles = service.replace_user_roles(session=db, user_id=user.id, role_ids=[role.id])
+
+    assert [assigned_role.id for assigned_role in roles] == [role.id]
+    assert role.id in repository.get_user_role_ids(session=db, user_id=user.id)
+
+
+def test_replace_user_roles_rejects_new_inactive_role(db: Session) -> None:
+    user = _create_user(db)
+    role = service.create_role(
+        session=db,
+        role_in=RoleCreate(
+            code="new_inactive_role",
+            name="New inactive role",
+        ),
+    )
+    service.update_role(
+        session=db, role_id=role.id, role_in=RoleUpdate(is_active=False)
+    )
+
+    with pytest.raises(ConflictError, match="Inactive roles cannot be assigned"):
+        service.replace_user_roles(session=db, user_id=user.id, role_ids=[role.id])
+
+    assert repository.get_user_role_ids(session=db, user_id=user.id) == set()
+
+
 def test_cannot_remove_last_active_platform_administrator(db: Session) -> None:
     first_superuser = crud.get_user_by_email(
         session=db, email=settings.FIRST_SUPERUSER

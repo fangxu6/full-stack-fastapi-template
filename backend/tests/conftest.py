@@ -1,6 +1,9 @@
 from collections.abc import Generator
+from pathlib import Path
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from fastapi.testclient import TestClient
 from sqlmodel import Session, delete
 
@@ -29,6 +32,7 @@ from tests.utils.utils import get_superuser_token_headers
 
 SAFE_TEST_DATABASE_SUFFIXES = ("_test", "_pytest")
 UNSAFE_DATABASE_NAMES = {"", "aiadmin", "postgres", "template0", "template1"}
+ALEMBIC_CONFIG_PATH = Path(__file__).resolve().parents[1] / "alembic.ini"
 
 
 def is_safe_test_database(database_name: str) -> bool:
@@ -49,9 +53,18 @@ def assert_safe_test_database(database_name: str) -> None:
     )
 
 
+def upgrade_test_database() -> None:
+    alembic_config = Config(str(ALEMBIC_CONFIG_PATH))
+    alembic_config.set_main_option(
+        "script_location", str(ALEMBIC_CONFIG_PATH.parent / "app" / "alembic")
+    )
+    command.upgrade(alembic_config, "head")
+
+
 @pytest.fixture(scope="session", autouse=True)
 def db() -> Generator[Session]:
     assert_safe_test_database(settings.POSTGRES_DB)
+    upgrade_test_database()
     with Session(engine) as session:
         init_db(session)
         yield session

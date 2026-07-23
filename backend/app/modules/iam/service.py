@@ -52,13 +52,17 @@ def role_public(*, session: Session, role: IamRole) -> RolePublic:
     return RolePublic(
         **role_summary(role).model_dump(),
         description=role.description,
-        permission_codes=repository.get_role_permission_codes(session=session, role_id=role.id),
+        permission_codes=repository.get_role_permission_codes(
+            session=session, role_id=role.id
+        ),
         created_at=role.created_at,
         updated_at=role.updated_at,
     )
 
 
-def get_user_role_summaries(*, session: Session, user_id: uuid.UUID) -> list[RoleSummary]:
+def get_user_role_summaries(
+    *, session: Session, user_id: uuid.UUID
+) -> list[RoleSummary]:
     return [
         role_summary(role)
         for role in repository.get_user_roles(
@@ -94,7 +98,9 @@ def list_permissions(*, session: Session) -> PermissionsPublic:
         session.exec(select(IamPermission).order_by(col(IamPermission.code))).all()
     )
     return PermissionsPublic(
-        data=[PermissionPublic.model_validate(permission) for permission in permissions],
+        data=[
+            PermissionPublic.model_validate(permission) for permission in permissions
+        ],
         count=len(permissions),
     )
 
@@ -106,7 +112,8 @@ def list_roles(*, session: Session) -> RolesPublic:
         ).all()
     )
     return RolesPublic(
-        data=[role_public(session=session, role=role) for role in roles], count=len(roles)
+        data=[role_public(session=session, role=role) for role in roles],
+        count=len(roles),
     )
 
 
@@ -119,7 +126,9 @@ def _validate_custom_permission_codes(
     *, session: Session, permission_codes: list[str]
 ) -> list[IamPermission]:
     selected_codes = set(permission_codes)
-    permissions = repository.get_permissions_by_codes(session=session, codes=selected_codes)
+    permissions = repository.get_permissions_by_codes(
+        session=session, codes=selected_codes
+    )
     found_codes = {permission.code for permission in permissions}
     unknown_codes = selected_codes - found_codes
     if unknown_codes:
@@ -252,6 +261,9 @@ def replace_user_roles(
         if user is None:
             raise NotFoundError("User does not exist")
         selected_role_ids = set(role_ids)
+        existing_role_ids = repository.get_user_role_ids(
+            session=session, user_id=user_id
+        )
         roles = [
             role
             for role_id in selected_role_ids
@@ -260,7 +272,9 @@ def replace_user_roles(
         ]
         if len(roles) != len(selected_role_ids):
             raise NotFoundError("One or more roles do not exist")
-        if any(not role.is_active for role in roles):
+        if any(
+            not role.is_active and role.id not in existing_role_ids for role in roles
+        ):
             raise ConflictError("Inactive roles cannot be assigned")
 
         platform_role = _lock_platform_administrator(session)
@@ -289,7 +303,12 @@ def ensure_user_deactivation_is_safe(*, session: Session, user: User) -> None:
         session=session, user_id=user.id
     ):
         return
-    if repository.count_active_role_assignments(session=session, role_id=platform_role.id) <= 1:
+    if (
+        repository.count_active_role_assignments(
+            session=session, role_id=platform_role.id
+        )
+        <= 1
+    ):
         raise ConflictError("At least one active Platform Administrator is required")
 
 
@@ -355,7 +374,9 @@ def ensure_bootstrap_state(*, session: Session, first_superuser: User) -> None:
     platform_role = _lock_platform_administrator(session)
     if platform_role.id is None:
         raise RuntimeError("Platform Administrator role did not receive an identifier")
-    assigned_ids = repository.get_user_role_ids(session=session, user_id=first_superuser.id)
+    assigned_ids = repository.get_user_role_ids(
+        session=session, user_id=first_superuser.id
+    )
     if platform_role.id not in assigned_ids:
         session.add(IamUserRole(user_id=first_superuser.id, role_id=platform_role.id))
     session.flush()

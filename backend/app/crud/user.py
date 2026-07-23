@@ -11,11 +11,11 @@ from app.schemas.user import UserCreate, UserUpdate
 DUMMY_HASH = "$argon2id$v=19$m=65536,t=3,p=4$MjQyZWE1MzBjYjJlZTI0Yw$YTU4NGM5ZTZmYjE2NzZlZjY0ZWY3ZGRkY2U2OWFjNjk"
 
 
-def create_user(*, session: Session, user_create: UserCreate, commit: bool = True) -> User:
+def create_user(
+    *, session: Session, user_create: UserCreate, commit: bool = True
+) -> User:
     user_data = user_create.model_dump(exclude={"password", "role_ids"})
-    db_obj = User(
-        **user_data, hashed_password=get_password_hash(user_create.password)
-    )
+    db_obj = User(**user_data, hashed_password=get_password_hash(user_create.password))
     session.add(db_obj)
     if commit:
         session.commit()

@@ -1,6 +1,6 @@
 import { redirect } from "@tanstack/react-router"
 
-import { ApiError, IamService } from "@/client"
+import { IamService } from "@/client"
 import { isLoggedIn } from "@/hooks/useAuth"
 import {
   hasPermission,
@@ -16,26 +16,66 @@ export async function requireLogin() {
   }
 }
 
+type PermissionQueryErrorOutcome = "configuration" | "login" | "retry"
+type MyPermissions = Awaited<ReturnType<typeof IamService.readMyPermissions>>
+
+function getErrorStatus(error: unknown): number | undefined {
+  if (typeof error !== "object" || error === null || !("status" in error)) {
+    return undefined
+  }
+  return typeof error.status === "number" ? error.status : undefined
+}
+
+export function classifyPermissionQueryError(
+  error: unknown,
+): PermissionQueryErrorOutcome {
+  const status = getErrorStatus(error)
+  if (status === 401) return "login"
+  if (status === 403) return "configuration"
+  return "retry"
+}
+
 export function requirePermission(permission: PermissionCode) {
   return async ({
     location,
   }: {
     location: { pathname: string; searchStr: string }
   }) => {
+    const returnTo = `${location.pathname}${location.searchStr}`
+    let result: MyPermissions
     try {
-      const result = await IamService.readMyPermissions()
-      if (!hasPermission(result.permissions, permission)) {
-        const returnTo = `${location.pathname}${location.searchStr}`
-        throw redirect({
-          to: "/forbidden",
-          search: { returnTo: isSafeInternalPath(returnTo) ? returnTo : "/" },
-        })
-      }
+      result = await IamService.readMyPermissions()
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
+      const outcome = classifyPermissionQueryError(error)
+      if (outcome === "login") {
+        localStorage.removeItem("access_token")
         throw redirect({ to: "/login" })
       }
-      throw error
+      if (outcome === "configuration") {
+        throw redirect({
+          to: "/forbidden",
+          search: {
+            reason: "configuration",
+            returnTo: isSafeInternalPath(returnTo) ? returnTo : "/",
+          },
+        })
+      }
+      throw redirect({
+        to: "/forbidden",
+        search: {
+          reason: "retry",
+          returnTo: isSafeInternalPath(returnTo) ? returnTo : "/",
+        },
+      })
+    }
+    if (!hasPermission(result.permissions, permission)) {
+      throw redirect({
+        to: "/forbidden",
+        search: {
+          reason: undefined,
+          returnTo: isSafeInternalPath(returnTo) ? returnTo : "/",
+        },
+      })
     }
   }
 }

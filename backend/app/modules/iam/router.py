@@ -95,6 +95,8 @@ def delete_role(session: SessionDep, role_id: int) -> Message:
 def replace_user_roles(
     session: SessionDep, user_id: uuid.UUID, body: UserRolesReplace
 ) -> UserRolesPublic:
-    return UserRolesPublic(data=service.replace_user_roles(
-        session=session, user_id=user_id, role_ids=body.role_ids
-    ))
+    return UserRolesPublic(
+        data=service.replace_user_roles(
+            session=session, user_id=user_id, role_ids=body.role_ids
+        )
+    )

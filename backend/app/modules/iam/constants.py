@@ -7,15 +7,60 @@ INVENTORY_VIEWER = "inventory_viewer"
 
 PERMISSIONS: tuple[tuple[str, str, str, str], ...] = (
     ("system.users.read", "System", "View users", "View user accounts and roles."),
-    ("system.users.manage", "System", "Manage users", "Create, update, and delete user accounts."),
-    ("iam.roles.read", "Access control", "View roles", "View roles and the permission catalog."),
-    ("iam.roles.manage", "Access control", "Manage roles", "Create and maintain custom roles."),
-    ("inventory.masters.read", "Inventory", "View master data", "View processing and receiving units."),
-    ("inventory.masters.manage", "Inventory", "Manage master data", "Create and update processing and receiving units."),
-    ("inventory.documents.read", "Inventory", "View documents", "View inventory documents."),
-    ("inventory.documents.manage", "Inventory", "Manage documents", "Create, update, delete, and restore inventory documents."),
-    ("inventory.balances.read", "Inventory", "View balances", "View current inventory balances."),
-    ("inventory.ledger.read", "Inventory", "View ledger", "View inventory ledger entries."),
+    (
+        "system.users.manage",
+        "System",
+        "Manage users",
+        "Create, update, and delete user accounts.",
+    ),
+    (
+        "iam.roles.read",
+        "Access control",
+        "View roles",
+        "View roles and the permission catalog.",
+    ),
+    (
+        "iam.roles.manage",
+        "Access control",
+        "Manage roles",
+        "Create and maintain custom roles.",
+    ),
+    (
+        "inventory.masters.read",
+        "Inventory",
+        "View master data",
+        "View processing and receiving units.",
+    ),
+    (
+        "inventory.masters.manage",
+        "Inventory",
+        "Manage master data",
+        "Create and update processing and receiving units.",
+    ),
+    (
+        "inventory.documents.read",
+        "Inventory",
+        "View documents",
+        "View inventory documents.",
+    ),
+    (
+        "inventory.documents.manage",
+        "Inventory",
+        "Manage documents",
+        "Create, update, delete, and restore inventory documents.",
+    ),
+    (
+        "inventory.balances.read",
+        "Inventory",
+        "View balances",
+        "View current inventory balances.",
+    ),
+    (
+        "inventory.ledger.read",
+        "Inventory",
+        "View ledger",
+        "View inventory ledger entries.",
+    ),
 )
 
 PERMISSION_CODES = frozenset(permission[0] for permission in PERMISSIONS)

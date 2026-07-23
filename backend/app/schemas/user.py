@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime
 
-from pydantic import ConfigDict, EmailStr
+from pydantic import EmailStr
 from sqlmodel import Field, SQLModel
+from sqlmodel._compat import SQLModelConfig
 
 from app.schemas.iam import RoleSummary
 
@@ -16,14 +17,14 @@ class UserBase(SQLModel):
 
 # Properties to receive via API on creation
 class UserCreate(UserBase):
-    model_config = ConfigDict(extra="forbid")  # ty:ignore[invalid-assignment]
+    model_config = SQLModelConfig(extra="forbid")
 
     password: str = Field(min_length=8, max_length=128)
     role_ids: list[int] = Field(default_factory=list)
 
 
 class UserRegister(SQLModel):
-    model_config = ConfigDict(extra="forbid")  # ty:ignore[invalid-assignment]
+    model_config = SQLModelConfig(extra="forbid")
 
     email: EmailStr = Field(max_length=255)
     password: str = Field(min_length=8, max_length=128)
@@ -32,7 +33,7 @@ class UserRegister(SQLModel):
 
 # Properties to receive via API on update, all are optional
 class UserUpdate(UserBase):
-    model_config = ConfigDict(extra="forbid")  # ty:ignore[invalid-assignment]
+    model_config = SQLModelConfig(extra="forbid")
     email: EmailStr | None = Field(default=None, max_length=255)  # type: ignore[assignment]
     password: str | None = Field(default=None, min_length=8, max_length=128)
 

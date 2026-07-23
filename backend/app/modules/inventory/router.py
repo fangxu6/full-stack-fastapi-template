@@ -24,7 +24,11 @@ from app.schemas.inventory import (
 router = APIRouter(prefix="/inventory", tags=["inventory"])
 
 
-@router.get("/processing-units", dependencies=[Depends(permission_required("inventory.masters.read"))], response_model=MasterUnitsPublic)
+@router.get(
+    "/processing-units",
+    dependencies=[Depends(permission_required("inventory.masters.read"))],
+    response_model=MasterUnitsPublic,
+)
 def read_processing_units(
     session: SessionDep,
     current_user: CurrentUser,
@@ -43,7 +47,11 @@ def read_processing_units(
     )
 
 
-@router.post("/processing-units", dependencies=[Depends(permission_required("inventory.masters.manage"))], response_model=MasterUnitPublic)
+@router.post(
+    "/processing-units",
+    dependencies=[Depends(permission_required("inventory.masters.manage"))],
+    response_model=MasterUnitPublic,
+)
 def create_processing_unit(
     *, session: SessionDep, current_user: CurrentUser, unit_in: MasterUnitCreate
 ) -> Any:
@@ -52,7 +60,11 @@ def create_processing_unit(
     )
 
 
-@router.put("/processing-units/{unit_id}", dependencies=[Depends(permission_required("inventory.masters.manage"))], response_model=MasterUnitPublic)
+@router.put(
+    "/processing-units/{unit_id}",
+    dependencies=[Depends(permission_required("inventory.masters.manage"))],
+    response_model=MasterUnitPublic,
+)
 def update_processing_unit(
     *,
     session: SessionDep,
@@ -68,7 +80,11 @@ def update_processing_unit(
     )
 
 
-@router.get("/receiving-units", dependencies=[Depends(permission_required("inventory.masters.read"))], response_model=MasterUnitsPublic)
+@router.get(
+    "/receiving-units",
+    dependencies=[Depends(permission_required("inventory.masters.read"))],
+    response_model=MasterUnitsPublic,
+)
 def read_receiving_units(
     session: SessionDep,
     current_user: CurrentUser,
@@ -87,7 +103,11 @@ def read_receiving_units(
     )
 
 
-@router.post("/receiving-units", dependencies=[Depends(permission_required("inventory.masters.manage"))], response_model=MasterUnitPublic)
+@router.post(
+    "/receiving-units",
+    dependencies=[Depends(permission_required("inventory.masters.manage"))],
+    response_model=MasterUnitPublic,
+)
 def create_receiving_unit(
     *, session: SessionDep, current_user: CurrentUser, unit_in: MasterUnitCreate
 ) -> Any:
@@ -96,7 +116,11 @@ def create_receiving_unit(
     )
 
 
-@router.put("/receiving-units/{unit_id}", dependencies=[Depends(permission_required("inventory.masters.manage"))], response_model=MasterUnitPublic)
+@router.put(
+    "/receiving-units/{unit_id}",
+    dependencies=[Depends(permission_required("inventory.masters.manage"))],
+    response_model=MasterUnitPublic,
+)
 def update_receiving_unit(
     *,
     session: SessionDep,
@@ -112,7 +136,11 @@ def update_receiving_unit(
     )
 
 
-@router.post("/documents", dependencies=[Depends(permission_required("inventory.documents.manage"))], response_model=InventoryDocumentPublic)
+@router.post(
+    "/documents",
+    dependencies=[Depends(permission_required("inventory.documents.manage"))],
+    response_model=InventoryDocumentPublic,
+)
 def create_inventory_document(
     *,
     session: SessionDep,
@@ -124,7 +152,11 @@ def create_inventory_document(
     )
 
 
-@router.get("/documents", dependencies=[Depends(permission_required("inventory.documents.read"))], response_model=InventoryDocumentsPublic)
+@router.get(
+    "/documents",
+    dependencies=[Depends(permission_required("inventory.documents.read"))],
+    response_model=InventoryDocumentsPublic,
+)
 def read_inventory_documents(
     session: SessionDep,
     current_user: CurrentUser,
@@ -153,7 +185,11 @@ def read_inventory_documents(
     )
 
 
-@router.get("/documents/{document_id}", dependencies=[Depends(permission_required("inventory.documents.read"))], response_model=InventoryDocumentPublic)
+@router.get(
+    "/documents/{document_id}",
+    dependencies=[Depends(permission_required("inventory.documents.read"))],
+    response_model=InventoryDocumentPublic,
+)
 def read_inventory_document(
     document_id: uuid.UUID, session: SessionDep, current_user: CurrentUser
 ) -> Any:
@@ -161,7 +197,11 @@ def read_inventory_document(
     return service.get_document(session=session, document_id=document_id)
 
 
-@router.put("/documents/{document_id}", dependencies=[Depends(permission_required("inventory.documents.manage"))], response_model=InventoryDocumentPublic)
+@router.put(
+    "/documents/{document_id}",
+    dependencies=[Depends(permission_required("inventory.documents.manage"))],
+    response_model=InventoryDocumentPublic,
+)
 def update_inventory_document(
     *,
     session: SessionDep,
@@ -177,7 +217,10 @@ def update_inventory_document(
     )
 
 
-@router.delete("/documents/{document_id}", dependencies=[Depends(permission_required("inventory.documents.manage"))])
+@router.delete(
+    "/documents/{document_id}",
+    dependencies=[Depends(permission_required("inventory.documents.manage"))],
+)
 def delete_inventory_document(
     document_id: uuid.UUID, session: SessionDep, current_user: CurrentUser
 ) -> dict[str, str]:
@@ -187,7 +230,10 @@ def delete_inventory_document(
     return {"message": "Inventory document deleted"}
 
 
-@router.post("/documents/{document_id}/restore", dependencies=[Depends(permission_required("inventory.documents.manage"))])
+@router.post(
+    "/documents/{document_id}/restore",
+    dependencies=[Depends(permission_required("inventory.documents.manage"))],
+)
 def restore_inventory_document(
     document_id: uuid.UUID, session: SessionDep, current_user: CurrentUser
 ) -> dict[str, str]:
@@ -197,7 +243,11 @@ def restore_inventory_document(
     return {"message": "Inventory document restored"}
 
 
-@router.get("/balances/raw", dependencies=[Depends(permission_required("inventory.balances.read"))], response_model=InventoryBalancesPublic)
+@router.get(
+    "/balances/raw",
+    dependencies=[Depends(permission_required("inventory.balances.read"))],
+    response_model=InventoryBalancesPublic,
+)
 def read_raw_balances(
     session: SessionDep,
     current_user: CurrentUser,
@@ -217,7 +267,11 @@ def read_raw_balances(
     )
 
 
-@router.get("/balances/finished", dependencies=[Depends(permission_required("inventory.balances.read"))], response_model=InventoryBalancesPublic)
+@router.get(
+    "/balances/finished",
+    dependencies=[Depends(permission_required("inventory.balances.read"))],
+    response_model=InventoryBalancesPublic,
+)
 def read_finished_balances(
     session: SessionDep,
     current_user: CurrentUser,
@@ -237,7 +291,11 @@ def read_finished_balances(
     )
 
 
-@router.get("/ledger", dependencies=[Depends(permission_required("inventory.ledger.read"))], response_model=InventoryLedgerEntriesPublic)
+@router.get(
+    "/ledger",
+    dependencies=[Depends(permission_required("inventory.ledger.read"))],
+    response_model=InventoryLedgerEntriesPublic,
+)
 def read_inventory_ledger(
     session: SessionDep,
     current_user: CurrentUser,
@@ -266,7 +324,11 @@ def read_inventory_ledger(
     )
 
 
-@router.get("/suggestions", dependencies=[Depends(permission_required("inventory.documents.read"))], response_model=InventorySuggestionsPublic)
+@router.get(
+    "/suggestions",
+    dependencies=[Depends(permission_required("inventory.documents.read"))],
+    response_model=InventorySuggestionsPublic,
+)
 def read_inventory_suggestions(
     session: SessionDep,
     current_user: CurrentUser,

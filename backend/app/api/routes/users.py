@@ -36,7 +36,9 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
 
 
 @router.post(
-    "/", dependencies=[Depends(permission_required("system.users.manage"))], response_model=UserPublic
+    "/",
+    dependencies=[Depends(permission_required("system.users.manage"))],
+    response_model=UserPublic,
 )
 def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
     """
@@ -84,9 +86,7 @@ def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
     """
     Delete own user.
     """
-    return services.user.delete_user(
-        session=session, user_id=current_user.id
-    )
+    return services.user.delete_user(session=session, user_id=current_user.id)
 
 
 @router.post("/signup", response_model=UserPublic)
@@ -137,13 +137,11 @@ def update_user(
     return services.user.user_public(session=session, user=user)
 
 
-@router.delete("/{user_id}", dependencies=[Depends(permission_required("system.users.manage"))])
-def delete_user(
-    session: SessionDep, user_id: uuid.UUID
-) -> Message:
+@router.delete(
+    "/{user_id}", dependencies=[Depends(permission_required("system.users.manage"))]
+)
+def delete_user(session: SessionDep, user_id: uuid.UUID) -> Message:
     """
     Delete a user.
     """
-    return services.user.delete_user(
-        session=session, user_id=user_id
-    )
+    return services.user.delete_user(session=session, user_id=user_id)

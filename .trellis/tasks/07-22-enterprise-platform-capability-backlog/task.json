@@ -19,7 +19,8 @@
   "pr_url": null,
   "subtasks": [],
   "children": [
-    "07-22-authorization-foundation"
+    "07-22-authorization-foundation",
+    "07-23-rbac-review-findings"
   ],
   "parent": null,
   "relatedFiles": [],
