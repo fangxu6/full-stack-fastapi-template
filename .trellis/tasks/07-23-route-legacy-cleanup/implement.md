@@ -17,6 +17,10 @@
   available on 8000 and no MailCatcher listener was available on 1025 or 1080.
   The end-to-end reset-password suite therefore cannot exercise its email-link
   flow in this session without provisioning those external test services.
+- On 2026-07-23, the user explicitly deferred provisioning those services and
+  running the reset-password E2E suite. This task may close with its structural
+  and static validation only; the deferred E2E remains a future test-stack
+  follow-up, not an acceptance failure for this cleanup.
 
 ## Rollback Points
 
