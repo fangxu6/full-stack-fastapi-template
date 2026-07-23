@@ -9,7 +9,7 @@ const searchSchema = z.object({
 })
 
 export const Route = createFileRoute("/reset-password")({
-  component: ResetPasswordRoute,
+  component: ResetPasswordPage,
   validateSearch: searchSchema,
   beforeLoad: async ({ search }) => {
     if (isLoggedIn()) {
@@ -27,8 +27,3 @@ export const Route = createFileRoute("/reset-password")({
     ],
   }),
 })
-
-function ResetPasswordRoute() {
-  const { token } = Route.useSearch()
-  return <ResetPasswordPage token={token} />
-}

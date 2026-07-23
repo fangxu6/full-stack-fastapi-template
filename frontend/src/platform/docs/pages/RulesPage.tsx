@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
+import { useNavigate, useSearch } from "@tanstack/react-router"
 import { Alert, Button, Card, Empty, List, Skeleton, Typography } from "antd"
 import { startTransition, useEffect } from "react"
 
@@ -121,7 +121,8 @@ function RulesSidebar({
   )
 }
 
-export function RulesPage({ slug }: { slug?: string }) {
+export function RulesPage() {
+  const { slug } = useSearch({ from: "/_layout/rules" })
   const navigate = useNavigate()
   const ruleDocumentsQuery = useQuery(getRuleDocumentsQueryOptions())
   const documents = ruleDocumentsQuery.data?.data ?? []

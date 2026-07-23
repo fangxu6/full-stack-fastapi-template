@@ -8,7 +8,7 @@ const searchSchema = z.object({
 })
 
 export const Route = createFileRoute("/_layout/rules")({
-  component: RulesRoute,
+  component: RulesPage,
   validateSearch: searchSchema,
   head: () => ({
     meta: [
@@ -18,8 +18,3 @@ export const Route = createFileRoute("/_layout/rules")({
     ],
   }),
 })
-
-function RulesRoute() {
-  const { slug } = Route.useSearch()
-  return <RulesPage slug={slug} />
-}

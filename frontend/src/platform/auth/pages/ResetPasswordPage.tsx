@@ -1,6 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "@tanstack/react-query"
-import { Link as RouterLink, useNavigate } from "@tanstack/react-router"
+import {
+  Link as RouterLink,
+  useNavigate,
+  useSearch,
+} from "@tanstack/react-router"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
@@ -36,7 +40,8 @@ const formSchema = z
 
 type FormData = z.infer<typeof formSchema>
 
-export function ResetPasswordPage({ token }: { token: string }) {
+export function ResetPasswordPage() {
+  const { token } = useSearch({ from: "/reset-password" })
   const { showSuccessToast, showErrorToast } = useCustomToast()
   const navigate = useNavigate()
 

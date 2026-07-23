@@ -156,3 +156,7 @@ Aligned the validation-error OpenAPI component and generated client with the exi
 ## [2026-07-23 10:39:25] update | Enforce thin route entries with AST validation
 
 The frontend quality hook delegates changed route entries to scripts/check-thin-routes.mjs, preserves the root Router shell exception, skips deleted paths, and requires page implementations outside routes/.
+
+## [2026-07-23 11:48:28] update | Protect the thin-route baseline with an inventory regression
+
+The changed-file route hook is supplemented by a Bun test that scans every current route entry, preventing untouched legacy local components from escaping AST enforcement.

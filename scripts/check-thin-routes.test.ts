@@ -114,4 +114,25 @@ describe("checkThinRouteSource", () => {
       checkThinRouteSource("frontend/src/routes/_layout/index.tsx", source),
     ).toEqual([])
   })
+
+  test("accepts every current route entry", async () => {
+    const routeGlob = new Bun.Glob("frontend/src/routes/**/*.tsx")
+    const routePaths = []
+
+    for await (const routePath of routeGlob.scan(".")) {
+      routePaths.push(routePath)
+    }
+
+    const results = await Promise.all(
+      routePaths.map(async (routePath) => ({
+        routePath,
+        violations: checkThinRouteSource(
+          routePath,
+          await readFile(routePath, "utf8"),
+        ),
+      })),
+    )
+
+    expect(results.filter((result) => result.violations.length > 0)).toEqual([])
+  })
 })

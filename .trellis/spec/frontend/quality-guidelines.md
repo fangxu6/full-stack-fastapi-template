@@ -70,6 +70,9 @@ The command writes JSON containing each checked file path and its violations.
 
 - Unit-test the AST checker for imported pages, named local components, inline
   callbacks, and the root exception.
+- Keep one inventory regression that scans every current `routes/**/*.tsx`
+  entry. The hook validates only changed paths, so this baseline test prevents
+  an untouched legacy route from escaping the policy indefinitely.
 - Unit-test the Python hook with an inline route callback to prove it delegates
   to the checker.
 - Run `python hooks/run_quality_hooks.py --json` and frontend type/Biome checks.
