@@ -152,3 +152,7 @@ Removed release and default-validation assumptions while preserving endpoint and
 ## [2026-07-22 16:51:35] update | Document validation request identifiers
 
 Aligned the validation-error OpenAPI component and generated client with the existing request correlation contract.
+
+## [2026-07-23 10:39:25] update | Enforce thin route entries with AST validation
+
+The frontend quality hook delegates changed route entries to scripts/check-thin-routes.mjs, preserves the root Router shell exception, skips deleted paths, and requires page implementations outside routes/.

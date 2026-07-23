@@ -45,8 +45,75 @@ class FrontendComponentHookTests(unittest.TestCase):
         self.assertIn("vendor-managed", result.details[0])
 
     def test_rejects_misplaced_component(self) -> None:
-        result = FrontendComponentHook().run(HookContext(Path.cwd(), ("frontend/src/misplaced/Widget.tsx",)))
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            source = repo_root / "frontend/src/misplaced/Widget.tsx"
+            source.parent.mkdir(parents=True)
+            source.write_text("export function Widget() { return null }\n", encoding="utf-8")
+            result = FrontendComponentHook().run(
+                HookContext(repo_root, ("frontend/src/misplaced/Widget.tsx",))
+            )
         self.assertEqual(result.status, "failed")
+
+    def test_skips_deleted_component(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result = FrontendComponentHook().run(
+                HookContext(Path(temp_dir), ("frontend/src/routes/_layout/removed.tsx",))
+            )
+        self.assertEqual(result.status, "passed")
+
+    def test_accepts_thin_route_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            source = repo_root / "frontend/src/routes/_layout/forbidden.tsx"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                'import { createFileRoute } from "@tanstack/react-router"\n'
+                'import { ForbiddenPage } from "@/app/router/ForbiddenPage"\n\n'
+                'export const Route = createFileRoute("/_layout/forbidden")({\n'
+                "  component: ForbiddenPage,\n"
+                "})\n",
+                encoding="utf-8",
+            )
+            result = FrontendComponentHook().run(
+                HookContext(repo_root, ("frontend/src/routes/_layout/forbidden.tsx",))
+            )
+        self.assertEqual(result.status, "passed")
+
+    def test_rejects_component_declared_in_route_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            source = repo_root / "frontend/src/routes/_layout/forbidden.tsx"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "export const Route = {}\n\n"
+                "function ForbiddenPage() {\n"
+                "  return null\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            result = FrontendComponentHook().run(
+                HookContext(repo_root, ("frontend/src/routes/_layout/forbidden.tsx",))
+            )
+        self.assertEqual(result.status, "failed")
+        self.assertIn("route entry", result.details[0])
+
+    def test_rejects_inline_component_callback_in_route_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            source = repo_root / "frontend/src/routes/_layout/example.tsx"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "export const Route = {\n"
+                "  component: () => <div />,\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            result = FrontendComponentHook().run(
+                HookContext(repo_root, ("frontend/src/routes/_layout/example.tsx",))
+            )
+        self.assertEqual(result.status, "failed")
+        self.assertIn("inline component callback", result.details[0])
 
     def test_rejects_antd_outside_boundary(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -22,6 +22,78 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
 - Respect Biome exclusions and generated/vendor-style boundaries from
   [`frontend/biome.json`](../../../frontend/biome.json).
 
+## Scenario: Thin Route AST Enforcement
+
+### 1. Scope / Trigger
+
+- Trigger: a changed, existing file under `frontend/src/routes/**`.
+- The frontend quality hook delegates route-shape checks to
+  `scripts/check-thin-routes.mjs`; deleted paths are skipped because they have
+  no source left to validate.
+
+### 2. Signature
+
+```bash
+bun scripts/check-thin-routes.mjs <route-file> [<route-file> ...]
+```
+
+The command writes JSON containing each checked file path and its violations.
+
+### 3. Contract
+
+- Ordinary route entries may export `Route`, configure guards/search/head, and
+  reference imported page components.
+- Ordinary route entries must not declare a local PascalCase component or use
+  an inline function for `component`, `errorComponent`, or
+  `notFoundComponent`.
+- `frontend/src/routes/__root.tsx` is the sole Router-shell exception for its
+  existing framework callbacks; it is not a business-page placement location.
+
+### 4. Validation And Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Imported page component in an ordinary route | Pass |
+| Local `function Dashboard()` or `const Dashboard = () => ...` | Fail |
+| Inline `component: () => <Page />` | Fail |
+| Existing root Router shell callbacks | Pass |
+| Deleted route path | Skip |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a route imports `DashboardPage` from `platform/dashboard/pages` and
+  assigns it to `component`.
+- Base: `__root.tsx` uses its documented Router shell callbacks.
+- Bad: a route implements its page below `export const Route`.
+
+### 6. Tests Required
+
+- Unit-test the AST checker for imported pages, named local components, inline
+  callbacks, and the root exception.
+- Unit-test the Python hook with an inline route callback to prove it delegates
+  to the checker.
+- Run `python hooks/run_quality_hooks.py --json` and frontend type/Biome checks.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```tsx
+export const Route = createFileRoute("/reports")({
+  component: () => <ReportsPage />,
+})
+```
+
+#### Correct
+
+```tsx
+import { ReportsPage } from "@/platform/reports/pages/ReportsPage"
+
+export const Route = createFileRoute("/reports")({
+  component: ReportsPage,
+})
+```
+
 ---
 
 ## Forbidden Patterns

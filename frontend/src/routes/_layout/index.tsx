@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router"
 
-import useAuth from "@/hooks/useAuth"
+import { DashboardPage } from "@/platform/dashboard/pages/DashboardPage"
 
 export const Route = createFileRoute("/_layout/")({
-  component: Dashboard,
+  component: DashboardPage,
   head: () => ({
     meta: [
       {
@@ -12,20 +12,3 @@ export const Route = createFileRoute("/_layout/")({
     ],
   }),
 })
-
-function Dashboard() {
-  const { user: currentUser } = useAuth()
-
-  return (
-    <div>
-      <div>
-        <h1 className="text-2xl truncate max-w-sm">
-          Hi, {currentUser?.full_name || currentUser?.email} 👋
-        </h1>
-        <p className="text-muted-foreground">
-          Welcome back, nice to see you again!!!
-        </p>
-      </div>
-    </div>
-  )
-}
