@@ -20,7 +20,8 @@
   "subtasks": [],
   "children": [
     "07-22-authorization-foundation",
-    "07-23-rbac-review-findings"
+    "07-23-rbac-review-findings",
+    "07-23-structured-observability-foundation"
   ],
   "parent": null,
   "relatedFiles": [],

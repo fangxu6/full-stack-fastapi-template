@@ -82,7 +82,7 @@ def test_openapi_documents_request_id_for_validation_errors() -> None:
     assert "request_id" in validation_error["required"]
 
 
-def test_unhandled_exceptions_are_logged() -> None:
+def test_unhandled_exceptions_emit_safe_failure_event() -> None:
     router = APIRouter()
 
     @router.get("/__test/logged-error")
@@ -91,17 +91,15 @@ def test_unhandled_exceptions_are_logged() -> None:
 
     app.include_router(router)
 
-    with patch("app.core.exceptions.logger") as mock_logger:
+    with patch("app.core.exceptions.log_event") as mock_log_event:
         with TestClient(app, raise_server_exceptions=False) as test_client:
             response = test_client.get("/__test/logged-error")
 
     assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR
-    mock_logger.error.assert_called_once()
-    _, kwargs = mock_logger.error.call_args
-    exc_info = kwargs["exc_info"]
-    assert exc_info[0] is RuntimeError
-    assert str(exc_info[1]) == "boom"
-    assert exc_info[2] is not None
+    mock_log_event.assert_called_once()
+    assert mock_log_event.call_args.kwargs["event_name"] == "http.request.failed"
+    assert mock_log_event.call_args.kwargs["severity"] == "ERROR"
+    assert "boom" not in str(mock_log_event.call_args.kwargs)
 
 
 def test_modules_router_is_registered(client: TestClient) -> None:
@@ -129,3 +127,26 @@ def test_app_error_returns_structured_json() -> None:
         "detail": "Permission denied",
         "request_id": response.headers["X-Request-ID"],
     }
+
+
+def test_permission_denial_emits_authorization_event() -> None:
+    router = APIRouter()
+
+    @router.get("/__test/permission-denied-log")
+    def raise_permission_denied() -> None:
+        raise PermissionDeniedError()
+
+    app.include_router(router)
+
+    with patch("app.core.exceptions.log_event") as mock_log_event:
+        with TestClient(app, raise_server_exceptions=False) as test_client:
+            response = test_client.get("/__test/permission-denied-log")
+
+    assert response.status_code == HTTP_403_FORBIDDEN
+    events = [call.kwargs for call in mock_log_event.call_args_list]
+    assert {
+        "event_name": "authorization.denied",
+        "severity": "WARNING",
+        "actor_kind": "anonymous",
+        "authorization_result": "denied",
+    } in events

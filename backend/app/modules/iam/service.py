@@ -1,4 +1,3 @@
-import logging
 import uuid
 
 from sqlalchemy import delete
@@ -30,8 +29,6 @@ from app.schemas.iam import (
     RoleSummary,
     RoleUpdate,
 )
-
-logger = logging.getLogger(__name__)
 
 
 def role_summary(role: IamRole) -> RoleSummary:
@@ -382,9 +379,3 @@ def ensure_bootstrap_state(*, session: Session, first_superuser: User) -> None:
     session.flush()
     _ensure_active_platform_administrator(session=session, role=platform_role)
     session.commit()
-
-
-def log_startup_invariant_failure() -> None:
-    logger.critical(
-        "RBAC startup invariant failed: no active Platform Administrator assignment exists"
-    )

@@ -1,22 +1,25 @@
-import logging
-
 from sqlmodel import Session
 
 from app.core.db import engine, init_db
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from app.core.observability import configure_observability, log_event
 
 
 def init() -> None:
-    with Session(engine) as session:
-        init_db(session)
+    try:
+        with Session(engine) as session:
+            init_db(session)
+    except Exception:
+        log_event(
+            event_name="startup.failed",
+            severity="CRITICAL",
+            dependency="postgres",
+        )
+        raise
 
 
 def main() -> None:
-    logger.info("Creating initial data")
+    configure_observability()
     init()
-    logger.info("Initial data created")
 
 
 if __name__ == "__main__":

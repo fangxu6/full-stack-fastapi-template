@@ -2,6 +2,7 @@ from sqlmodel import Session, create_engine, select
 
 from app import crud
 from app.core.config import settings
+from app.core.observability import log_event
 from app.models import User
 from app.modules.iam import service as iam_service
 from app.schemas.user import UserCreate
@@ -39,5 +40,9 @@ def init_db(session: Session) -> None:
         iam_service.ensure_bootstrap_state(session=session, first_superuser=user)
     except Exception:
         session.rollback()
-        iam_service.log_startup_invariant_failure()
+        log_event(
+            event_name="startup.failed",
+            severity="CRITICAL",
+            dependency="iam_bootstrap",
+        )
         raise

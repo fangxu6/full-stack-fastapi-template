@@ -1,7 +1,7 @@
 from typing import Annotated
 
 import jwt
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
@@ -15,6 +15,7 @@ from app.core.exceptions import (
     PermissionDeniedError,
     UserNotFoundError,
 )
+from app.core.observability import set_actor_kind_authenticated
 from app.models import User
 from app.schemas.security import TokenPayload
 
@@ -28,7 +29,7 @@ SessionDep = Annotated[Session, Depends(get_db)]
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 
-def get_current_user(session: SessionDep, token: TokenDep) -> User:
+def get_current_user(session: SessionDep, token: TokenDep, request: Request) -> User:
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
@@ -41,6 +42,8 @@ def get_current_user(session: SessionDep, token: TokenDep) -> User:
         raise UserNotFoundError()
     if not user.is_active:
         raise BadRequestError("Inactive user")
+    request.state.actor_kind = "authenticated"
+    set_actor_kind_authenticated()
     return user
 
 

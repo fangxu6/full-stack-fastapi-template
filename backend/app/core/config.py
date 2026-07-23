@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     FRONTEND_HOST: str = "http://localhost:5173"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
+    OBSERVABILITY_HTTP_SLOW_THRESHOLD_MS: int = 1000
+    OBSERVABILITY_AI_SLOW_THRESHOLD_MS: int = 10000
 
     BACKEND_CORS_ORIGINS: Annotated[
         list[AnyUrl] | str, BeforeValidator(parse_cors)
@@ -123,6 +125,10 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_ai_settings(self) -> Self:
+        if self.OBSERVABILITY_HTTP_SLOW_THRESHOLD_MS <= 0:
+            raise ValueError("OBSERVABILITY_HTTP_SLOW_THRESHOLD_MS must be positive")
+        if self.OBSERVABILITY_AI_SLOW_THRESHOLD_MS <= 0:
+            raise ValueError("OBSERVABILITY_AI_SLOW_THRESHOLD_MS must be positive")
         if not self.AI_ENABLED:
             return self
 

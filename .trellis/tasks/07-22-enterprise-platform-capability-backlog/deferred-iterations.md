@@ -25,6 +25,8 @@ implementation.
 | D-005 | External API boundary | The SPA API is not yet a managed external-consumer product surface. | D-001, D-002, D-003 | Consumer identity/scopes, rate limits/quotas, versioning, docs, audit, contract tests. |
 | D-006 | MCP tool gateway | MCP exposure must reuse approved authorization, audit, and domain boundaries rather than expose private internals. | D-001, D-002, D-003, D-005 | MCP transport/auth design, read-first tool contracts, discovery docs, tests, operations guide. |
 | D-007 | Business workflow platform | A generic workflow runtime should be driven by a real cross-role process, not framework speculation. | D-001, D-003, D-004 | First-process PRD, state machine, assignments/approvals, timeout/retry, work-item UI/API, tests. |
+| D-008 | Alert rule and notification delivery | D-002 defines only a channel-neutral alerting contract; no owned business signal has selected thresholds, recipients, escalation, retry, or delivery channel. | D-002 plus a concrete alert and approved response policy | Rule model, selected email/WeCom/Feishu/DingTalk/in-app adapter, delivery/retry semantics, tests, operations runbook. |
+| D-009 | External logging-platform operations | D-002 emits exporter-ready JSON but does not operate a collector, search, dashboard, reader access, or retention enforcement. | D-002 plus an operations-owned platform choice | Collector/export configuration, authorized reader access, 30-day production/14-day staging retention, dashboards, and runbooks. |
 
 ## Suggested Iteration Order
 
@@ -35,6 +37,11 @@ implementation.
 5. D-005 External API boundary
 6. D-006 MCP tool gateway
 7. D-007 Business workflow platform
+8. D-008 Alert rule and notification delivery, once a concrete alert owner and
+   response policy exist
+9. D-009 External logging-platform operations, once operations selects the
+   platform; it may be scheduled independently because it changes no
+   application behavior
 
 The only strict ordering is the declared dependency graph. Items at different
 branches may be reconsidered together only when their child-task plans prove
@@ -54,6 +61,10 @@ the shared contracts and validation scope are compatible.
   access.
 - D-007 must name the first cross-role business process and its acceptance
   conditions before selecting a workflow model or engine.
+- D-008 must name an important-business or timeout signal, an accountable
+  recipient, escalation, and response policy before choosing a delivery adapter.
+- D-009 must enforce the D-002 JSON/retention/reader-access contract and test
+  the Nginx request-ID overwrite/response-header behavior before production use.
 
 ## Remaining Work In Current Scope
 

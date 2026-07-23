@@ -1,4 +1,3 @@
-import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -11,9 +10,7 @@ from jwt.exceptions import InvalidTokenError
 
 from app.core import security
 from app.core.config import settings
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from app.core.observability import log_event
 
 
 @dataclass
@@ -52,8 +49,15 @@ def send_email(
         smtp_options["user"] = settings.SMTP_USER
     if settings.SMTP_PASSWORD:
         smtp_options["password"] = settings.SMTP_PASSWORD
-    response = message.send(to=email_to, smtp=smtp_options)
-    logger.info(f"send email result: {response}")
+    try:
+        message.send(to=email_to, smtp=smtp_options)
+    except Exception:
+        log_event(
+            event_name="dependency.failed",
+            severity="ERROR",
+            dependency="smtp",
+        )
+        raise
 
 
 def generate_test_email(email_to: str) -> EmailData:

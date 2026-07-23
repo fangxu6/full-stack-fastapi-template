@@ -2,6 +2,7 @@ import hashlib
 import secrets
 import uuid
 from datetime import timedelta
+from time import perf_counter
 
 import httpx
 import jwt
@@ -10,6 +11,7 @@ from sqlmodel import Session
 
 from app.core.config import settings
 from app.core.exceptions import PermissionDeniedError, ServiceUnavailableError
+from app.core.observability import log_event
 from app.models.ai import AiRun, AiRunStatus, AiToolCall, AiToolCallStatus
 from app.models.base import get_datetime_utc
 from app.schemas.ai import AiSidecarCompletedResponse
@@ -162,8 +164,14 @@ def call_inventory_sidecar(
     orchestrator_url = settings.AI_ORCHESTRATOR_URL
     service_token = settings.AI_ORCHESTRATOR_SERVICE_TOKEN
     if not orchestrator_url or not service_token:
+        log_event(
+            event_name="dependency.failed",
+            severity="ERROR",
+            dependency="ai_orchestrator",
+        )
         raise ServiceUnavailableError("AI inventory query is not configured")
 
+    started_at = perf_counter()
     try:
         response = httpx.post(
             f"{str(orchestrator_url).rstrip('/')}/v1/inventory/query",
@@ -176,8 +184,23 @@ def call_inventory_sidecar(
             timeout=AI_ORCHESTRATOR_TIMEOUT_SECONDS,
         )
         response.raise_for_status()
+        elapsed_ms = int((perf_counter() - started_at) * 1000)
+        if elapsed_ms >= settings.OBSERVABILITY_AI_SLOW_THRESHOLD_MS:
+            log_event(
+                event_name="dependency.slow",
+                severity="WARNING",
+                dependency="ai_orchestrator",
+                elapsed_ms=elapsed_ms,
+                slow_threshold_ms=settings.OBSERVABILITY_AI_SLOW_THRESHOLD_MS,
+            )
         return AiSidecarCompletedResponse.model_validate(response.json())
     except (httpx.HTTPError, ValueError) as err:
+        log_event(
+            event_name="dependency.failed",
+            severity="ERROR",
+            dependency="ai_orchestrator",
+            elapsed_ms=int((perf_counter() - started_at) * 1000),
+        )
         raise ServiceUnavailableError("AI inventory query is unavailable") from err
 
 
