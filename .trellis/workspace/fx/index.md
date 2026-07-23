@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
-- **Last Active**: 2026-07-22
+- **Total Sessions**: 8
+- **Last Active**: 2026-07-23
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~244 | Active |
+| `journal-1.md` | ~278 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 8 | 2026-07-23 | 完成路由质量策略与 RBAC 修复 | `7ea51b2`, `4d41059` | `master` |
 | 7 | 2026-07-22 | Implement RBAC authorization foundation | `22ea217` | `master` |
 | 6 | 2026-07-22 | Document validation request IDs | `f92be66`, `8652a35` | `master` |
 | 5 | 2026-07-22 | Remove Docker assumptions from Trellis guidance | `12ad458` | `master` |

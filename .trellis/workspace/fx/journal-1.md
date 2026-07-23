@@ -242,3 +242,37 @@ Delivered database-backed multi-role RBAC for user administration and inventory,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: 完成路由质量策略与 RBAC 修复
+
+**Date**: 2026-07-23
+**Task**: 完成路由质量策略与 RBAC 修复
+**Branch**: `master`
+
+### Summary
+
+完成 thin route AST 校验、Dashboard 页面迁移、RBAC review findings 修复与相关回归验证；归档 07-23-route-quality-policy。验证包括 AST/Hook/后端 55 项测试、前端类型与 Biome、权限 Playwright E2E 6 项。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7ea51b2` | (see git log) |
+| `4d41059` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
