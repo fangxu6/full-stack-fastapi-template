@@ -21,6 +21,32 @@ def test_request_id_header_is_added(client: TestClient) -> None:
     assert response.headers["X-Request-ID"]
 
 
+def test_cors_preflight_has_request_correlation_and_telemetry() -> None:
+    with (
+        patch("app.core.exceptions.log_event") as mock_log_event,
+        patch("app.core.exceptions.should_sample_success", return_value=True),
+    ):
+        with TestClient(app) as test_client:
+            response = test_client.options(
+                "/api/v1/utils/health-check/",
+                headers={
+                    "Origin": settings.FRONTEND_HOST,
+                    "Access-Control-Request-Method": "GET",
+                },
+            )
+
+    assert response.status_code == 200
+    assert response.headers["X-Request-ID"]
+    event = mock_log_event.call_args.kwargs
+    assert {
+        "event_name": "http.request.completed",
+        "severity": "INFO",
+        "method": "OPTIONS",
+        "route_template": "unmatched",
+        "status_code": 200,
+    }.items() <= event.items()
+
+
 def test_unhandled_exceptions_return_request_id() -> None:
     router = APIRouter()
 

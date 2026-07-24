@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Any, cast
 
@@ -21,6 +22,8 @@ from app.core.exceptions import (
     unhandled_exception_handler,
 )
 from app.core.observability import configure_observability, current_request_id
+
+SENTRY_TRACE_ID_PATTERN = re.compile(r"^[a-f0-9]{32}$")
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -73,7 +76,7 @@ def scrub_sentry_transaction(event: Event, _: dict[str, Any]) -> Event | None:
             if isinstance(value, datetime):
                 safe_event[field] = value
         trace_id = event.get("contexts", {}).get("trace", {}).get("trace_id")
-        if isinstance(trace_id, str):
+        if isinstance(trace_id, str) and SENTRY_TRACE_ID_PATTERN.fullmatch(trace_id):
             safe_event["contexts"] = {"trace": {"trace_id": trace_id}}
         return safe_event
     except Exception:
@@ -101,7 +104,6 @@ app = RequestIdOpenAPIFastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     generate_unique_id_function=custom_generate_unique_id,
 )
-app.add_middleware(RequestIdMiddleware)
 app.add_exception_handler(AppError, cast(ExceptionHandler, app_exception_handler))
 app.add_exception_handler(HTTPException, cast(ExceptionHandler, http_exception_handler))
 app.add_exception_handler(
@@ -119,5 +121,6 @@ if settings.all_cors_origins:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+app.add_middleware(RequestIdMiddleware)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)

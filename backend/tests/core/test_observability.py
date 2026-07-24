@@ -1,14 +1,17 @@
 import json
 import uuid
+from collections.abc import Callable
 from typing import cast
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import httpx
 import pytest
+import structlog
 from pytest import CaptureFixture
 from sentry_sdk.types import Event
 
 from app.core.config import settings
+from app.core.db import IamBootstrapInitializationError
 from app.core.exceptions import ServiceUnavailableError
 from app.core.observability import (
     bind_request_context,
@@ -16,6 +19,7 @@ from app.core.observability import (
     configure_observability,
     log_event,
     normalize_request_id,
+    set_actor_kind_authenticated,
     should_sample_success,
 )
 from app.initial_data import init as init_initial_data
@@ -38,6 +42,23 @@ def test_success_sampling_is_stable() -> None:
     assert should_sample_success(request_id) is should_sample_success(request_id)
 
 
+def test_request_context_contains_only_safe_keys() -> None:
+    bind_request_context(request_id="a" * 32)
+
+    assert structlog.contextvars.get_contextvars() == {
+        "request_id": "a" * 32,
+        "actor_kind": "anonymous",
+    }
+
+    set_actor_kind_authenticated()
+
+    assert structlog.contextvars.get_contextvars() == {
+        "request_id": "a" * 32,
+        "actor_kind": "authenticated",
+    }
+    clear_request_context()
+
+
 def test_log_event_emits_only_allowlisted_json(capsys: CaptureFixture[str]) -> None:
     configure_observability()
     bind_request_context(request_id="a" * 32)
@@ -55,9 +76,27 @@ def test_log_event_emits_only_allowlisted_json(capsys: CaptureFixture[str]) -> N
     assert payload["event_name"] == "dependency.failed"
     assert payload["severity"] == "ERROR"
     assert payload["request_id"] == "a" * 32
+    assert payload["actor_kind"] == "anonymous"
     assert payload["dependency"] == "ai_orchestrator"
     assert "exception" not in payload
     assert "token" not in payload
+
+
+def test_log_event_rejects_unknown_fields_before_serialization(
+    capsys: CaptureFixture[str],
+) -> None:
+    configure_observability()
+    untyped_log_event = cast(Callable[..., None], log_event)
+
+    with pytest.raises(TypeError, match="unexpected keyword argument 'token'"):
+        untyped_log_event(
+            event_name="dependency.failed",
+            severity="ERROR",
+            dependency="smtp",
+            token="sentinel-token",
+        )
+
+    assert capsys.readouterr().out == ""
 
 
 def test_log_event_swallows_sink_failures() -> None:
@@ -91,6 +130,20 @@ def test_sentry_scrubbers_remove_sensitive_event_fields() -> None:
     assert "sidecar token" not in str(error_payload)
     assert "secret" not in str(transaction_payload)
     assert transaction_payload["spans"] == []
+    assert transaction_payload["contexts"] == {"trace": {"trace_id": "a" * 32}}
+
+
+def test_sentry_transaction_discards_an_invalid_trace_id() -> None:
+    transaction_payload = scrub_sentry_transaction(
+        cast(Event, {
+            "contexts": {"trace": {"trace_id": "trace-token=secret"}},
+        }),
+        {},
+    )
+
+    assert transaction_payload is not None
+    assert "contexts" not in transaction_payload
+    assert "secret" not in str(transaction_payload)
 
 
 def test_ai_configuration_failure_emits_only_the_registered_dependency(
@@ -184,3 +237,30 @@ def test_initial_data_database_failure_emits_startup_event() -> None:
         "severity": "CRITICAL",
         "dependency": "postgres",
     }
+
+
+def test_iam_bootstrap_failure_emits_only_iam_event() -> None:
+    session = MagicMock()
+    session.exec.return_value.first.return_value = MagicMock()
+    session_context = MagicMock()
+    session_context.__enter__.return_value = session
+    session_context.__exit__.return_value = False
+
+    with (
+        patch("app.initial_data.Session", return_value=session_context),
+        patch(
+            "app.core.db.iam_service.ensure_bootstrap_state",
+            side_effect=RuntimeError("IAM bootstrap invariant failed"),
+        ),
+        patch("app.core.db.log_event") as mock_iam_log_event,
+        patch("app.initial_data.log_event") as mock_initial_data_log_event,
+        pytest.raises(IamBootstrapInitializationError),
+    ):
+        init_initial_data()
+
+    assert mock_iam_log_event.call_args.kwargs == {
+        "event_name": "startup.failed",
+        "severity": "CRITICAL",
+        "dependency": "iam_bootstrap",
+    }
+    mock_initial_data_log_event.assert_not_called()

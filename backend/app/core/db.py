@@ -10,6 +10,10 @@ from app.schemas.user import UserCreate
 engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 
 
+class IamBootstrapInitializationError(Exception):
+    """Marks an IAM bootstrap failure that has already emitted its startup event."""
+
+
 # make sure all SQLModel models are imported (app.models) before initializing DB
 # otherwise, SQLModel might fail to initialize relationships properly
 # for more details: https://github.com/fastapi/full-stack-fastapi-template/issues/28
@@ -38,11 +42,11 @@ def init_db(session: Session) -> None:
         session.flush()
     try:
         iam_service.ensure_bootstrap_state(session=session, first_superuser=user)
-    except Exception:
+    except Exception as error:
         session.rollback()
         log_event(
             event_name="startup.failed",
             severity="CRITICAL",
             dependency="iam_bootstrap",
         )
-        raise
+        raise IamBootstrapInitializationError from error

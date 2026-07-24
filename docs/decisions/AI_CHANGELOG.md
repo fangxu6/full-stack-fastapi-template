@@ -23,6 +23,11 @@ In most cases, updating `AI_CHANGELOG.md` alone is enough.
 - Risk: 风险、权衡或后续事项
 
 ## Entries
+- Date: 2026-07-24
+- Scope: internal Sentry transaction correlation
+- Decision: `before_send_transaction` reconstructs the minimal transaction event and may retain only `contexts.trace.trace_id` when it is a canonical 32-character lowercase hexadecimal ID. All other trace fields and all request, user, exception, breadcrumb, tag, context, and span data remain removed.
+- Reason: Internal Sentry operations need a stable trace-correlation value for troubleshooting without forwarding the original SDK transaction payload.
+- Risk: This is a deliberate privacy trade-off for an internal service. Strict mode is restored by removing the guarded reconstructed `contexts.trace` assignment, adjusting its focused test, and removing the spec exception; ADR-0001 preserves the rationale.
 - YYYY-MM-DD: (placeholder)
 - Date: 2026-07-20
 - Scope: forward PostgreSQL primary-key policy

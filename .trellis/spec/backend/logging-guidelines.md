@@ -18,7 +18,24 @@ turning logs into a second store of user or business data.
   stdout through [`backend/app/core/observability.py`](../../../backend/app/core/observability.py).
 - Request middleware binds a normalized request ID and emits the required HTTP
   outcome event without logging raw URLs, headers, query parameters, or errors.
+  It is a pure ASGI middleware registered outside CORS so CORS preflight
+  requests also receive request correlation and safe HTTP telemetry.
 - Dependency and startup paths call the constrained `log_event()` facade.
+
+---
+
+## Contract Precedence
+
+This living code-spec is the active runtime contract for backend operational
+logging. Archived task PRDs and designs preserve the decisions made during
+planning, but do not override this specification when an approach has since
+been replaced.
+
+`structlog.contextvars.merge_contextvars` intentionally adds the safe request
+context to every event emitted during that request. `request_id` and the
+low-cardinality `actor_kind` (`anonymous` or `authenticated`) are therefore
+common context fields, not event-specific payload fields. They must never be
+expanded into user, role, permission, token, or business-resource identity.
 
 ---
 
@@ -102,7 +119,13 @@ log_event(
   must use the same safe structured handler or be suppressed; no default raw
   path, exception message, or traceback may share the stdout collector stream.
 - Sentry is optional outside local environments. It uses the same redaction
-  boundary and receives only `request_id`, environment, and event-name context.
+  boundary and receives only `request_id`, environment, and event-name context,
+  except for the narrowly approved internal transaction correlation field:
+  `contexts.trace.trace_id` may be reconstructed only when it is a canonical
+  32-character lowercase hexadecimal trace ID. It must not retain `span_id`,
+  parent/span metadata, request data, user data, exceptions, breadcrumbs,
+  arbitrary tags/context, or spans. See
+  [`ADR-0001`](../../../docs/decisions/ADR-0001-internal-sentry-trace-correlation.md).
 
 ### 4. Validation & Error Matrix
 
@@ -110,8 +133,10 @@ log_event(
 | --- | --- |
 | Registered dependency fails | Emit one `dependency.failed` record with its stable name; re-raise or map the application error unchanged. |
 | Registered dependency exceeds slow threshold | Emit `dependency.slow`; do not alter the existing timeout or response path. |
+| IAM bootstrap invariant fails during startup | Emit only `startup.failed` with `dependency="iam_bootstrap"`, roll back the session, and propagate a distinguishable already-recorded startup failure; the outer initialization entry point must not add `postgres`. |
+| Database connection or session setup fails during startup | Emit only `startup.failed` with `dependency="postgres"`, then re-raise. |
 | Unknown dependency name | Reject during code review and tests; do not emit an ad hoc name. |
-| Payload includes a forbidden field | Redact or omit it before serialization; logging must not fail the request. |
+| Caller supplies an arbitrary/forbidden facade field | Reject it at the closed Python call boundary before serialization; fix the caller and do not add `**kwargs` to accept it. |
 | Stdout sink fails | Preserve the business request path; best-effort logging must not become an availability dependency. |
 
 ### 5. Good / Base / Bad Cases
@@ -129,13 +154,16 @@ log_event(
 
 - Unit test each initial dependency name and assert event name, severity,
   `request_id` behavior, duration fields, and JSON serialization.
-- Redaction test forbidden payload values: token, cookie, email address, UUID,
-  query string, request body, raw exception message, and AI question must not
-  appear in the serialized output.
+- Test the closed facade rejects an arbitrary keyword before serialization;
+  supported dependency call paths must not derive their reviewed fields from a
+  token, cookie, email address, UUID, query string, request body, raw exception
+  message, or AI question.
 - Integration test a failed and slow AI dependency without changing its
   existing service-unavailable response or 90-second timeout contract.
 - Startup test PostgreSQL/RBAC initialization failure remains fail-closed while
-  producing a safe `startup.failed` record.
+  producing one safe `startup.failed` record for its actual root dependency;
+  in particular, an IAM invariant failure emits only `iam_bootstrap` and never
+  a second `postgres` event.
 
 ### 7. Wrong vs Correct
 
@@ -178,6 +206,12 @@ bind arbitrary request, actor, exception, or business context directly.
   created.
 - Sentry configuration follows the same safe-context contract. It must not add
   raw request payloads or exception-message values outside the approved fields.
+  Transaction reconstruction may retain only a validated
+  `contexts.trace.trace_id` for internal correlation; malformed, uppercase, or
+  sentinel values are omitted. To restore strict Sentry mode, remove that
+  guarded reconstructed context and update its focused test and this exception
+  rule as recorded in
+  [`ADR-0001`](../../../docs/decisions/ADR-0001-internal-sentry-trace-correlation.md).
 
 ---
 
@@ -235,6 +269,11 @@ def log_event(
 - Request middleware first clears context, then binds the normalized
   32-character lowercase hexadecimal `request_id`. It clears context at
   completion so a request cannot leak data into another request.
+- Register request correlation after `CORSMiddleware`, making it the outer ASGI
+  layer under FastAPI's reverse middleware registration order. It must inject
+  `X-Request-ID` in `http.response.start`, so a CORS-short-circuited `OPTIONS`
+  preflight gets the same response correlation and allowlisted HTTP outcome
+  telemetry without buffering or rebuilding its response.
 - `log_event()` is the sole application-owned entry point for D-002 records.
   It delegates one event to the configured structlog logger; it is not a
   second logging framework.
@@ -248,10 +287,13 @@ def log_event(
 - `request_id` and `actor_kind` are the only request context keys that may be
   bound with `structlog.contextvars`. Bind no user ID, email, role, permission,
   token, request body, header, query string, resource ID, or exception object.
-- The facade accepts only the schema fields defined in the D-002 contract.
-  Unknown or forbidden fields are omitted before the structlog call; a failed
-  log serialization/write is swallowed so it cannot change a request, timeout,
-  retry, or startup failure path.
+- `log_event()` is a closed keyword-only interface containing only reviewed
+  safe fields. Do not add `**kwargs`, mapping expansion, or a second generic
+  event builder. Unknown fields are rejected at the Python call boundary and
+  must be fixed during typing, tests, or review before deployment; they never
+  reach the Structlog renderer. Best-effort handling applies only to
+  serialization or stdout-write failures, which must not change a request,
+  timeout, retry, or startup failure path.
 - Do not bridge arbitrary standard-library records into the collector: their
   message values are not within this event schema. Disable Uvicorn's access
   logger in the production command and suppress its server/error loggers in
@@ -266,7 +308,8 @@ def log_event(
 | --- | --- |
 | `configure_observability()` runs again in a reload/test process | Replace prior handlers; do not duplicate JSON lines. |
 | Request ID is invalid or absent | Normalize/generate before binding; never bind caller text. |
-| `log_event()` receives unknown/forbidden data | Omit it; do not serialize a fallback `repr` and do not fail the business path. |
+| CORS preflight short-circuits the inner application | The outer request-correlation middleware adds `X-Request-ID` and emits the sampled/safe `OPTIONS` outcome event; it must not bypass correlation. |
+| A caller supplies an unknown/forbidden `log_event()` keyword | Treat it as a programming error: the closed signature rejects it before serialization. Fix the caller; do not add `**kwargs` to silently filter it. |
 | Event contains a dependency/source name not in the registry | Treat as code-contract failure in unit tests/review; do not ship an ad hoc source. |
 | Structlog renderer or stdout write fails | Swallow the telemetry failure; preserve response/startup control flow. |
 | Uvicorn emits default access/error output | Disable or suppress it; stdout must not contain a textual line. |
@@ -291,14 +334,21 @@ def log_event(
   idempotent across repeated setup.
 - Unit test context is cleared between sequential requests and only contains
   normalized request ID plus the allowed actor kind.
-- Unit test the event facade omits sentinels for token, cookie, email, UUID,
-  query, body, raw exception, and AI question; assert no `repr` or stack value
-  appears.
+- Unit test the closed event facade rejects an arbitrary keyword before it can
+  reach the renderer. Supported call sites must pass only reviewed fields and
+  must not derive them from tokens, cookies, email addresses, UUIDs, queries,
+  bodies, raw exceptions, or AI questions.
 - Unit test stable sampling and every mandatory unsampled event class.
+- Integration test an allowed CORS preflight returns `X-Request-ID` and, with
+  deterministic sampling, emits an allowlisted `http.request.completed` event
+  for `OPTIONS` without a raw origin or URL.
 - Integration test the production Uvicorn command and verify no default access
   line, raw URL, exception message, or traceback reaches stdout.
 - Keep the dependency, AI timeout, startup fail-closed, and Sentry scrub tests
   specified in the D-002 E2E plan.
+- Unit test Sentry transaction reconstruction retains a valid canonical trace
+  ID only, omits malformed or sentinel IDs, and still removes every other trace
+  field plus request, user, exception, breadcrumb, and span data.
 
 ### 7. Wrong vs Correct
 

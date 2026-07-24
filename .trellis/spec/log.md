@@ -160,3 +160,19 @@ The frontend quality hook delegates changed route entries to scripts/check-thin-
 ## [2026-07-23 11:48:28] update | Protect the thin-route baseline with an inventory regression
 
 The changed-file route hook is supplemented by a Bun test that scans every current route entry, preventing untouched legacy local components from escaping AST enforcement.
+
+## [2026-07-24 09:13:50] update | Clarify Structlog operational context
+
+Current logging guidance takes precedence over archived planning: merge_contextvars shares only normalized request_id and low-cardinality actor_kind; log_event remains a closed keyword-only facade, and new tests prevent uncontrolled context or arbitrary fields.
+
+## [2026-07-24 13:37:56] update | Retain validated internal Sentry trace IDs
+
+Sentry transaction payloads are rebuilt from an allowlist and retain only canonical lowercase 32-character trace IDs for internal correlation; ADR-0001 records the strict-mode rollback.
+
+## [2026-07-24 14:23:01] update | Preserve startup failure root-cause events
+
+IAM bootstrap initialization failures now emit only iam_bootstrap and carry an already-recorded marker through initial_data; PostgreSQL startup failures remain separately recorded.
+
+## [2026-07-24 14:38:44] update | Correlate CORS preflight requests
+
+Request correlation now uses an outer pure ASGI middleware so CORS OPTIONS preflights receive X-Request-ID and safe sampled HTTP telemetry without buffering responses.

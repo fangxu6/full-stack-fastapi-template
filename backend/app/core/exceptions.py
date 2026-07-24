@@ -1,13 +1,11 @@
-from collections.abc import Awaitable, Callable
 from time import perf_counter
 
 from fastapi import Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.datastructures import Headers, MutableHeaders
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
 from starlette.status import (
     HTTP_400_BAD_REQUEST,
     HTTP_403_FORBIDDEN,
@@ -17,6 +15,7 @@ from starlette.status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
     HTTP_503_SERVICE_UNAVAILABLE,
 )
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.core.config import settings
 from app.core.observability import (
@@ -83,65 +82,82 @@ class ServiceUnavailableError(AppError):
     detail = "Service unavailable"
 
 
-class RequestIdMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self,
-        request: Request,
-        call_next: Callable[[Request], Awaitable[Response]],
-    ) -> Response:
-        request_id = normalize_request_id(request.headers.get(REQUEST_ID_HEADER))
-        request.state.request_id = request_id
+class RequestIdMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        request_id = normalize_request_id(Headers(scope=scope).get(REQUEST_ID_HEADER))
+        scope.setdefault("state", {})["request_id"] = request_id
         bind_request_context(request_id=request_id)
         started_at = perf_counter()
+        status_code = HTTP_500_INTERNAL_SERVER_ERROR
+
+        async def send_with_request_id(message: Message) -> None:
+            nonlocal status_code
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+                headers = MutableHeaders(scope=message)
+                if REQUEST_ID_HEADER not in headers:
+                    headers[REQUEST_ID_HEADER] = request_id
+            await send(message)
+
         try:
-            response = await call_next(request)
-            elapsed_ms = int((perf_counter() - started_at) * 1000)
-            route = request.scope.get("route")
-            route_template = getattr(route, "path", "unmatched")
-            threshold = (
-                settings.OBSERVABILITY_AI_SLOW_THRESHOLD_MS
-                if route_template == f"{settings.API_V1_STR}/ai/inventory/query"
-                else settings.OBSERVABILITY_HTTP_SLOW_THRESHOLD_MS
+            await self.app(scope, receive, send_with_request_id)
+            _log_http_response(
+                scope=scope,
+                request_id=request_id,
+                started_at=started_at,
+                status_code=status_code,
             )
-            is_slow = elapsed_ms >= threshold
-            event_name: EventName
-            severity: Severity
-            if response.status_code >= HTTP_500_INTERNAL_SERVER_ERROR:
-                event_name = "http.request.failed"
-                severity = "ERROR"
-            else:
-                event_name = "http.request.completed"
-                severity = "WARNING" if response.status_code >= 400 else "INFO"
-            if (
-                response.status_code >= 400
-                or is_slow
-                or response.status_code >= HTTP_500_INTERNAL_SERVER_ERROR
-                or should_sample_success(request_id)
-            ):
-                log_event(
-                    event_name=event_name,
-                    severity=severity,
-                    elapsed_ms=elapsed_ms,
-                    slow_threshold_ms=threshold if is_slow else None,
-                    method=request.method,
-                    route_template=route_template,
-                    status_code=response.status_code,
-                )
-            response.headers[REQUEST_ID_HEADER] = request_id
-            return response
         except Exception:
             elapsed_ms = int((perf_counter() - started_at) * 1000)
             log_event(
                 event_name="http.request.failed",
                 severity="ERROR",
                 elapsed_ms=elapsed_ms,
-                method=request.method,
-                route_template=getattr(request.scope.get("route"), "path", "unmatched"),
+                method=scope["method"],
+                route_template=getattr(scope.get("route"), "path", "unmatched"),
                 status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             )
             raise
         finally:
             clear_request_context()
+
+
+def _log_http_response(
+    *, scope: Scope, request_id: str, started_at: float, status_code: int
+) -> None:
+    elapsed_ms = int((perf_counter() - started_at) * 1000)
+    route_template = getattr(scope.get("route"), "path", "unmatched")
+    threshold = (
+        settings.OBSERVABILITY_AI_SLOW_THRESHOLD_MS
+        if route_template == f"{settings.API_V1_STR}/ai/inventory/query"
+        else settings.OBSERVABILITY_HTTP_SLOW_THRESHOLD_MS
+    )
+    is_slow = elapsed_ms >= threshold
+    event_name: EventName
+    severity: Severity
+    if status_code >= HTTP_500_INTERNAL_SERVER_ERROR:
+        event_name = "http.request.failed"
+        severity = "ERROR"
+    else:
+        event_name = "http.request.completed"
+        severity = "WARNING" if status_code >= 400 else "INFO"
+    if status_code >= 400 or is_slow or should_sample_success(request_id):
+        log_event(
+            event_name=event_name,
+            severity=severity,
+            elapsed_ms=elapsed_ms,
+            slow_threshold_ms=threshold if is_slow else None,
+            method=scope["method"],
+            route_template=route_template,
+            status_code=status_code,
+        )
 
 
 async def unhandled_exception_handler(
