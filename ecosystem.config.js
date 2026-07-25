@@ -11,8 +11,10 @@ module.exports = {
       restart_delay: 3000,
       time: true,
       env: {
-        PYTHONUNBUFFERED: "1",
-        REDIS_HOST: "127.0.0.1"
+        PYTHONUNBUFFERED: "1"
+      },
+      env_production: {
+        APP_ENV_FILE: "D:/Workspace/full-stack-fastapi-template/.env.production"
       }
     },
     {
@@ -40,8 +42,10 @@ module.exports = {
       restart_delay: 3000,
       time: true,
       env: {
-        PYTHONUNBUFFERED: "1",
-        REDIS_HOST: "127.0.0.1"
+        PYTHONUNBUFFERED: "1"
+      },
+      env_production: {
+        APP_ENV_FILE: "D:/Workspace/full-stack-fastapi-template/.env.production"
       }
     },
     {
@@ -56,6 +60,9 @@ module.exports = {
       time: true,
       env: {
         PYTHONUNBUFFERED: "1"
+      },
+      env_production: {
+        APP_ENV_FILE: "D:/Workspace/full-stack-fastapi-template/.env.production"
       }
     }
   ]

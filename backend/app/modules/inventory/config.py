@@ -5,6 +5,8 @@ from typing import Annotated, Any
 from pydantic import BeforeValidator, EmailStr, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.env import get_env_file
+
 
 def _parse_json_mapping(value: Any) -> Any:
     if not isinstance(value, str):
@@ -17,7 +19,7 @@ def _parse_json_mapping(value: Any) -> Any:
 
 class InventorySettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file="../.env",
+        env_file=get_env_file(),
         env_ignore_empty=True,
         extra="ignore",
     )

@@ -122,7 +122,15 @@ git merge --continue
 
 ### Configure
 
-You can then update configs in the `.env` files to customize your configurations.
+`.env` is the local development configuration. For production, copy
+`.env.production.example` to `.env.production`, replace every placeholder, and
+keep it untracked. PM2 selects it for the backend, Celery worker, and Beat:
+
+```bash
+pm2 start ecosystem.config.js --env production
+```
+
+Without `--env production`, those processes use `.env`.
 
 Before deploying it, make sure you change at least the values for:
 

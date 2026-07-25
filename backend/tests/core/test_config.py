@@ -1,7 +1,10 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
 from app.core.config import Settings
+from app.core.env import get_env_file
 
 
 def make_settings(**overrides: object) -> Settings:
@@ -50,3 +53,12 @@ def test_celery_timeouts_must_be_positive(setting_name: str) -> None:
 def test_redis_password_cannot_use_the_default_outside_local() -> None:
     with pytest.raises(ValidationError, match="REDIS_PASSWORD"):
         make_settings(ENVIRONMENT="production", REDIS_PASSWORD="changethis")
+
+
+def test_settings_env_file_uses_app_env_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    configured_path = tmp_path / ".env.production"
+    monkeypatch.setenv("APP_ENV_FILE", str(configured_path))
+
+    assert get_env_file() == configured_path

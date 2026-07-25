@@ -11,6 +11,7 @@ node_modules/
 
 .venv/
 /.env.ai.secrets
+/.env.production
 __pycache__/
 *.pyc
 backend/celerybeat-schedule*
