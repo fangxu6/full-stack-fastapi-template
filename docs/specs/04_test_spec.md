@@ -7,7 +7,7 @@
 ## Strategy
 - 以“行为兼容”为主线：验证重构前后的外部 API 语义一致。
 - 以“分层边界”为辅线：验证 route 不再直接承载业务逻辑，service/crud 各司其职。
-- 使用现有测试入口进行回归：`bash ./scripts/test.sh` 或容器内 `scripts/tests-start.sh`。
+- 使用现有测试入口进行回归：`bash ./scripts/test.sh`。
 
 ## Test Cases
 - TC1: 用户登录成功路径保持可用，token 相关响应结构不变。

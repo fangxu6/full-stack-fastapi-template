@@ -55,8 +55,8 @@
 - Unit tests cover settings validation, Redis URL escaping, and bounded task
   input.
 - Use Celery eager mode for the task unit path.
-- Compose CI dispatches `runtime.ping` from the backend container and asserts
-  a live worker returns the same marker through Redis.
+- Integration validation dispatches `runtime.ping` and asserts a live worker
+  returns the same marker through Redis.
 
 ### 7. Wrong Vs Correct
 

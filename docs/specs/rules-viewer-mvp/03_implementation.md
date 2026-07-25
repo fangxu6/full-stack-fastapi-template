@@ -10,10 +10,8 @@
 - `backend/app/services/docs.py`
 - `backend/app/services/__init__.py`
 - `backend/app/api/routes/docs.py`
-- `backend/Dockerfile`
 - `backend/app/api/main.py`
 - `backend/tests/api/routes/test_docs.py`
-- `compose.override.yml`
 - `frontend/src/routes/_layout/rules.tsx`
 - `frontend/src/components/Sidebar/AppSidebar.tsx`
 - `docs/decisions/AI_CHANGELOG.md`
@@ -32,10 +30,9 @@
 2. 白名单索引只接受普通 `.md` 文件，拒绝 symlink，并确认真实路径仍位于白名单目录内。
 3. 列表接口返回规则摘要数组。
 4. 详情接口按 slug 命中白名单后读取文件内容。
-5. 后端镜像在构建时复制 `docs/rules`，本地 compose 开发通过 watch 同步该目录。
-6. 前端 `/rules` 页面先请求列表。
-7. 若 search 中无 slug，则默认展示首篇；若有 slug，则请求对应详情。
-8. 页面展示加载态、空态、错误态与正文。
+5. 前端 `/rules` 页面先请求列表。
+6. 若 search 中无 slug，则默认展示首篇；若有 slug，则请求对应详情。
+7. 页面展示加载态、空态、错误态与正文。
 
 ## Validation & Errors
 - 仅允许白名单命中的 slug；未命中返回 `404 Rule document not found`。

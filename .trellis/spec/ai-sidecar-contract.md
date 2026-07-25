@@ -1,16 +1,14 @@
 # AI Inventory Sidecar Contract
 
-> Read before changing `sidecar/**`, its Compose service, or the FastAPI BFF
-> client that calls it.
+> Read before changing `sidecar/**` or the FastAPI BFF client that calls it.
 
 ---
 
 ## 1. Scope / Trigger
 
 - Trigger: changing the inventory AI sidecar's HTTP endpoint, model/tool
-  registry, environment wiring, Docker exposure, or FastAPI-to-sidecar client.
-- Primary files: `sidecar/src/{app,config,protocol,server,tools,workflow}.ts`,
-  `sidecar/Dockerfile`, and `compose.yml`.
+  registry, environment wiring, or FastAPI-to-sidecar client.
+- Primary files: `sidecar/src/{app,config,protocol,server,tools,workflow}.ts`.
 - Out of scope: FastAPI authorization/grant issuance, audit persistence, and
   inventory business queries, which remain owned by `backend/app/modules/ai/**`
   and `backend/app/modules/inventory/**`.
@@ -25,7 +23,7 @@
   `provider_metadata`.
 - Failed envelope: `{"status":"failed","error":{"category":...,"retryable":...}}`.
 - Health endpoint: `GET /health` returns `{"status":"ok"}` and is available
-  only on the container network.
+  only to the private runtime.
 
 ## 3. Contracts
 
@@ -43,7 +41,7 @@
   required only by the sidecar; FastAPI never receives the provider API key.
   `AI_PROVIDER_BASE_URL` accepts credential-free HTTP(S) URLs. HTTP requires
   `AI_PROVIDER_ALLOW_INSECURE_HTTP=true`; use it only for an internal or local
-  test provider on the sidecar's private network. The tool registry is exactly
+  test provider. The tool registry is exactly
   `balances`, `documents`, `ledger`,
   `processing_units`, and `receiving_units`; web, file, MCP, shell, memory,
   and write tools are forbidden.
@@ -61,14 +59,11 @@
   executed tool remains invalid. Balance tool results passed to the model are
   compacted to a total count and at most five records without processing-unit
   UUIDs; the internal HTTP response and audit record remain unchanged.
-- The Compose service joins only `default`, declares no `ports` or Traefik
-  labels, and receives no PostgreSQL credentials. Keep runtime AI secrets in
-  ignored `.env.ai.secrets` (or a deployment secret manager), injected with
-  `docker compose --env-file .env --env-file .env.ai.secrets ...`; do not put
-  them in tracked root `.env`.
-- `AI_SIDECAR_HOST` defaults to `127.0.0.1` for non-Docker runs and accepts
-  only `127.0.0.1` or `0.0.0.0`. Compose explicitly supplies `0.0.0.0` inside
-  its private network; direct process runs must keep the default loopback bind.
+- The sidecar remains private and receives no PostgreSQL credentials. Keep
+  runtime AI secrets in ignored `.env.ai.secrets` (or a deployment secret
+  manager); do not put them in tracked root `.env`.
+- `AI_SIDECAR_HOST` defaults to `127.0.0.1` and accepts only `127.0.0.1` or
+  `0.0.0.0`. Direct process runs must keep the default loopback bind.
   In that mode FastAPI uses `AI_ORCHESTRATOR_URL=http://127.0.0.1:3000` and
   sidecar uses `AI_INTERNAL_BASE_URL=http://127.0.0.1:8000`.
 - Operational logs may contain only request ID, HTTP status, and completed or
@@ -85,9 +80,9 @@
 | Internal non-2xx or invalid JSON/schema | failed `tool_failed` or `invalid_response` | `sidecar/tests/workflow.test.ts`, `sidecar/tests/tools.test.ts` |
 | Provider 429, timeout/abort, or other unavailable failure | `rate_limited`, `timeout`, or `provider_unavailable`; only these are retryable | `sidecar/tests/workflow.test.ts` |
 | HTTP provider URL without explicit opt-in | sidecar fails at startup | `sidecar/tests/config.test.ts` |
-| Non-Docker sidecar without an explicit host | binds loopback only | `sidecar/tests/config.test.ts` |
+| Sidecar without an explicit host | binds loopback only | `sidecar/tests/config.test.ts` |
 | Arbitrary sidecar host value | sidecar fails at startup | `sidecar/tests/config.test.ts` |
-| Public exposure or direct database access | prohibited by Compose/service contract | review `compose.yml` and `sidecar/Dockerfile` |
+| Public exposure or direct database access | prohibited by the runtime contract | deployment review |
 
 ## 5. Good / Base / Bad Cases
 
@@ -114,9 +109,8 @@
 - Cross-layer: when changing this protocol, update the FastAPI BFF client and
   its tests before regenerating any affected public OpenAPI client; do not
   manually edit `frontend/src/client/**`.
-- Deployment: inspect the Compose service for absence of host ports, Traefik
-  labels, and database environment variables. Run Docker integration only in
-  an approved environment.
+- Deployment: verify that runtime configuration has no public exposure or
+  database credentials.
 
 ## 7. Wrong vs Correct
 

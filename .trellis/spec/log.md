@@ -180,3 +180,7 @@ Request correlation now uses an outer pure ASGI middleware so CORS OPTIONS prefl
 ## [2026-07-25 13:11:30] feature | Document Celery and Redis runtime contract
 
 Added backend async-task rules for Celery task payloads, Redis configuration, retry ownership, and Compose verification.
+
+## [2026-07-25 14:57:59] update | Remove container-specific requirements from active specs
+
+Active AI sidecar, async runtime, and feature specifications now describe runtime-neutral contracts only.

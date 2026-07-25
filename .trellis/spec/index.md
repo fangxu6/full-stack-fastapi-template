@@ -28,7 +28,7 @@ merge:
 | Backend | [backend/index.md](./backend/index.md) | Editing `backend/app/**`, backend tests, migrations, API contracts, or backend tooling |
 | Frontend | [frontend/index.md](./frontend/index.md) | Editing `frontend/src/**`, route/menu/permission behavior, generated-client consumers, or frontend tooling |
 | Project Hooks | [trellis-hook-contract.md](./trellis-hook-contract.md) | Changing project-owned backend/frontend quality hooks |
-| AI Sidecar | [ai-sidecar-contract.md](./ai-sidecar-contract.md) | Changing the private inventory AI sidecar, its Compose service, or BFF protocol |
+| AI Sidecar | [ai-sidecar-contract.md](./ai-sidecar-contract.md) | Changing the private inventory AI sidecar or BFF protocol |
 | Thinking Guides | [guides/index.md](./guides/index.md) | Planning cross-layer work, deciding reuse boundaries, or reviewing architecture-impacting diffs |
 | Spec Templates | [templates/index.md](./templates/index.md) | Creating a new trigger-based scenario contract |
 
