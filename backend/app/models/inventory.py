@@ -9,8 +9,12 @@ from decimal import Decimal
 from enum import StrEnum
 
 from sqlalchemy import (
+    BigInteger,
     CheckConstraint,
+    Column,
     DateTime,
+    ForeignKey,
+    Identity,
     Index,
     Numeric,
     UniqueConstraint,
@@ -19,6 +23,7 @@ from sqlalchemy import (
     Enum as SAEnum,
 )
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlmodel import Field, SQLModel
 
 from app.models.base import get_datetime_utc
@@ -42,6 +47,21 @@ class InventoryMovementType(StrEnum):
     FINISHED_RECEIPT = "FINISHED_RECEIPT"
     FINISHED_SHIPMENT = "FINISHED_SHIPMENT"
     MIGRATION_RECONCILIATION_OPENING = "MIGRATION_RECONCILIATION_OPENING"
+
+
+class InventoryDailyReportStatus(StrEnum):
+    PENDING = "PENDING"
+    RETRY_WAIT = "RETRY_WAIT"
+    DELIVERED = "DELIVERED"
+    FAILED = "FAILED"
+
+
+class InventoryDailyReportDeliveryStatus(StrEnum):
+    PENDING = "PENDING"
+    DELIVERING = "DELIVERING"
+    RETRY_WAIT = "RETRY_WAIT"
+    DELIVERED = "DELIVERED"
+    FAILED = "FAILED"
 
 
 class LegacyWorkbookKind(StrEnum):
@@ -240,3 +260,132 @@ class InventoryLedgerEntry(AuditFields, table=True):
     )
     meters_delta: Decimal = Field(default=Decimal("0"), sa_type=Numeric(18, 3))  # ty:ignore[invalid-argument-type]
     reason: str | None = None
+
+
+class InventoryDailyReport(SQLModel, table=True):
+    __tablename__ = "inventory_daily_report"
+    __table_args__ = (
+        CheckConstraint(
+            "resolution_attempt_count >= 0 AND resolution_attempt_count <= 8",
+            name="ck_inventory_daily_report_resolution_attempts",
+        ),
+        Index(
+            "ix_inventory_daily_report_recipient_retry",
+            "status",
+            "next_recipient_attempt_at",
+        ),
+        UniqueConstraint(
+            "processing_unit_id",
+            "business_date",
+            name="uq_inventory_daily_report_unit_date",
+        ),
+    )
+
+    id: int | None = Field(
+        default=None,
+        sa_column=Column(BigInteger, Identity(always=True), primary_key=True),
+    )
+    processing_unit_id: uuid.UUID = Field(
+        sa_column=Column(
+            PGUUID(as_uuid=True),
+            ForeignKey(
+                "processing_unit.id",
+                name="fk_inventory_daily_report_processing_unit",
+                ondelete="RESTRICT",
+            ),
+            nullable=False,
+        )
+    )
+    business_date: date
+    processing_unit_name: str = Field(max_length=255)
+    snapshot: dict[str, object] = Field(sa_type=JSONB)
+    status: InventoryDailyReportStatus = Field(
+        default=InventoryDailyReportStatus.PENDING,
+        sa_type=SAEnum(
+            InventoryDailyReportStatus, name="inventory_daily_report_status"
+        ),  # ty:ignore[invalid-argument-type]
+    )
+    recipients_resolved_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+    )
+    resolution_attempt_count: int = Field(default=0)
+    next_recipient_attempt_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+    )
+    last_error_category: str | None = Field(default=None, max_length=64)
+    created_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+    )
+    updated_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+    )
+
+
+class InventoryDailyReportDelivery(SQLModel, table=True):
+    __tablename__ = "inventory_daily_report_delivery"
+    __table_args__ = (
+        CheckConstraint(
+            "attempt_count >= 0 AND attempt_count <= 8",
+            name="ck_inventory_daily_report_delivery_attempts",
+        ),
+        Index(
+            "ix_inventory_daily_report_delivery_retry",
+            "status",
+            "next_attempt_at",
+        ),
+        UniqueConstraint(
+            "report_id",
+            "email",
+            name="uq_inventory_daily_report_delivery_report_email",
+        ),
+    )
+
+    id: int | None = Field(
+        default=None,
+        sa_column=Column(BigInteger, Identity(always=True), primary_key=True),
+    )
+    report_id: int = Field(
+        sa_column=Column(
+            BigInteger,
+            ForeignKey(
+                "inventory_daily_report.id",
+                name="fk_inventory_daily_report_delivery_report",
+                ondelete="CASCADE",
+            ),
+            nullable=False,
+        )
+    )
+    email: str = Field(max_length=320)
+    status: InventoryDailyReportDeliveryStatus = Field(
+        default=InventoryDailyReportDeliveryStatus.PENDING,
+        sa_type=SAEnum(
+            InventoryDailyReportDeliveryStatus,
+            name="inventory_daily_report_delivery_status",
+        ),  # ty:ignore[invalid-argument-type]
+    )
+    attempt_count: int = Field(default=0)
+    next_attempt_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+    )
+    lease_expires_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+    )
+    last_error_category: str | None = Field(default=None, max_length=64)
+    delivered_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+    )
+    created_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+    )
+    updated_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+    )

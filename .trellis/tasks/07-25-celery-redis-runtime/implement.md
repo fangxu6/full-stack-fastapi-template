@@ -10,8 +10,8 @@
 3. Add `app.core.celery` and `app.core.tasks` with JSON-only Celery settings,
    explicit task discovery, late acknowledgement, single-queue defaults, and
    the bounded `runtime.ping` task.
-4. Add focused eager tests for configuration and the task; do not add an API
-   route, database migration, model, schema, or frontend client change.
+4. Add focused eager tests for configuration and the diagnostic task; do not
+   add an API route or frontend client change.
 5. Add Redis, worker, and Beat to `compose.yml` and mirror the local runtime in
    `compose.override.yml`; wire AOF volume, passwords, health checks, service
    dependencies, fixed worker hostname, and `--concurrency=1`.
@@ -23,6 +23,13 @@
 8. Add the durable asynchronous-task contract to `.trellis/spec/backend/`,
    include it in the backend index, refresh the spec catalog/log, and run its
    link lint.
+9. Add inventory report and per-email delivery tables, a migration, an SMTP
+   HTML template, and `INVENTORY_DAILY_REPORT_RECIPIENTS` validation. Keep
+   snapshots immutable and use BIGINT identities with explicit constraints.
+10. Register the 08:00 Shanghai-time creation and 15-minute retry schedules;
+    use the existing inventory balance aggregation with a date cutoff. Test
+    the delivery lock/claim workflow, recipient recovery, retry cap, cutoff,
+    empty reports, and missed-window skip behavior.
 
 ## Validation
 
@@ -34,6 +41,9 @@
 - Isolated `docker compose` run that waits for Redis, worker, Beat, and the
   existing backend, then dispatches and retrieves `runtime.ping`
 - Existing Docker Compose smoke workflow behavior for backend and frontend
+- Inventory-report tests against an isolated PostgreSQL database, covering the
+  schedule window, immutable snapshots, SMTP success/failure, retry, and
+  recipient configuration recovery
 
 ## Review Points
 
@@ -44,8 +54,8 @@
   volume.
 - The worker receives only JSON-serializable task arguments; no ORM/session
   objects cross the task boundary.
-- No global automatic retries, task routes, outbox tables, alert adapters, or
-  user-notification code is introduced.
+- No global automatic retries, task routes, alert adapters, webhook providers,
+  API, or user-notification code is introduced.
 - No OpenAPI or generated frontend client impact exists.
 
 ## Rollback Points

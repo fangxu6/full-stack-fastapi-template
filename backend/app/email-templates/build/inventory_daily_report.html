@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+  <body style="margin:0;background:#f6f7f9;color:#202124;font-family:Arial,'Microsoft YaHei',sans-serif">
+    <main style="max-width:900px;margin:0 auto;padding:24px">
+      <section style="background:#ffffff;padding:24px;border:1px solid #e1e4e8">
+        <h1 style="font-size:20px;margin:0 0 8px">库存日报</h1>
+        <p style="margin:0 0 20px">{{ processing_unit_name }} | {{ business_date }}</p>
+        <h2 style="font-size:16px;margin:24px 0 8px">原料库存</h2>
+        {% if raw_rows %}
+        <table style="border-collapse:collapse;width:100%;font-size:13px">
+          <thead><tr>{% for label in ['品名', '品号', '含毛量', '匹数'] %}<th style="border:1px solid #dfe3e8;padding:8px;text-align:left;background:#f1f3f5">{{ label }}</th>{% endfor %}</tr></thead>
+          <tbody>{% for row in raw_rows %}<tr><td style="border:1px solid #dfe3e8;padding:8px">{{ row.item_name }}</td><td style="border:1px solid #dfe3e8;padding:8px">{{ row.item_code or '' }}</td><td style="border:1px solid #dfe3e8;padding:8px">{{ row.wool_content }}</td><td style="border:1px solid #dfe3e8;padding:8px">{{ row.rolls_balance }}</td></tr>{% endfor %}</tbody>
+        </table>
+        {% else %}<p>无库存。</p>{% endif %}
+        <h2 style="font-size:16px;margin:24px 0 8px">成品库存</h2>
+        {% if finished_rows %}
+        <table style="border-collapse:collapse;width:100%;font-size:13px">
+          <thead><tr>{% for label in ['品名', '品号', '含毛量', '颜色', '缸号', '匹数', '米数'] %}<th style="border:1px solid #dfe3e8;padding:8px;text-align:left;background:#f1f3f5">{{ label }}</th>{% endfor %}</tr></thead>
+          <tbody>{% for row in finished_rows %}<tr><td style="border:1px solid #dfe3e8;padding:8px">{{ row.item_name }}</td><td style="border:1px solid #dfe3e8;padding:8px">{{ row.item_code or '' }}</td><td style="border:1px solid #dfe3e8;padding:8px">{{ row.wool_content }}</td><td style="border:1px solid #dfe3e8;padding:8px">{{ row.color_code or '' }}</td><td style="border:1px solid #dfe3e8;padding:8px">{{ row.dye_lot_no or '' }}</td><td style="border:1px solid #dfe3e8;padding:8px">{{ row.rolls_balance }}</td><td style="border:1px solid #dfe3e8;padding:8px">{{ row.meters_balance }}</td></tr>{% endfor %}</tbody>
+        </table>
+        {% else %}<p>无库存。</p>{% endif %}
+      </section>
+    </main>
+  </body>
+</html>

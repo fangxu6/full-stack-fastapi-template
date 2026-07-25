@@ -1,4 +1,6 @@
+import json
 import secrets
+import uuid
 import warnings
 from typing import Annotated, Any, Literal, Self
 from urllib.parse import quote
@@ -11,6 +13,7 @@ from pydantic import (
     HttpUrl,
     PostgresDsn,
     computed_field,
+    field_validator,
     model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -22,6 +25,15 @@ def parse_cors(v: Any) -> list[str] | str:
     elif isinstance(v, list | str):
         return v
     raise ValueError(v)
+
+
+def parse_json_mapping(v: Any) -> Any:
+    if not isinstance(v, str):
+        return v
+    try:
+        return json.loads(v)
+    except json.JSONDecodeError as err:
+        raise ValueError("must be valid JSON") from err
 
 
 class Settings(BaseSettings):
@@ -70,6 +82,26 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str
     CELERY_VISIBILITY_TIMEOUT_SECONDS: int = Field(default=3600, gt=0)
     CELERY_RESULT_EXPIRES_SECONDS: int = Field(default=900, gt=0)
+    INVENTORY_DAILY_REPORT_RECIPIENTS: Annotated[
+        dict[uuid.UUID, list[EmailStr]], BeforeValidator(parse_json_mapping)
+    ] = Field(default_factory=dict)
+
+    @field_validator("INVENTORY_DAILY_REPORT_RECIPIENTS")
+    @classmethod
+    def _validate_inventory_daily_report_recipients(
+        cls, value: dict[uuid.UUID, list[EmailStr]]
+    ) -> dict[uuid.UUID, list[EmailStr]]:
+        for recipients in value.values():
+            if not recipients:
+                raise ValueError(
+                    "inventory daily report recipient lists cannot be empty"
+                )
+            normalized = [str(recipient).casefold() for recipient in recipients]
+            if len(set(normalized)) != len(normalized):
+                raise ValueError(
+                    "inventory daily report recipients cannot contain duplicates"
+                )
+        return value
 
     @property
     def celery_broker_url(self) -> str:

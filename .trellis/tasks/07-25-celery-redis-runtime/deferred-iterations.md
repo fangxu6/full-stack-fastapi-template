@@ -16,5 +16,6 @@ future alerting work visible without making it part of this delivery.
 - PostgreSQL alert outbox, delivery/throttle records, and idempotent provider
   state transitions.
 - Email, WeCom, Feishu, DingTalk, and in-app notification adapters.
-- Business trigger rules, routing, escalation, recovery notifications, named
-  queues, higher concurrency, and Beat schedules.
+- Alert business trigger rules, routing, escalation, recovery notifications,
+  named queues, and higher concurrency. The approved daily inventory email
+  schedule is implemented in this task.

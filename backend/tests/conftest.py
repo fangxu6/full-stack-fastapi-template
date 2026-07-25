@@ -17,6 +17,8 @@ from app.models import (
     IamRole,
     IamRolePermission,
     IamUserRole,
+    InventoryDailyReport,
+    InventoryDailyReportDelivery,
     InventoryDocument,
     InventoryDocumentLine,
     InventoryImportBatch,
@@ -71,6 +73,8 @@ def db() -> Generator[Session]:
         for model in (
             AiToolCall,
             AiRun,
+            InventoryDailyReportDelivery,
+            InventoryDailyReport,
             InventoryLedgerEntry,
             InventoryDocumentLine,
             LegacyImportRow,

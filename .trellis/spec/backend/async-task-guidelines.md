@@ -77,3 +77,82 @@ deliver_alert.delay(alert_outbox_id)
 
 The task reloads the durable outbox row and records its idempotent delivery
 transition in PostgreSQL.
+
+## Scenario: Daily Inventory Email Reports
+
+### 1. Scope / Trigger
+
+- Beat creates previous-day reports at 08:00 `Asia/Shanghai`, and scans due
+  email deliveries every 15 minutes.
+- It sends operational reports through existing SMTP only. It adds no API,
+  front-end view, alert provider, or named queue.
+
+### 2. Signatures
+
+- Tasks: `inventory.daily_report.create`, `inventory.daily_report.retry`, and
+  `inventory.daily_report.deliver(delivery_id: int)`.
+- Tables: `inventory_daily_report` and `inventory_daily_report_delivery`.
+- Setting: `INVENTORY_DAILY_REPORT_RECIPIENTS`, a JSON mapping of processing
+  unit UUID to an email list.
+
+### 3. Contracts
+
+- Creation accepts only `[08:00, 08:15)` Shanghai time and records the prior
+  natural day. A missed window is skipped; it is never backfilled.
+- Create one immutable report snapshot for every enabled processing unit,
+  including empty inventories. Snapshot raw materials and finished products
+  separately, keep nonzero balances only, and aggregate ledger rows through
+  `business_date <= report_date`.
+- Validate UUID keys and email values at startup. After the first successful
+  resolution, persist one delivery target per email. A missing mapping remains
+  retryable and is re-read by later scans.
+- Tasks pass only report/delivery IDs, open their own sessions, and lock/claim
+  rows before SMTP. Each email permits eight total attempts; success must not
+  resend. SMTP acceptance followed by worker loss may duplicate mail, so the
+  implementation guarantees at-least-once, not exactly-once, delivery.
+- These are automated operational records with UTC technical timestamps, not
+  user actions; do not fabricate an audit actor.
+
+### 4. Validation And Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| Creation outside the 08:00--08:15 window | Skip without creating or backfilling a report. |
+| No recipient mapping | Persist retryable report failure and retry configuration lookup after 15 minutes. |
+| SMTP delivery fails | Record a safe error category, schedule only that email for retry. |
+| Delivery reaches attempt eight | Mark it terminal; do not queue another attempt. |
+| Worker dies after SMTP accepts mail | A redelivery can duplicate mail; database state must remain recoverable. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a task receives `delivery_id`, claims it, sends one rendered snapshot,
+  then persists the result independently from other recipients.
+- Base: an active unit with no stock still receives an empty report email.
+- Bad: recomputing a report after later ledger correction, sending every
+  recipient in one task, or passing recipient configuration through Celery.
+
+### 6. Tests Required
+
+- Cover configuration parsing, Beat registration/timezone, cutoff aggregation,
+  empty snapshot, immutability, window skip, and unique report creation.
+- Cover individual SMTP success/failure, missing recipients becoming available,
+  retry scans, eight-attempt termination, and no resend after success.
+
+### 7. Wrong Vs Correct
+
+#### Wrong
+
+```python
+send_daily_report.delay(processing_unit_id, report_date, recipients)
+```
+
+This loses durable per-email progress and can recompute a changed balance.
+
+#### Correct
+
+```python
+deliver_inventory_daily_report.delay(delivery_id)
+```
+
+The task reloads and locks a frozen delivery record, then updates its durable
+attempt state after SMTP returns.

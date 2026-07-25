@@ -189,6 +189,10 @@ You can set several other environment variables:
 * `SMTP_USER`: The SMTP server user to send emails.
 * `SMTP_PASSWORD`: The SMTP server password to send emails.
 * `EMAILS_FROM_EMAIL`: The email account to send emails from.
+* `INVENTORY_DAILY_REPORT_RECIPIENTS`: JSON mapping from a processing-unit UUID
+  to its daily inventory report recipients, for example
+  `{"00000000-0000-0000-0000-000000000000":["owner@example.com"]}`. An empty
+  mapping is valid; restart the Celery worker and Beat after changing it.
 * `POSTGRES_SERVER`: The hostname of the PostgreSQL server. You can leave the default of `db`, provided by the same Docker Compose. You normally wouldn't need to change this unless you are using a third-party provider.
 * `POSTGRES_PORT`: The port of the PostgreSQL server. You can leave the default. You normally wouldn't need to change this unless you are using a third-party provider.
 * `POSTGRES_USER`: The Postgres user, you can leave the default.

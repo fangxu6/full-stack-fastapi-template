@@ -654,9 +654,10 @@ def list_balances(
     session: Session,
     ledger_kind: InventoryLedgerKind,
     skip: int,
-    limit: int,
+    limit: int | None,
     processing_unit_id: uuid.UUID | None = None,
     item_name: str | None = None,
+    business_date_to: date | None = None,
 ) -> InventoryBalancesPublic:
     filters: list[Any] = [
         InventoryLedgerEntry.ledger_kind == ledger_kind,
@@ -668,6 +669,8 @@ def list_balances(
         filters.append(
             InventoryLedgerEntry.item_name.ilike(f"%{item_name}%")  # ty:ignore[unresolved-attribute]
         )
+    if business_date_to:
+        filters.append(InventoryLedgerEntry.business_date <= business_date_to)
     balance_columns = (
         InventoryLedgerEntry.processing_unit_id,
         InventoryLedgerEntry.item_name,
@@ -699,11 +702,10 @@ def list_balances(
         )
     )
     count = session.exec(select(func.count()).select_from(aggregate.subquery())).one()
-    rows = list(
-        session.exec(
-            aggregate.order_by(*balance_columns).offset(skip).limit(limit)
-        ).all()
-    )
+    statement = aggregate.order_by(*balance_columns)
+    if limit is not None:
+        statement = statement.offset(skip).limit(limit)
+    rows = list(session.exec(statement).all())
     return InventoryBalancesPublic(
         data=[
             InventoryBalancePublic(
@@ -720,6 +722,23 @@ def list_balances(
         ],
         count=count,
     )
+
+
+def list_balances_as_of(
+    *,
+    session: Session,
+    ledger_kind: InventoryLedgerKind,
+    processing_unit_id: uuid.UUID,
+    business_date: date,
+) -> list[InventoryBalancePublic]:
+    return list_balances(
+        session=session,
+        ledger_kind=ledger_kind,
+        skip=0,
+        limit=None,
+        processing_unit_id=processing_unit_id,
+        business_date_to=business_date,
+    ).data
 
 
 def list_ledger_entries(

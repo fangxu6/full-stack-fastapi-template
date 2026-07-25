@@ -3,6 +3,8 @@ from sqlmodel import SQLModel
 from .ai import AiRun, AiToolCall
 from .iam import IamPermission, IamRole, IamRolePermission, IamUserRole
 from .inventory import (
+    InventoryDailyReport,
+    InventoryDailyReportDelivery,
     InventoryDocument,
     InventoryDocumentLine,
     InventoryImportBatch,
@@ -20,6 +22,8 @@ __all__ = [
     "AiToolCall",
     "InventoryDocument",
     "InventoryDocumentLine",
+    "InventoryDailyReport",
+    "InventoryDailyReportDelivery",
     "InventoryImportBatch",
     "InventoryLedgerEntry",
     "LegacyImportRow",

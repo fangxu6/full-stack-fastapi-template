@@ -2,8 +2,8 @@
 
 ## Goal
 
-为后端提供可部署、可验证的异步任务运行时，作为未来告警投递等跨进程后台工作
-的基础；不在本任务实现具体告警规则、outbox 或通知渠道。
+为后端提供可部署、可验证的异步任务运行时，并交付首个受限业务任务：每日库存
+邮件日报；不在本任务实现告警规则、outbox、Webhook 或用户通知渠道。
 
 ## Confirmed Facts
 
@@ -17,8 +17,8 @@
   传递 ORM 对象、凭据或任意业务载荷。
 - 用户现在明确要求优先引入 Celery 与配套 Redis，覆盖先前“等待首个业务场景”
   的延后决定。
-- 首期同时部署 Celery worker 与 Beat，但不注册任何业务周期性任务；Beat 仅作为
-  已验证的未来调度运行时。
+- 首期同时部署 Celery worker 与 Beat；Beat 在 `Asia/Shanghai` 每日 08:00 创建
+  前一自然日的库存邮件日报，并每 15 分钟扫描可重试投递。
 - Redis 采用 AOF 持久化、命名卷、密码认证和仅内部 Docker 网络的默认策略；不
   映射宿主机端口。
 - 保留私有 `runtime.ping` 诊断任务：仅接收受长度限制的字符串并返回原值，不
@@ -38,15 +38,24 @@
 - Redis broker 可见性超时固定为 `CELERY_VISIBILITY_TIMEOUT_SECONDS=3600`；
   `runtime.ping` 结果使用 `CELERY_RESULT_EXPIRES_SECONDS=900` 自动过期。未来
   超过一小时的任务必须拆分或在其任务设计中重新评估队列语义。
+- 库存日报面向所有启用的加工单位，按 `business_date <= 报表日期` 固化原料与成品
+  的非零库存 JSON 快照；即使库存为空也创建日报。
+- `INVENTORY_DAILY_REPORT_RECIPIENTS` 是“加工单位 UUID -> 邮箱列表”的 JSON 映射。
+  首次成功解析后固化逐邮箱投递目标；缺少映射时保留失败日报，后续重试可重新解析。
+- 日报仅在每日 08:00 至 08:15（上海时间）内创建，错过窗口不补发。单邮箱总尝试
+  最多 8 次，成功或终止状态均可由数据库记录和 Celery 日志追踪。
 
 ## Requirements
 
 - 增加受版本约束的 Celery 与 Redis Python 依赖及类型安全的集中配置。
 - 在生产与本地 Compose 形态中运行 Redis、Celery worker 和 Beat。
-- 任务运行时不改变现有 HTTP API、请求错误协议、前端或数据库业务模型。
+- 任务运行时不改变现有 HTTP API、请求错误协议或前端；库存日报使用独立的
+  `inventory_` 持久化记录，不伪造用户审计人。
 - 提供最小、可重复执行的验证路径，证明任务被 worker 消费，且 Redis 不被用于
   持久业务事实。
 - 保持未来告警设计的边界：具体业务事件仍需独立任务并使用 PostgreSQL outbox。
+- 仅使用现有 SMTP 能力投递库存日报，不增加 API、前端、站内通知、告警适配器或
+  命名队列。
 
 ## Initial Scope Boundary
 
@@ -71,12 +80,16 @@
 - [ ] 后端、worker 与 Beat 的启动、停止、健康检查和失败行为不影响既有 API。
 - [ ] 测试覆盖 eager 单元路径与至少一个隔离的 worker/broker 集成路径。
 - [ ] 没有引入未获批准的告警、outbox 或用户通知功能。
+- [ ] 每日 08:00 上海时间为全部启用加工单位创建前一日库存快照；08:15 后不补发。
+- [ ] 原料与成品的非零库存分别呈现，空库存照常生成并投递日报。
+- [ ] 每个邮箱独立追踪投递、最多八次尝试，缺少收件人或 SMTP 失败可按 15 分钟
+  间隔重试，且已成功邮箱不重复发送。
 
 ## Deferred Work
 
 See [deferred iterations](./deferred-iterations.md) for the scope register.
 
-- 具体告警事件、PostgreSQL outbox、渠道适配器、重试策略和任务路由仍由后续
-  业务任务拥有；本任务不创建它们。
+- 具体告警事件、PostgreSQL outbox、Webhook 渠道适配器、升级策略和任务路由仍由
+  后续业务任务拥有；本任务不创建它们。
 - 告警队列或其他命名队列、提高并发、结果长期保留、任务优先级和任务级时间
   限制都需要真实负载或业务需求后单独评审。

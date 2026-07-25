@@ -184,3 +184,7 @@ Added backend async-task rules for Celery task payloads, Redis configuration, re
 ## [2026-07-25 14:57:59] update | Remove container-specific requirements from active specs
 
 Active AI sidecar, async runtime, and feature specifications now describe runtime-neutral contracts only.
+
+## [2026-07-25 16:07:33] update | Document inventory daily email reports
+
+Document the Shanghai schedule window, immutable inventory snapshot, recipient mapping, and per-email retry contract.

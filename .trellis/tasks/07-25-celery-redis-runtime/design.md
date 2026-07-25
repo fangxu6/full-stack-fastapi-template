@@ -2,10 +2,11 @@
 
 ## Scope
 
-Add a minimal asynchronous task runtime to the FastAPI deployment without
-adding a business task, public API, outbox, notification channel, or scheduled
-business work. The only task is `runtime.ping`, a bounded diagnostic task used
-to verify the worker/broker path.
+Add a minimal asynchronous task runtime to the FastAPI deployment, plus one
+bounded scheduled business task: daily inventory email reports. The runtime
+still adds no public API, alert outbox, webhook channel, or user notification.
+`runtime.ping` remains the diagnostic task for verifying the worker/broker
+path.
 
 ## Architecture
 
@@ -15,13 +16,14 @@ backend or diagnostic command
   -> celery-worker (one prefork process)
   -> runtime.ping result (Redis database 1, expires after 900 seconds)
 
-celery-beat (no scheduled entries)
-  -> future task schedules only after an approved task design
+celery-beat (Asia/Shanghai)
+  -> 08:00 create prior-day inventory snapshots
+  -> every 15 minutes queue due per-email deliveries
 ```
 
 Redis is an internal broker and short-lived result backend, not a source of
-business truth. Future alert delivery persists its state in PostgreSQL outbox
-tables and sends only an outbox/delivery identifier through Celery.
+business truth. Inventory report and delivery state is persisted in PostgreSQL;
+tasks pass only those row identifiers through Celery.
 
 ## Runtime Boundaries
 
@@ -38,6 +40,30 @@ tables and sends only an outbox/delivery identifier through Celery.
 - Do not expose an HTTP route for dispatching or inspecting tasks.
 - A future bounded module, such as `modules/alerting`, owns its task functions
   and explicit retry policy; it must not put business tasks into `core/tasks.py`.
+- `modules/inventory/tasks.py` owns `inventory.daily_report.create`,
+  `inventory.daily_report.retry`, and `inventory.daily_report.deliver`. Each
+  task creates its own database session and receives only a report or delivery
+  ID.
+
+### Daily Inventory Report
+
+- Beat runs creation at 08:00 `Asia/Shanghai`; creation accepts only the
+  `[08:00, 08:15)` window and targets the preceding natural date. A missed
+  window is intentionally skipped rather than backfilled.
+- One `inventory_daily_report` row per processing unit and business date holds
+  its name plus immutable raw-material and finished-product balance snapshots.
+  Balances use the existing ledger aggregation with `business_date <= report
+  date`; each category contains only nonzero rows, while an entirely empty
+  report remains valid.
+- The environment-only recipient mapping is validated at startup. On its first
+  successful lookup, recipient email targets are persisted as
+  `inventory_daily_report_delivery` rows. Missing mappings remain retryable so
+  a later deployment configuration change can supply them.
+- Each delivery row is claimed under a database lock, sent with the existing
+  SMTP implementation, then marked successful or retryable. It permits eight
+  total attempts at 15-minute intervals. A process failure after SMTP accepts
+  mail may duplicate an email; the persisted state prevents silent loss and
+  does not claim exactly-once delivery.
 
 ### Settings
 
@@ -131,6 +157,6 @@ See [deferred iterations](./deferred-iterations.md) for the scope register.
 
 The approved alert design remains the follow-up reference. It owns
 `alert_outbox`, `alert_delivery`, `alert_throttle`, provider adapters, routing,
-per-task retry policy, and Beat schedules. Named queues, higher concurrency,
-long-running tasks, priorities, and user-facing notifications require their
+and escalation policy. Named queues, higher concurrency, long-running tasks,
+priorities, recovery reminders, and user-facing notifications require their
 own task and load/operational review.
