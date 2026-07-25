@@ -4,19 +4,49 @@ from pydantic import ValidationError
 from app.core.config import Settings
 
 
-def test_ai_enabled_requires_internal_backend_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
+def make_settings(**overrides: object) -> Settings:
+    values: dict[str, object] = {
+        "FIRST_SUPERUSER": "test@example.com",
+        "FIRST_SUPERUSER_PASSWORD": "test-password",
+        "POSTGRES_SERVER": "localhost",
+        "POSTGRES_USER": "test",
+        "PROJECT_NAME": "test",
+        "REDIS_PASSWORD": "test-password",
+    }
+    values.update(overrides)
+    return Settings(_env_file=None, **values)
+
+
+def test_ai_enabled_requires_internal_backend_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("AI_ORCHESTRATOR_URL", raising=False)
     monkeypatch.delenv("AI_ORCHESTRATOR_SERVICE_TOKEN", raising=False)
     monkeypatch.delenv("AI_INTERNAL_SERVICE_TOKEN", raising=False)
     monkeypatch.delenv("AI_ACTOR_GRANT_SIGNING_KEY", raising=False)
 
     with pytest.raises(ValidationError, match="AI_ENABLED requires"):
-        Settings(
-            _env_file=None,
-            AI_ENABLED=True,
-            FIRST_SUPERUSER="test@example.com",
-            FIRST_SUPERUSER_PASSWORD="test-password",
-            POSTGRES_SERVER="localhost",
-            POSTGRES_USER="test",
-            PROJECT_NAME="test",
-        )
+        make_settings(AI_ENABLED=True)
+
+
+def test_celery_urls_percent_encode_the_redis_password() -> None:
+    settings = make_settings(REDIS_PASSWORD="pass:/@word")
+
+    assert settings.celery_broker_url == "redis://:pass%3A%2F%40word@redis:6379/0"
+    assert (
+        settings.celery_result_backend_url == "redis://:pass%3A%2F%40word@redis:6379/1"
+    )
+
+
+@pytest.mark.parametrize(
+    "setting_name",
+    ["CELERY_VISIBILITY_TIMEOUT_SECONDS", "CELERY_RESULT_EXPIRES_SECONDS"],
+)
+def test_celery_timeouts_must_be_positive(setting_name: str) -> None:
+    with pytest.raises(ValidationError, match="greater than 0"):
+        make_settings(**{setting_name: 0})
+
+
+def test_redis_password_cannot_use_the_default_outside_local() -> None:
+    with pytest.raises(ValidationError, match="REDIS_PASSWORD"):
+        make_settings(ENVIRONMENT="production", REDIS_PASSWORD="changethis")

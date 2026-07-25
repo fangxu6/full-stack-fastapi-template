@@ -79,6 +79,7 @@ The existing frontend route-permission-navigation contract is the local example:
 ## Spec File Inventory
 
 - [AI Inventory Sidecar Contract](./ai-sidecar-contract.md)
+- [Async Task Runtime Guidelines](./backend/async-task-guidelines.md)
 - [Database Guidelines](./backend/database-guidelines.md)
 - [Directory Structure](./backend/directory-structure.md)
 - [Error Handling](./backend/error-handling.md)

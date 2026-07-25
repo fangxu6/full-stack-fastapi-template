@@ -19,9 +19,11 @@ jobs:
           persist-credentials: false
       - run: docker compose build
       - run: docker compose down -v --remove-orphans
-      - run: docker compose up -d --wait backend frontend adminer
+      - run: docker compose up -d --wait backend frontend adminer redis celery-worker celery-beat
       - name: Test backend is up
         run: curl http://localhost:8000/api/v1/utils/health-check
       - name: Test frontend is up
         run: curl http://localhost:5173
+      - name: Test Celery worker and Redis broker
+        run: docker compose exec -T backend python -c "from app.core.celery import celery_app; result = celery_app.send_task('runtime.ping', args=['compose-ping']); assert result.get(timeout=10) == 'compose-ping'"
       - run: docker compose down -v --remove-orphans

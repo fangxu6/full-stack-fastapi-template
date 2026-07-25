@@ -50,6 +50,9 @@ services:
     ports:
       - "5432:5432"
 
+  redis:
+    restart: "no"
+
   adminer:
     restart: "no"
     ports:
@@ -89,6 +92,12 @@ services:
       SMTP_PORT: "1025"
       SMTP_TLS: "false"
       EMAILS_FROM_EMAIL: "noreply@example.com"
+
+  celery-worker:
+    restart: "no"
+
+  celery-beat:
+    restart: "no"
 
   mailcatcher:
     image: schickling/mailcatcher

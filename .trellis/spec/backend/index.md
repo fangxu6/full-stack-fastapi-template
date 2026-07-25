@@ -26,6 +26,7 @@ Future work should preserve that direction instead of drifting back toward route
 | [Type Safety](./type-safety.md) | Python 3.14, SQLModel/Pydantic, service signatures, and generated-client impact | Customized |
 | [Quality Guidelines](./quality-guidelines.md) | Review rules, forbidden regressions, validation expectations | Customized |
 | [Logging Guidelines](./logging-guidelines.md) | Structlog pipeline, request correlation, redaction, and operational-event contracts | Customized |
+| [Async Task Runtime](./async-task-guidelines.md) | Celery/Redis task boundaries, configuration, and verification | Customized |
 
 ---
 
@@ -36,6 +37,7 @@ Future work should preserve that direction instead of drifting back toward route
 3. Read [Type Safety](./type-safety.md) before changing public schemas, service signatures, UUID/datetime behavior, or OpenAPI-visible payloads.
 4. Read [Error Handling](./error-handling.md) and [Logging Guidelines](./logging-guidelines.md) before changing API or service behavior.
 5. Use [Quality Guidelines](./quality-guidelines.md) as the final backend review checklist.
+6. Read [Async Task Runtime](./async-task-guidelines.md) before adding or dispatching Celery tasks.
 
 ### Trigger-Based Routing
 

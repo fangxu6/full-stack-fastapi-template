@@ -153,6 +153,12 @@ Set the `POSTGRES_PASSWORD` to something different than `changethis`:
 export POSTGRES_PASSWORD="changethis"
 ```
 
+Set the `REDIS_PASSWORD` to a separate value different than `changethis`:
+
+```bash
+export REDIS_PASSWORD="changethis"
+```
+
 Set the `SECRET_KEY`, used to sign tokens:
 
 ```bash
@@ -308,6 +314,7 @@ The current Github Actions workflows expect these secrets:
 * `FIRST_SUPERUSER`
 * `FIRST_SUPERUSER_PASSWORD`
 * `POSTGRES_PASSWORD`
+* `REDIS_PASSWORD`
 * `SECRET_KEY`
 * `LATEST_CHANGES`
 * `SMOKESHOW_AUTH_KEY`

@@ -1,11 +1,13 @@
 import secrets
 import warnings
 from typing import Annotated, Any, Literal, Self
+from urllib.parse import quote
 
 from pydantic import (
     AnyUrl,
     BeforeValidator,
     EmailStr,
+    Field,
     HttpUrl,
     PostgresDsn,
     computed_field,
@@ -63,6 +65,21 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = ""
+    REDIS_HOST: str = "redis"
+    REDIS_PORT: int = 6379
+    REDIS_PASSWORD: str
+    CELERY_VISIBILITY_TIMEOUT_SECONDS: int = Field(default=3600, gt=0)
+    CELERY_RESULT_EXPIRES_SECONDS: int = Field(default=900, gt=0)
+
+    @property
+    def celery_broker_url(self) -> str:
+        password = quote(self.REDIS_PASSWORD, safe="")
+        return f"redis://:{password}@{self.REDIS_HOST}:{self.REDIS_PORT}/0"
+
+    @property
+    def celery_result_backend_url(self) -> str:
+        password = quote(self.REDIS_PASSWORD, safe="")
+        return f"redis://:{password}@{self.REDIS_HOST}:{self.REDIS_PORT}/1"
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -117,6 +134,7 @@ class Settings(BaseSettings):
     def _enforce_non_default_secrets(self) -> Self:
         self._check_default_secret("SECRET_KEY", self.SECRET_KEY)
         self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)
+        self._check_default_secret("REDIS_PASSWORD", self.REDIS_PASSWORD)
         self._check_default_secret(
             "FIRST_SUPERUSER_PASSWORD", self.FIRST_SUPERUSER_PASSWORD
         )

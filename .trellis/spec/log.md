@@ -176,3 +176,7 @@ IAM bootstrap initialization failures now emit only iam_bootstrap and carry an a
 ## [2026-07-24 14:38:44] update | Correlate CORS preflight requests
 
 Request correlation now uses an outer pure ASGI middleware so CORS OPTIONS preflights receive X-Request-ID and safe sampled HTTP telemetry without buffering responses.
+
+## [2026-07-25 13:11:30] feature | Document Celery and Redis runtime contract
+
+Added backend async-task rules for Celery task payloads, Redis configuration, retry ownership, and Compose verification.
