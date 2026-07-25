@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 10
-- **Last Active**: 2026-07-23
+- **Total Sessions**: 11
+- **Last Active**: 2026-07-25
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~345 | Active |
+| `journal-1.md` | ~378 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 11 | 2026-07-25 | 定义未来告警契约 | `efb238b` | `master` |
 | 10 | 2026-07-23 | Implement structured observability | `e369923` | `master` |
 | 9 | 2026-07-23 | 清理存量厚路由并统一路由结构 | `ded9537`, `b44644e` | `master` |
 | 8 | 2026-07-23 | 完成路由质量策略与 RBAC 修复 | `7ea51b2`, `4d41059` | `master` |

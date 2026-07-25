@@ -343,3 +343,36 @@ Added structlog NDJSON events, request correlation, safe dependency/startup tele
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: 定义未来告警契约
+
+**Date**: 2026-07-25
+**Task**: 定义未来告警契约
+**Branch**: `master`
+
+### Summary
+
+评估并批准未来运维告警设计：业务触发、Webhook 主通道与邮件兜底；首个具体场景再引入 Celery、Redis 和 PostgreSQL outbox。明确区分运维告警与应用用户待办通知，并归档评估任务。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `efb238b` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
