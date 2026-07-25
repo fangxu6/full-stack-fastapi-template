@@ -60,6 +60,18 @@ An inventory read contract that returns the current complete API field set to
 an allowed User without role-based field redaction.
 _Avoid_: UI-only masking, implied sensitive-field policy
 
+**Operational Alert**:
+A time-sensitive notification to an accountable operations or business owner
+after an approved abnormal business condition. It is separate from application
+user messaging and does not itself establish acknowledgement or escalation.
+_Avoid_: ordinary user notification, audit record, unowned log event
+
+**User Work Notification**:
+A notification presented to an application User about a task they may need to
+complete. It is not a substitute for an Operational Alert to a responsible
+on-call group.
+_Avoid_: on-call alert, delivery retry record
+
 ## Relationships
 
 - A **Business Identifier** may identify an operational document to people but
@@ -79,6 +91,9 @@ _Avoid_: UI-only masking, implied sensitive-field policy
   Access** until a later data-scope policy explicitly narrows it.
 - An allowed inventory reader receives **Full Inventory Field Visibility**
   until a future field-level policy changes the API contract.
+- An **Operational Alert** targets an accountable responder, while a **User
+  Work Notification** targets an application User and has separate read-state
+  and preference semantics.
 
 ## Example Dialogue
 
