@@ -376,3 +376,36 @@ Added structlog NDJSON events, request correlation, safe dependency/startup tele
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: Add daily inventory email reports
+
+**Date**: 2026-07-25
+**Task**: Add daily inventory email reports
+**Branch**: `master`
+
+### Summary
+
+Implemented scheduled prior-day inventory report snapshots, per-recipient SMTP delivery retries, migration, configuration, documentation, and full verification.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `db4c591` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
