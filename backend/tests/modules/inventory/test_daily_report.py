@@ -25,6 +25,7 @@ from app.models.inventory import (
     InventoryMovementType,
 )
 from app.models.user import User
+from app.modules.inventory.config import inventory_settings
 from app.modules.inventory.daily_report import (
     DAILY_REPORT_MAX_ATTEMPTS,
     DAILY_REPORT_TIMEZONE,
@@ -241,14 +242,14 @@ def test_missing_recipients_retry_after_configuration_is_added(
     unit = _create_processing_unit(session=db, user=user)
     now = _scheduled_now(date(2026, 7, 25))
     create_daily_reports(session=db, now=now)
-    monkeypatch.setattr(settings, "INVENTORY_DAILY_REPORT_RECIPIENTS", {})
+    monkeypatch.setattr(inventory_settings, "INVENTORY_DAILY_REPORT_RECIPIENTS", {})
 
     assert queue_due_daily_report_deliveries(session=db, now=now) == []
     report = _report_for_unit(db, unit)
     assert report.status is InventoryDailyReportStatus.RETRY_WAIT
     assert report.resolution_attempt_count == 1
     monkeypatch.setattr(
-        settings,
+        inventory_settings,
         "INVENTORY_DAILY_REPORT_RECIPIENTS",
         {unit.id: ["daily@example.com"]},
     )
@@ -261,7 +262,7 @@ def test_missing_recipients_retry_after_configuration_is_added(
     db.refresh(report)
     assert report.recipients_resolved_at is not None
     monkeypatch.setattr(
-        settings,
+        inventory_settings,
         "INVENTORY_DAILY_REPORT_RECIPIENTS",
         {unit.id: ["changed@example.com"]},
     )
@@ -283,7 +284,7 @@ def test_delivery_retries_only_the_failed_recipient(
     now = _scheduled_now(date(2026, 7, 25))
     create_daily_reports(session=db, now=now)
     monkeypatch.setattr(
-        settings,
+        inventory_settings,
         "INVENTORY_DAILY_REPORT_RECIPIENTS",
         {unit.id: ["good@example.com", "bad@example.com"]},
     )
@@ -331,7 +332,7 @@ def test_delivery_stops_after_eight_attempts(
     now = _scheduled_now(date(2026, 7, 25))
     create_daily_reports(session=db, now=now)
     monkeypatch.setattr(
-        settings,
+        inventory_settings,
         "INVENTORY_DAILY_REPORT_RECIPIENTS",
         {unit.id: ["daily@example.com"]},
     )

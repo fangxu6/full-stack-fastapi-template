@@ -16,6 +16,7 @@ from app.models.inventory import (
     InventoryLedgerKind,
     ProcessingUnit,
 )
+from app.modules.inventory.config import inventory_settings
 from app.modules.inventory.service import list_balances_as_of
 from app.utils import render_email_template, send_email
 
@@ -148,7 +149,7 @@ def _mark_missing_recipients(report: InventoryDailyReport, now: datetime) -> Non
 def _resolve_report_recipients(
     *, session: Session, report: InventoryDailyReport, now: datetime
 ) -> None:
-    recipients = settings.INVENTORY_DAILY_REPORT_RECIPIENTS.get(
+    recipients = inventory_settings.INVENTORY_DAILY_REPORT_RECIPIENTS.get(
         report.processing_unit_id, []
     )
     if not recipients:
