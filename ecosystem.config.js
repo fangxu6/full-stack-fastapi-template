@@ -27,6 +27,34 @@ module.exports = {
       env: {
         VITE_API_URL: "http://localhost:8000"
       }
+    },
+    {
+      name: "fsft-celery-worker",
+      cwd: "D:/Workspace/full-stack-fastapi-template/backend",
+      script: "cmd",
+      args: "/c D:/Workspace/full-stack-fastapi-template/.venv/Scripts/celery.exe -A app.core.celery:celery_app worker --concurrency=1",
+      interpreter: "none",
+      min_uptime: 5000,
+      max_restarts: 10,
+      restart_delay: 3000,
+      time: true,
+      env: {
+        PYTHONUNBUFFERED: "1"
+      }
+    },
+    {
+      name: "fsft-celery-beat",
+      cwd: "D:/Workspace/full-stack-fastapi-template/backend",
+      script: "cmd",
+      args: "/c D:/Workspace/full-stack-fastapi-template/.venv/Scripts/celery.exe -A app.core.celery:celery_app beat",
+      interpreter: "none",
+      min_uptime: 5000,
+      max_restarts: 10,
+      restart_delay: 3000,
+      time: true,
+      env: {
+        PYTHONUNBUFFERED: "1"
+      }
     }
   ]
 }
