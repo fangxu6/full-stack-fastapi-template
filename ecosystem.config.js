@@ -11,7 +11,8 @@ module.exports = {
       restart_delay: 3000,
       time: true,
       env: {
-        PYTHONUNBUFFERED: "1"
+        PYTHONUNBUFFERED: "1",
+        REDIS_HOST: "127.0.0.1"
       }
     },
     {
@@ -32,14 +33,15 @@ module.exports = {
       name: "fsft-celery-worker",
       cwd: "D:/Workspace/full-stack-fastapi-template/backend",
       script: "cmd",
-      args: "/c D:/Workspace/full-stack-fastapi-template/.venv/Scripts/celery.exe -A app.core.celery:celery_app worker --concurrency=1",
+      args: "/c D:/Workspace/full-stack-fastapi-template/.venv/Scripts/celery.exe -A app.core.celery:celery_app worker --pool=solo --concurrency=1",
       interpreter: "none",
       min_uptime: 5000,
       max_restarts: 10,
       restart_delay: 3000,
       time: true,
       env: {
-        PYTHONUNBUFFERED: "1"
+        PYTHONUNBUFFERED: "1",
+        REDIS_HOST: "127.0.0.1"
       }
     },
     {

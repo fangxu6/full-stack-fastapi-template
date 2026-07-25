@@ -18,6 +18,10 @@ celery_app.conf.update(
         "visibility_timeout": settings.CELERY_VISIBILITY_TIMEOUT_SECONDS
     },
     beat_schedule={
+        "runtime-daily-test-email": {
+            "task": "runtime.send_test_email",
+            "schedule": crontab(hour=9, minute=0),
+        },
         "inventory-daily-report-create": {
             "task": "inventory.daily_report.create",
             "schedule": crontab(hour=8, minute=0),
