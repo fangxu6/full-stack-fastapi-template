@@ -261,6 +261,85 @@ export type RuleDocumentSummary = {
     path: string;
 };
 
+export type SchedulerJobCreate = {
+    name: string;
+    class_path: string;
+    cron_expression: string;
+    config?: {
+        [key: string]: unknown;
+    };
+};
+
+export type SchedulerJobPublic = {
+    id: number;
+    name: string;
+    class_path: string;
+    cron_expression: string;
+    config: {
+        [key: string]: unknown;
+    };
+    enabled: boolean;
+    next_run_at: string;
+    deleted_at: (string | null);
+    created_at: string;
+    created_by: string;
+    updated_at: string;
+    updated_by: string;
+};
+
+export type SchedulerJobsPublic = {
+    data: Array<SchedulerJobPublic>;
+    count: number;
+};
+
+export type SchedulerJobUpdate = {
+    name?: (string | null);
+    class_path?: (string | null);
+    cron_expression?: (string | null);
+    config?: ({
+    [key: string]: unknown;
+} | null);
+};
+
+export type SchedulerRunBackfill = {
+    planned_at: string;
+};
+
+export type SchedulerRunPublic = {
+    id: number;
+    job_id: number;
+    status: SchedulerRunStatus;
+    trigger: SchedulerRunTrigger;
+    planned_at: string;
+    class_path: string;
+    config: {
+        [key: string]: unknown;
+    };
+    requested_by: (string | null);
+    created_at: string;
+    started_at: (string | null);
+    finished_at: (string | null);
+    attempt_count: number;
+    error_category: (string | null);
+    error_summary: (string | null);
+};
+
+export type SchedulerRunsPublic = {
+    data: Array<SchedulerRunPublic>;
+    count: number;
+};
+
+export type SchedulerRunStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED' | 'CANCELLED';
+
+export type SchedulerRunTrigger = 'SCHEDULED' | 'MANUAL_NOW' | 'MANUAL_BACKFILL';
+
+export type SchedulerTaskSchemaPublic = {
+    class_path: string;
+    json_schema: {
+        [key: string]: unknown;
+    };
+};
+
 export type Token = {
     access_token: string;
     token_type?: string;
@@ -582,6 +661,86 @@ export type PrivateCreateUserData = {
 };
 
 export type PrivateCreateUserResponse = (UserPublic);
+
+export type SchedulerReadJobsData = {
+    includeDeleted?: boolean;
+    limit?: number;
+    skip?: number;
+};
+
+export type SchedulerReadJobsResponse = (SchedulerJobsPublic);
+
+export type SchedulerCreateJobData = {
+    requestBody: SchedulerJobCreate;
+};
+
+export type SchedulerCreateJobResponse = (SchedulerJobPublic);
+
+export type SchedulerReadJobData = {
+    jobId: number;
+};
+
+export type SchedulerReadJobResponse = (SchedulerJobPublic);
+
+export type SchedulerUpdateJobData = {
+    jobId: number;
+    requestBody: SchedulerJobUpdate;
+};
+
+export type SchedulerUpdateJobResponse = (SchedulerJobPublic);
+
+export type SchedulerDeleteJobData = {
+    jobId: number;
+};
+
+export type SchedulerDeleteJobResponse = ({
+    [key: string]: (string);
+});
+
+export type SchedulerEnableJobData = {
+    jobId: number;
+};
+
+export type SchedulerEnableJobResponse = (SchedulerJobPublic);
+
+export type SchedulerDisableJobData = {
+    jobId: number;
+};
+
+export type SchedulerDisableJobResponse = (SchedulerJobPublic);
+
+export type SchedulerRestoreJobData = {
+    jobId: number;
+};
+
+export type SchedulerRestoreJobResponse = (SchedulerJobPublic);
+
+export type SchedulerRunNowData = {
+    jobId: number;
+};
+
+export type SchedulerRunNowResponse = (SchedulerRunPublic);
+
+export type SchedulerBackfillData = {
+    jobId: number;
+    requestBody: SchedulerRunBackfill;
+};
+
+export type SchedulerBackfillResponse = (SchedulerRunPublic);
+
+export type SchedulerReadRunsData = {
+    jobId: number;
+    limit?: number;
+    skip?: number;
+};
+
+export type SchedulerReadRunsResponse = (SchedulerRunsPublic);
+
+export type SchedulerReadTaskSchemaData = {
+    classPath: string;
+};
+
+export type SchedulerReadTaskSchemaResponse = (SchedulerTaskSchemaPublic);
 
 export type UsersReadUsersData = {
     limit?: number;

@@ -20,6 +20,7 @@ import { Route as LayoutRulesRouteImport } from './routes/_layout/rules'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutForbiddenRouteImport } from './routes/_layout/forbidden'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as LayoutSchedulerJobsRouteImport } from './routes/_layout/scheduler/jobs'
 import { Route as LayoutInventoryShipmentsRouteImport } from './routes/_layout/inventory/shipments'
 import { Route as LayoutInventoryRawRouteImport } from './routes/_layout/inventory/raw'
 import { Route as LayoutInventoryMastersRouteImport } from './routes/_layout/inventory/masters'
@@ -80,6 +81,11 @@ const LayoutAdminRoute = LayoutAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutSchedulerJobsRoute = LayoutSchedulerJobsRouteImport.update({
+  id: '/scheduler/jobs',
+  path: '/scheduler/jobs',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutInventoryShipmentsRoute =
   LayoutInventoryShipmentsRouteImport.update({
     id: '/inventory/shipments',
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/inventory/masters': typeof LayoutInventoryMastersRoute
   '/inventory/raw': typeof LayoutInventoryRawRoute
   '/inventory/shipments': typeof LayoutInventoryShipmentsRoute
+  '/scheduler/jobs': typeof LayoutSchedulerJobsRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/inventory/masters': typeof LayoutInventoryMastersRoute
   '/inventory/raw': typeof LayoutInventoryRawRoute
   '/inventory/shipments': typeof LayoutInventoryShipmentsRoute
+  '/scheduler/jobs': typeof LayoutSchedulerJobsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/_layout/inventory/masters': typeof LayoutInventoryMastersRoute
   '/_layout/inventory/raw': typeof LayoutInventoryRawRoute
   '/_layout/inventory/shipments': typeof LayoutInventoryShipmentsRoute
+  '/_layout/scheduler/jobs': typeof LayoutSchedulerJobsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/inventory/masters'
     | '/inventory/raw'
     | '/inventory/shipments'
+    | '/scheduler/jobs'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/inventory/masters'
     | '/inventory/raw'
     | '/inventory/shipments'
+    | '/scheduler/jobs'
   id:
     | '__root__'
     | '/_layout'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/_layout/inventory/masters'
     | '/_layout/inventory/raw'
     | '/_layout/inventory/shipments'
+    | '/_layout/scheduler/jobs'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -302,6 +314,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/scheduler/jobs': {
+      id: '/_layout/scheduler/jobs'
+      path: '/scheduler/jobs'
+      fullPath: '/scheduler/jobs'
+      preLoaderRoute: typeof LayoutSchedulerJobsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/inventory/shipments': {
       id: '/_layout/inventory/shipments'
       path: '/inventory/shipments'
@@ -363,6 +382,7 @@ interface LayoutRouteChildren {
   LayoutInventoryMastersRoute: typeof LayoutInventoryMastersRoute
   LayoutInventoryRawRoute: typeof LayoutInventoryRawRoute
   LayoutInventoryShipmentsRoute: typeof LayoutInventoryShipmentsRoute
+  LayoutSchedulerJobsRoute: typeof LayoutSchedulerJobsRoute
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
@@ -376,6 +396,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutInventoryMastersRoute: LayoutInventoryMastersRoute,
   LayoutInventoryRawRoute: LayoutInventoryRawRoute,
   LayoutInventoryShipmentsRoute: LayoutInventoryShipmentsRoute,
+  LayoutSchedulerJobsRoute: LayoutSchedulerJobsRoute,
 }
 
 const LayoutRouteWithChildren =

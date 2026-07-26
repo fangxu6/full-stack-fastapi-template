@@ -1287,6 +1287,351 @@ export const RuleDocumentsPublicSchema = {
     title: 'RuleDocumentsPublic'
 } as const;
 
+export const SchedulerJobCreateSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 128,
+            minLength: 1,
+            title: 'Name'
+        },
+        class_path: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Class Path'
+        },
+        cron_expression: {
+            type: 'string',
+            maxLength: 128,
+            minLength: 1,
+            title: 'Cron Expression'
+        },
+        config: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Config'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['name', 'class_path', 'cron_expression'],
+    title: 'SchedulerJobCreate'
+} as const;
+
+export const SchedulerJobPublicSchema = {
+    properties: {
+        id: {
+            type: 'integer',
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        class_path: {
+            type: 'string',
+            title: 'Class Path'
+        },
+        cron_expression: {
+            type: 'string',
+            title: 'Cron Expression'
+        },
+        config: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Config'
+        },
+        enabled: {
+            type: 'boolean',
+            title: 'Enabled'
+        },
+        next_run_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Next Run At'
+        },
+        deleted_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Deleted At'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        created_by: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Created By'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        },
+        updated_by: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Updated By'
+        }
+    },
+    type: 'object',
+    required: ['id', 'name', 'class_path', 'cron_expression', 'config', 'enabled', 'next_run_at', 'deleted_at', 'created_at', 'created_by', 'updated_at', 'updated_by'],
+    title: 'SchedulerJobPublic'
+} as const;
+
+export const SchedulerJobUpdateSchema = {
+    properties: {
+        name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 128,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        class_path: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Class Path'
+        },
+        cron_expression: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 128,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cron Expression'
+        },
+        config: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Config'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    title: 'SchedulerJobUpdate'
+} as const;
+
+export const SchedulerJobsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/SchedulerJobPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'SchedulerJobsPublic'
+} as const;
+
+export const SchedulerRunBackfillSchema = {
+    properties: {
+        planned_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Planned At'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['planned_at'],
+    title: 'SchedulerRunBackfill'
+} as const;
+
+export const SchedulerRunPublicSchema = {
+    properties: {
+        id: {
+            type: 'integer',
+            title: 'Id'
+        },
+        job_id: {
+            type: 'integer',
+            title: 'Job Id'
+        },
+        status: {
+            '$ref': '#/components/schemas/SchedulerRunStatus'
+        },
+        trigger: {
+            '$ref': '#/components/schemas/SchedulerRunTrigger'
+        },
+        planned_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Planned At'
+        },
+        class_path: {
+            type: 'string',
+            title: 'Class Path'
+        },
+        config: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Config'
+        },
+        requested_by: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Requested By'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        started_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Started At'
+        },
+        finished_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Finished At'
+        },
+        attempt_count: {
+            type: 'integer',
+            title: 'Attempt Count'
+        },
+        error_category: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Error Category'
+        },
+        error_summary: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Error Summary'
+        }
+    },
+    type: 'object',
+    required: ['id', 'job_id', 'status', 'trigger', 'planned_at', 'class_path', 'config', 'requested_by', 'created_at', 'started_at', 'finished_at', 'attempt_count', 'error_category', 'error_summary'],
+    title: 'SchedulerRunPublic'
+} as const;
+
+export const SchedulerRunStatusSchema = {
+    type: 'string',
+    enum: ['QUEUED', 'RUNNING', 'SUCCEEDED', 'FAILED', 'SKIPPED', 'CANCELLED'],
+    title: 'SchedulerRunStatus'
+} as const;
+
+export const SchedulerRunTriggerSchema = {
+    type: 'string',
+    enum: ['SCHEDULED', 'MANUAL_NOW', 'MANUAL_BACKFILL'],
+    title: 'SchedulerRunTrigger'
+} as const;
+
+export const SchedulerRunsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/SchedulerRunPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'SchedulerRunsPublic'
+} as const;
+
+export const SchedulerTaskSchemaPublicSchema = {
+    properties: {
+        class_path: {
+            type: 'string',
+            title: 'Class Path'
+        },
+        json_schema: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Json Schema'
+        }
+    },
+    type: 'object',
+    required: ['class_path', 'json_schema'],
+    title: 'SchedulerTaskSchemaPublic'
+} as const;
+
 export const TokenSchema = {
     properties: {
         access_token: {

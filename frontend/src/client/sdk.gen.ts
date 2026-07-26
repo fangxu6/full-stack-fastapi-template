@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { AiQueryInventoryData, AiQueryInventoryResponse, DocsReadRuleDocumentsResponse, DocsReadRuleDocumentData, DocsReadRuleDocumentResponse, IamReadMyPermissionsResponse, IamReadPermissionCatalogResponse, IamReadRolesResponse, IamCreateRoleData, IamCreateRoleResponse, IamUpdateRoleData, IamUpdateRoleResponse, IamDeleteRoleData, IamDeleteRoleResponse, IamReplaceRolePermissionsData, IamReplaceRolePermissionsResponse, IamReplaceUserRolesData, IamReplaceUserRolesResponse, InventoryReadProcessingUnitsData, InventoryReadProcessingUnitsResponse, InventoryCreateProcessingUnitData, InventoryCreateProcessingUnitResponse, InventoryUpdateProcessingUnitData, InventoryUpdateProcessingUnitResponse, InventoryReadReceivingUnitsData, InventoryReadReceivingUnitsResponse, InventoryCreateReceivingUnitData, InventoryCreateReceivingUnitResponse, InventoryUpdateReceivingUnitData, InventoryUpdateReceivingUnitResponse, InventoryCreateInventoryDocumentData, InventoryCreateInventoryDocumentResponse, InventoryReadInventoryDocumentsData, InventoryReadInventoryDocumentsResponse, InventoryReadInventoryDocumentData, InventoryReadInventoryDocumentResponse, InventoryUpdateInventoryDocumentData, InventoryUpdateInventoryDocumentResponse, InventoryDeleteInventoryDocumentData, InventoryDeleteInventoryDocumentResponse, InventoryRestoreInventoryDocumentData, InventoryRestoreInventoryDocumentResponse, InventoryReadRawBalancesData, InventoryReadRawBalancesResponse, InventoryReadFinishedBalancesData, InventoryReadFinishedBalancesResponse, InventoryReadInventoryLedgerData, InventoryReadInventoryLedgerResponse, InventoryReadInventorySuggestionsData, InventoryReadInventorySuggestionsResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, ModulesModulesHealthCheckResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { AiQueryInventoryData, AiQueryInventoryResponse, DocsReadRuleDocumentsResponse, DocsReadRuleDocumentData, DocsReadRuleDocumentResponse, IamReadMyPermissionsResponse, IamReadPermissionCatalogResponse, IamReadRolesResponse, IamCreateRoleData, IamCreateRoleResponse, IamUpdateRoleData, IamUpdateRoleResponse, IamDeleteRoleData, IamDeleteRoleResponse, IamReplaceRolePermissionsData, IamReplaceRolePermissionsResponse, IamReplaceUserRolesData, IamReplaceUserRolesResponse, InventoryReadProcessingUnitsData, InventoryReadProcessingUnitsResponse, InventoryCreateProcessingUnitData, InventoryCreateProcessingUnitResponse, InventoryUpdateProcessingUnitData, InventoryUpdateProcessingUnitResponse, InventoryReadReceivingUnitsData, InventoryReadReceivingUnitsResponse, InventoryCreateReceivingUnitData, InventoryCreateReceivingUnitResponse, InventoryUpdateReceivingUnitData, InventoryUpdateReceivingUnitResponse, InventoryCreateInventoryDocumentData, InventoryCreateInventoryDocumentResponse, InventoryReadInventoryDocumentsData, InventoryReadInventoryDocumentsResponse, InventoryReadInventoryDocumentData, InventoryReadInventoryDocumentResponse, InventoryUpdateInventoryDocumentData, InventoryUpdateInventoryDocumentResponse, InventoryDeleteInventoryDocumentData, InventoryDeleteInventoryDocumentResponse, InventoryRestoreInventoryDocumentData, InventoryRestoreInventoryDocumentResponse, InventoryReadRawBalancesData, InventoryReadRawBalancesResponse, InventoryReadFinishedBalancesData, InventoryReadFinishedBalancesResponse, InventoryReadInventoryLedgerData, InventoryReadInventoryLedgerResponse, InventoryReadInventorySuggestionsData, InventoryReadInventorySuggestionsResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, ModulesModulesHealthCheckResponse, PrivateCreateUserData, PrivateCreateUserResponse, SchedulerReadJobsData, SchedulerReadJobsResponse, SchedulerCreateJobData, SchedulerCreateJobResponse, SchedulerReadJobData, SchedulerReadJobResponse, SchedulerUpdateJobData, SchedulerUpdateJobResponse, SchedulerDeleteJobData, SchedulerDeleteJobResponse, SchedulerEnableJobData, SchedulerEnableJobResponse, SchedulerDisableJobData, SchedulerDisableJobResponse, SchedulerRestoreJobData, SchedulerRestoreJobResponse, SchedulerRunNowData, SchedulerRunNowResponse, SchedulerBackfillData, SchedulerBackfillResponse, SchedulerReadRunsData, SchedulerReadRunsResponse, SchedulerReadTaskSchemaData, SchedulerReadTaskSchemaResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class AiService {
     /**
@@ -39,7 +39,7 @@ export class DocsService {
             url: '/api/v1/docs/rules'
         });
     }
-    
+
     /**
      * Read Rule Document
      * Get a single rule document by slug.
@@ -74,7 +74,7 @@ export class IamService {
             url: '/api/v1/iam/me/permissions'
         });
     }
-    
+
     /**
      * Read Permission Catalog
      * @returns PermissionsPublic Successful Response
@@ -86,7 +86,7 @@ export class IamService {
             url: '/api/v1/iam/permissions'
         });
     }
-    
+
     /**
      * Read Roles
      * @returns RolesPublic Successful Response
@@ -98,7 +98,7 @@ export class IamService {
             url: '/api/v1/iam/roles'
         });
     }
-    
+
     /**
      * Create Role
      * @param data The data for the request.
@@ -117,7 +117,7 @@ export class IamService {
             }
         });
     }
-    
+
     /**
      * Update Role
      * @param data The data for the request.
@@ -140,7 +140,7 @@ export class IamService {
             }
         });
     }
-    
+
     /**
      * Delete Role
      * @param data The data for the request.
@@ -160,7 +160,7 @@ export class IamService {
             }
         });
     }
-    
+
     /**
      * Replace Role Permissions
      * @param data The data for the request.
@@ -183,7 +183,7 @@ export class IamService {
             }
         });
     }
-    
+
     /**
      * Replace User Roles
      * @param data The data for the request.
@@ -234,7 +234,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Create Processing Unit
      * @param data The data for the request.
@@ -253,7 +253,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Update Processing Unit
      * @param data The data for the request.
@@ -276,7 +276,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Read Receiving Units
      * @param data The data for the request.
@@ -302,7 +302,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Create Receiving Unit
      * @param data The data for the request.
@@ -321,7 +321,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Update Receiving Unit
      * @param data The data for the request.
@@ -344,7 +344,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Create Inventory Document
      * @param data The data for the request.
@@ -363,7 +363,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Read Inventory Documents
      * @param data The data for the request.
@@ -399,7 +399,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Read Inventory Document
      * @param data The data for the request.
@@ -419,7 +419,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Update Inventory Document
      * @param data The data for the request.
@@ -442,7 +442,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Delete Inventory Document
      * @param data The data for the request.
@@ -462,7 +462,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Restore Inventory Document
      * @param data The data for the request.
@@ -482,7 +482,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Read Raw Balances
      * @param data The data for the request.
@@ -508,7 +508,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Read Finished Balances
      * @param data The data for the request.
@@ -534,7 +534,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Read Inventory Ledger
      * @param data The data for the request.
@@ -570,7 +570,7 @@ export class InventoryService {
             }
         });
     }
-    
+
     /**
      * Read Inventory Suggestions
      * @param data The data for the request.
@@ -619,7 +619,7 @@ export class ItemsService {
             }
         });
     }
-    
+
     /**
      * Create Item
      * Create new item.
@@ -639,7 +639,7 @@ export class ItemsService {
             }
         });
     }
-    
+
     /**
      * Read Item
      * Get item by ID.
@@ -660,7 +660,7 @@ export class ItemsService {
             }
         });
     }
-    
+
     /**
      * Update Item
      * Update an item.
@@ -684,7 +684,7 @@ export class ItemsService {
             }
         });
     }
-    
+
     /**
      * Delete Item
      * Delete an item.
@@ -727,7 +727,7 @@ export class LoginService {
             }
         });
     }
-    
+
     /**
      * Test Token
      * Test access token
@@ -740,7 +740,7 @@ export class LoginService {
             url: '/api/v1/login/test-token'
         });
     }
-    
+
     /**
      * Recover Password
      * Password Recovery
@@ -761,7 +761,7 @@ export class LoginService {
             }
         });
     }
-    
+
     /**
      * Reset Password
      * Reset password
@@ -781,7 +781,7 @@ export class LoginService {
             }
         });
     }
-    
+
     /**
      * Recover Password Html Content
      * HTML Content for Password Recovery
@@ -840,6 +840,263 @@ export class PrivateService {
     }
 }
 
+export class SchedulerService {
+    /**
+     * Read Jobs
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @param data.includeDeleted
+     * @returns SchedulerJobsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readJobs(data: SchedulerReadJobsData = {}): CancelablePromise<SchedulerReadJobsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/scheduler/jobs',
+            query: {
+                skip: data.skip,
+                limit: data.limit,
+                include_deleted: data.includeDeleted
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Create Job
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns SchedulerJobPublic Successful Response
+     * @throws ApiError
+     */
+    public static createJob(data: SchedulerCreateJobData): CancelablePromise<SchedulerCreateJobResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/scheduler/jobs',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Read Job
+     * @param data The data for the request.
+     * @param data.jobId
+     * @returns SchedulerJobPublic Successful Response
+     * @throws ApiError
+     */
+    public static readJob(data: SchedulerReadJobData): CancelablePromise<SchedulerReadJobResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/scheduler/jobs/{job_id}',
+            path: {
+                job_id: data.jobId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Update Job
+     * @param data The data for the request.
+     * @param data.jobId
+     * @param data.requestBody
+     * @returns SchedulerJobPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateJob(data: SchedulerUpdateJobData): CancelablePromise<SchedulerUpdateJobResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/scheduler/jobs/{job_id}',
+            path: {
+                job_id: data.jobId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Delete Job
+     * @param data The data for the request.
+     * @param data.jobId
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static deleteJob(data: SchedulerDeleteJobData): CancelablePromise<SchedulerDeleteJobResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/scheduler/jobs/{job_id}',
+            path: {
+                job_id: data.jobId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Enable Job
+     * @param data The data for the request.
+     * @param data.jobId
+     * @returns SchedulerJobPublic Successful Response
+     * @throws ApiError
+     */
+    public static enableJob(data: SchedulerEnableJobData): CancelablePromise<SchedulerEnableJobResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/scheduler/jobs/{job_id}/enable',
+            path: {
+                job_id: data.jobId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Disable Job
+     * @param data The data for the request.
+     * @param data.jobId
+     * @returns SchedulerJobPublic Successful Response
+     * @throws ApiError
+     */
+    public static disableJob(data: SchedulerDisableJobData): CancelablePromise<SchedulerDisableJobResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/scheduler/jobs/{job_id}/disable',
+            path: {
+                job_id: data.jobId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Restore Job
+     * @param data The data for the request.
+     * @param data.jobId
+     * @returns SchedulerJobPublic Successful Response
+     * @throws ApiError
+     */
+    public static restoreJob(data: SchedulerRestoreJobData): CancelablePromise<SchedulerRestoreJobResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/scheduler/jobs/{job_id}/restore',
+            path: {
+                job_id: data.jobId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Run Now
+     * @param data The data for the request.
+     * @param data.jobId
+     * @returns SchedulerRunPublic Successful Response
+     * @throws ApiError
+     */
+    public static runNow(data: SchedulerRunNowData): CancelablePromise<SchedulerRunNowResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/scheduler/jobs/{job_id}/run-now',
+            path: {
+                job_id: data.jobId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Backfill
+     * @param data The data for the request.
+     * @param data.jobId
+     * @param data.requestBody
+     * @returns SchedulerRunPublic Successful Response
+     * @throws ApiError
+     */
+    public static backfill(data: SchedulerBackfillData): CancelablePromise<SchedulerBackfillResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/scheduler/jobs/{job_id}/backfill',
+            path: {
+                job_id: data.jobId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Read Runs
+     * @param data The data for the request.
+     * @param data.jobId
+     * @param data.skip
+     * @param data.limit
+     * @returns SchedulerRunsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readRuns(data: SchedulerReadRunsData): CancelablePromise<SchedulerReadRunsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/scheduler/jobs/{job_id}/runs',
+            path: {
+                job_id: data.jobId
+            },
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Read Task Schema
+     * @param data The data for the request.
+     * @param data.classPath
+     * @returns SchedulerTaskSchemaPublic Successful Response
+     * @throws ApiError
+     */
+    public static readTaskSchema(data: SchedulerReadTaskSchemaData): CancelablePromise<SchedulerReadTaskSchemaResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/scheduler/task-schema',
+            query: {
+                class_path: data.classPath
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
 export class UsersService {
     /**
      * Read Users
@@ -863,7 +1120,7 @@ export class UsersService {
             }
         });
     }
-    
+
     /**
      * Create User
      * Create new user.
@@ -883,7 +1140,7 @@ export class UsersService {
             }
         });
     }
-    
+
     /**
      * Read User Me
      * Get current user.
@@ -896,7 +1153,7 @@ export class UsersService {
             url: '/api/v1/users/me'
         });
     }
-    
+
     /**
      * Delete User Me
      * Delete own user.
@@ -909,7 +1166,7 @@ export class UsersService {
             url: '/api/v1/users/me'
         });
     }
-    
+
     /**
      * Update User Me
      * Update own user.
@@ -929,7 +1186,7 @@ export class UsersService {
             }
         });
     }
-    
+
     /**
      * Update Password Me
      * Update own password.
@@ -949,7 +1206,7 @@ export class UsersService {
             }
         });
     }
-    
+
     /**
      * Register User
      * Create new user without the need to be logged in.
@@ -969,7 +1226,7 @@ export class UsersService {
             }
         });
     }
-    
+
     /**
      * Read User By Id
      * Get a specific user by id.
@@ -990,7 +1247,7 @@ export class UsersService {
             }
         });
     }
-    
+
     /**
      * Update User
      * Update a user.
@@ -1014,7 +1271,7 @@ export class UsersService {
             }
         });
     }
-    
+
     /**
      * Delete User
      * Delete a user.
@@ -1058,7 +1315,7 @@ export class UtilsService {
             }
         });
     }
-    
+
     /**
      * Health Check
      * @returns boolean Successful Response
