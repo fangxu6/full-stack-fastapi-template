@@ -12,11 +12,11 @@ from .contracts import HookContext, HookResult
 
 
 FRONTEND_SOURCE_PREFIX = "frontend/src/"
-PROTECTED_PATHS = (
+GENERATED_ARTIFACT_PATHS = (
     "frontend/src/client",
-    "frontend/src/components/ui",
     "frontend/src/routeTree.gen.ts",
 )
+VENDOR_MANAGED_PATHS = ("frontend/src/components/ui",)
 COMPONENT_ROOTS = (
     "frontend/src/app",
     "frontend/src/components",
@@ -125,9 +125,16 @@ class FrontendComponentHook:
             if not source.is_file():
                 continue
             is_route_entry = _matches_root(path, (ROUTE_ENTRY_ROOT,))
-            if _matches_root(path, PROTECTED_PATHS):
+            if _matches_root(path, GENERATED_ARTIFACT_PATHS):
                 violations.append(
-                    f"{path}: generated or vendor-managed path must not be edited"
+                    f"{path}: generated artifact changed; regenerate it with its owning "
+                    "tool, review the diff, then use the Phase 3.4 confirmation flow "
+                    "for a dedicated synchronization commit"
+                )
+                continue
+            if _matches_root(path, VENDOR_MANAGED_PATHS):
+                violations.append(
+                    f"{path}: vendor-managed path must not be edited"
                 )
                 continue
             if is_route_entry:

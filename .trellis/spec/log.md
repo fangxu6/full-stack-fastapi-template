@@ -188,3 +188,7 @@ Active AI sidecar, async runtime, and feature specifications now describe runtim
 ## [2026-07-25 16:07:33] update | Document inventory daily email reports
 
 Document the Shanghai schedule window, immutable inventory snapshot, recipient mapping, and per-email retry contract.
+
+## [2026-07-26 15:11:26] update | Document generated frontend artifact commit flow
+
+Require reviewed generated client and route-tree output to be a dedicated first commit through Phase 3.4; quality hooks guide rather than auto-commit.

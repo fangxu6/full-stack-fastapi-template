@@ -239,6 +239,7 @@ Sub-agent dispatch protocol applies to all platforms and all sub-agents, includi
 [workflow-state:in_progress]
 Tools: `trellis-implement` / `trellis-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `trellis-update-spec` is a skill. `trellis-check` exists as both; prefer the Agent form when verifying after code changes.
 Flow: `trellis-implement` -> `trellis-check` (run `e2e-api-tests.md` when present) -> `trellis-update-spec` (run spec wiki maintenance when specs change) -> commit (Phase 3.4) -> `/trellis:finish-work`.
+When generated frontend artifacts change, Phase 3.4 must review them and put only those files in the first proposed work commit; generators and hooks never commit automatically.
 Main-session default: dispatch implement/check sub-agents. Sub-agent self-exemption: if already running as `trellis-implement`, do NOT spawn another `trellis-implement` or `trellis-check`; if already running as `trellis-check`, do NOT spawn another `trellis-check` or `trellis-implement`. Dispatch is main session only.
 Dispatch prompt starts with `Active task: <task path from task.py current>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present` -> `e2e-api-tests.md if present`.
 [/workflow-state:in_progress]
@@ -250,6 +251,7 @@ Dispatch prompt starts with `Active task: <task path from task.py current>`. Rea
 
 [workflow-state:in_progress-inline]
 Flow: `trellis-before-dev` -> edit -> `trellis-check` -> validation (run `e2e-api-tests.md` when present) -> `trellis-update-spec` (run spec wiki maintenance when specs change) -> commit (Phase 3.4) -> `/trellis:finish-work`.
+When generated frontend artifacts change, Phase 3.4 must review them and put only those files in the first proposed work commit; generators and hooks never commit automatically.
 Do not dispatch implement/check sub-agents in inline mode.
 Read context: `prd.md` -> `design.md if present` -> `implement.md if present` -> `e2e-api-tests.md if present`, plus relevant spec/research loaded by skills.
 [/workflow-state:in_progress-inline]
@@ -639,19 +641,31 @@ The AI drives a batched commit of this task's code changes so `/finish-work` can
    ```
    Snapshot every dirty path. If the working tree is clean, skip to 3.5.
 
-2. **Learn commit style** from recent history (so drafted messages blend in):
+2. **Synchronize generated frontend artifacts when applicable**:
+   - For a backend OpenAPI contract change, run `bash ./scripts/generate-client.sh`.
+     For a created, moved, or deleted TanStack file route, run the owning Vite
+     build or scan so `frontend/src/routeTree.gen.ts` is current.
+   - Inspect the resulting diff. If `frontend/src/client/**` or
+     `frontend/src/routeTree.gen.ts` changed as expected, place only those
+     generated files in a dedicated first work-commit batch. Do not create an
+     empty batch when the tools produce no diff.
+   - Never hand-edit generated output or let a generator, Vite hook, or quality
+     hook run `git commit`; the existing one-shot user confirmation remains
+     mandatory.
+
+3. **Learn commit style** from recent history (so drafted messages blend in):
    ```bash
    git log --oneline -5
    ```
    Note the prefix convention (`feat:` / `fix:` / `chore:` / `docs:` ...), language (中文/English), and length style.
 
-3. **Classify dirty files into two groups**:
+4. **Classify dirty files into two groups**:
    - **AI-edited this session** — files you wrote/edited via Edit/Write/Bash tool calls in this session. You know what changed and why.
    - **Unrecognized** — dirty files you did NOT touch this session (could be the user's manual edits, leftover WIP from a previous session, or unrelated work). Do NOT silently include these.
 
-4. **Draft a commit plan**. Group AI-edited files into logical commits (1 commit per coherent change unit, not 1 commit per file). Each entry: `<commit message>` + file list. List unrecognized files separately at the bottom.
+5. **Draft a commit plan**. Group AI-edited files into logical commits (1 commit per coherent change unit, not 1 commit per file). Each entry: `<commit message>` + file list. If generated frontend output changed, its dedicated synchronization batch comes first. List unrecognized files separately at the bottom.
 
-5. **Present the plan once, ask for one-shot confirmation**. Format:
+6. **Present the plan once, ask for one-shot confirmation**. Format:
    ```
    Proposed commits (in order):
      1. <message>
@@ -667,9 +681,9 @@ The AI drives a batched commit of this task's code changes so `/finish-work` can
    Reply 'ok' / '行' to execute. Reply with edits, or '我自己来' / 'manual' to abort.
    ```
 
-6. **On confirmation**: run `git add <files>` + `git commit -m "<msg>"` for each batch in order. Do not amend. Do not push.
+7. **On confirmation**: run `git add <files>` + `git commit -m "<msg>"` for each batch in order. Do not amend. Do not push.
 
-7. **On rejection** (user replies "不行" / "我自己来" / "manual" / any pushback on the plan): stop. Do not attempt a second plan. The user will commit by hand; you skip ahead to 3.5 once they confirm.
+8. **On rejection** (user replies "不行" / "我自己来" / "manual" / any pushback on the plan): stop. Do not attempt a second plan. The user will commit by hand; you skip ahead to 3.5 once they confirm.
 
 **Rules**:
 - No `git commit --amend` anywhere — three-stage three-commit flow (work commits → archive commit → journal commit).

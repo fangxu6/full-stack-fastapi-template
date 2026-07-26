@@ -39,10 +39,26 @@ class BackendQualityHookTests(unittest.TestCase):
 
 
 class FrontendComponentHookTests(unittest.TestCase):
-    def test_rejects_generated_primitive_edit(self) -> None:
+    def test_rejects_vendor_managed_primitive_edit(self) -> None:
         result = FrontendComponentHook().run(HookContext(Path.cwd(), ("frontend/src/components/ui/button.tsx",)))
         self.assertEqual(result.status, "failed")
         self.assertIn("vendor-managed", result.details[0])
+
+    def test_rejects_generated_client_edit_with_sync_guidance(self) -> None:
+        result = FrontendComponentHook().run(
+            HookContext(Path.cwd(), ("frontend/src/client/types.gen.ts",))
+        )
+        self.assertEqual(result.status, "failed")
+        self.assertIn("generated artifact", result.details[0])
+        self.assertIn("Phase 3.4", result.details[0])
+
+    def test_rejects_generated_route_tree_edit_with_sync_guidance(self) -> None:
+        result = FrontendComponentHook().run(
+            HookContext(Path.cwd(), ("frontend/src/routeTree.gen.ts",))
+        )
+        self.assertEqual(result.status, "failed")
+        self.assertIn("generated artifact", result.details[0])
+        self.assertIn("Phase 3.4", result.details[0])
 
     def test_rejects_misplaced_component(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -120,6 +120,11 @@ export const Route = createFileRoute("/reports")({
 - If route or permission behavior changed, verify route guards, navigation visibility, and redirect behavior together.
 - If generated client output changed, verify consumers import generated services/types instead of recreating local API contracts.
 - If route tree generation changed, verify route files remain thin and `frontend/src/routeTree.gen.ts` is generated output, not hand-edited business code.
+- After `scripts/generate-client.sh` or a TanStack Router scan changes
+  `frontend/src/client/**` or `frontend/src/routeTree.gen.ts`, review the diff
+  and follow Workflow Phase 3.4: propose those files as the first, dedicated
+  synchronization commit and wait for the existing one-shot confirmation.
+  Do not add automatic commits to generators or hooks.
 - If a page changed, check for regressions in:
   - empty state
   - error state
@@ -171,6 +176,8 @@ export const Route = createFileRoute("/reports")({
 - [ ] UI changes cover loading, empty, error, permission, and success states when applicable.
 - [ ] `shared/*` additions pass the shared admission test in [Component Guidelines](./component-guidelines.md).
 - [ ] Any generated files changed by tooling are expected and reviewed.
+- [ ] Changed generated client or route-tree files are in the dedicated first
+      synchronization commit required by Workflow Phase 3.4.
 - [ ] If `bun run lint` was run, its auto-fixes are included intentionally or reverted.
 - [ ] Ant Design pages use `app/providers/AntdProvider.tsx`, not local
       per-page theme providers.
