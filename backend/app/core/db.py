@@ -5,6 +5,7 @@ from app.core.config import settings
 from app.core.observability import log_event
 from app.models import User
 from app.modules.iam import service as iam_service
+from app.modules.scheduler.service import bootstrap_inventory_jobs
 from app.schemas.user import UserCreate
 
 engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
@@ -42,6 +43,7 @@ def init_db(session: Session) -> None:
         session.flush()
     try:
         iam_service.ensure_bootstrap_state(session=session, first_superuser=user)
+        bootstrap_inventory_jobs(session=session, actor=user)
     except Exception as error:
         session.rollback()
         log_event(

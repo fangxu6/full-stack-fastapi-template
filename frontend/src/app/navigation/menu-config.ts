@@ -1,5 +1,6 @@
 import {
   Briefcase,
+  CalendarClock,
   ClipboardList,
   FileText,
   Home,
@@ -39,6 +40,12 @@ export const baseMenuItems: AppNavigationItem[] = [
     title: "库存余额",
     path: "/inventory/balances",
     permission: "inventory.balances.read",
+  },
+  {
+    icon: CalendarClock,
+    title: "定时任务",
+    path: "/scheduler/jobs",
+    permission: "scheduler.jobs.read",
   },
 ]
 

@@ -14,6 +14,7 @@ from .inventory import (
     ReceivingUnit,
 )
 from .item import Item
+from .scheduler import SchedulerJob, SchedulerRun
 from .user import User
 
 __all__ = [
@@ -30,6 +31,8 @@ __all__ = [
     "ProcessingUnit",
     "ReceivingUnit",
     "Item",
+    "SchedulerJob",
+    "SchedulerRun",
     "IamPermission",
     "IamRole",
     "IamRolePermission",

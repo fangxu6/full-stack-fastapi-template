@@ -9,6 +9,8 @@ export type PermissionCode =
   | "inventory.documents.manage"
   | "inventory.balances.read"
   | "inventory.ledger.read"
+  | "scheduler.jobs.read"
+  | "scheduler.jobs.manage"
 
 export function hasPermission(
   permissions: readonly string[] | undefined,

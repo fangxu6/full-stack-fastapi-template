@@ -158,6 +158,20 @@ uv run pytest tests/
 
 The tests run with Pytest, modify and add tests to `./backend/tests/`.
 
+## Scheduled tasks
+
+After upgrading migrations, initialize the built-in scheduled tasks before
+starting the API, Celery Worker, and Celery Beat processes:
+
+```powershell
+uv run alembic upgrade head
+uv run python app/initial_data.py
+```
+
+Set `SCHEDULED_TASK_ALERT_RECIPIENTS` to a comma-separated operations mailing
+list outside local development. Worker and Beat refuse to start in staging and
+production when SMTP or this recipient list is missing.
+
 If you use GitHub Actions the tests will run automatically.
 
 ### Test running stack

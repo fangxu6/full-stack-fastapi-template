@@ -61,6 +61,18 @@ PERMISSIONS: tuple[tuple[str, str, str, str], ...] = (
         "View ledger",
         "View inventory ledger entries.",
     ),
+    (
+        "scheduler.jobs.read",
+        "Scheduler",
+        "View scheduled tasks",
+        "View scheduled task definitions and runs.",
+    ),
+    (
+        "scheduler.jobs.manage",
+        "Scheduler",
+        "Manage scheduled tasks",
+        "Create, change, run, and delete scheduled tasks.",
+    ),
 )
 
 PERMISSION_CODES = frozenset(permission[0] for permission in PERMISSIONS)
@@ -70,6 +82,7 @@ PREREQUISITES: Mapping[str, frozenset[str]] = {
     "iam.roles.manage": frozenset({"iam.roles.read"}),
     "inventory.masters.manage": frozenset({"inventory.masters.read"}),
     "inventory.documents.manage": frozenset({"inventory.documents.read"}),
+    "scheduler.jobs.manage": frozenset({"scheduler.jobs.read"}),
 }
 
 BUILTIN_ROLES: Mapping[str, tuple[str, str, frozenset[str]]] = {

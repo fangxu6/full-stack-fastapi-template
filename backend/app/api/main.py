@@ -7,6 +7,7 @@ from app.modules.ai.router import router as ai_router
 from app.modules.api import router as modules_router
 from app.modules.iam.router import router as iam_router
 from app.modules.inventory.router import router as inventory_router
+from app.modules.scheduler.router import router as scheduler_router
 
 api_router = APIRouter()
 api_router.include_router(login.router)
@@ -18,6 +19,7 @@ api_router.include_router(ai_router)
 api_router.include_router(ai_internal_router)
 api_router.include_router(inventory_router)
 api_router.include_router(iam_router)
+api_router.include_router(scheduler_router)
 api_router.include_router(modules_router)
 
 

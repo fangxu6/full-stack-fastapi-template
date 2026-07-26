@@ -16,6 +16,8 @@ EventName = Literal[
     "authorization.denied",
     "dependency.failed",
     "dependency.slow",
+    "scheduler.alert.unsent",
+    "scheduler.enqueue.failed",
     "startup.failed",
 ]
 Severity = Literal["INFO", "WARNING", "ERROR", "CRITICAL"]

@@ -27,6 +27,8 @@ from app.models import (
     LegacyImportRow,
     ProcessingUnit,
     ReceivingUnit,
+    SchedulerJob,
+    SchedulerRun,
     User,
 )
 from tests.utils.user import authentication_token_from_email
@@ -73,6 +75,8 @@ def db() -> Generator[Session]:
         for model in (
             AiToolCall,
             AiRun,
+            SchedulerRun,
+            SchedulerJob,
             InventoryDailyReportDelivery,
             InventoryDailyReport,
             InventoryLedgerEntry,

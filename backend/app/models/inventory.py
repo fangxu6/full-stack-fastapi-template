@@ -26,7 +26,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlmodel import Field, SQLModel
 
-from app.models.base import get_datetime_utc
+from app.models.base import AuditFields, get_datetime_utc
 
 
 class InventoryDocumentType(StrEnum):
@@ -67,30 +67,6 @@ class InventoryDailyReportDeliveryStatus(StrEnum):
 class LegacyWorkbookKind(StrEnum):
     RAW = "RAW"
     FINISHED = "FINISHED"
-
-
-class AuditFields(SQLModel):
-    created_at: datetime = Field(
-        default_factory=get_datetime_utc,
-        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
-        nullable=False,
-    )
-    created_by: uuid.UUID = Field(
-        foreign_key="user.id", nullable=False, ondelete="RESTRICT"
-    )
-    updated_at: datetime = Field(
-        default_factory=get_datetime_utc,
-        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
-        nullable=False,
-    )
-    updated_by: uuid.UUID = Field(
-        foreign_key="user.id", nullable=False, ondelete="RESTRICT"
-    )
-    deleted_at: datetime | None = Field(
-        default=None,
-        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
-        nullable=True,
-    )
 
 
 class ProcessingUnit(AuditFields, table=True):

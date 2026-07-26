@@ -29,23 +29,24 @@ def test_runtime_ping_rejects_invalid_values(value: object, message: str) -> Non
         runtime_ping(cast(str, value))
 
 
-def test_inventory_daily_report_beat_tasks_are_registered() -> None:
+def test_scheduler_beat_tasks_are_registered() -> None:
     celery_app.loader.import_default_modules()
 
     assert celery_app.conf.timezone == "Asia/Shanghai"
-    assert (
-        celery_app.conf.beat_schedule["inventory-daily-report-create"]["task"]
-        == "inventory.daily_report.create"
+    assert celery_app.conf.beat_schedule["scheduler-scan-due-jobs"]["task"] == (
+        "scheduler.scan_due_jobs"
     )
-    assert (
-        celery_app.conf.beat_schedule["inventory-daily-report-retry"]["task"]
-        == "inventory.daily_report.retry"
+    assert celery_app.conf.beat_schedule["scheduler-cleanup-runs"]["task"] == (
+        "scheduler.cleanup_runs"
     )
     assert celery_app.conf.beat_schedule["runtime-daily-test-email"]["task"] == (
         "runtime.send_test_email"
     )
     assert settings.CELERY_VISIBILITY_TIMEOUT_SECONDS == 3600
     assert "inventory.daily_report.deliver" in celery_app.tasks
+    assert "scheduler.scan_due_jobs" in celery_app.tasks
+    assert "scheduler.execute_run" in celery_app.tasks
+    assert "scheduler.cleanup_runs" in celery_app.tasks
     assert "runtime.send_test_email" in celery_app.tasks
 
 
