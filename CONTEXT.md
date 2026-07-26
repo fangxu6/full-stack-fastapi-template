@@ -72,6 +72,11 @@ complete. It is not a substitute for an Operational Alert to a responsible
 on-call group.
 _Avoid_: on-call alert, delivery retry record
 
+**System Actor**:
+A non-interactive application-owned User that attributes an automated audited
+write when no human User initiated it.
+_Avoid_: fallback User, administrator account, service login
+
 ## Relationships
 
 - A **Business Identifier** may identify an operational document to people but
@@ -94,6 +99,8 @@ _Avoid_: on-call alert, delivery retry record
 - An **Operational Alert** targets an accountable responder, while a **User
   Work Notification** targets an application User and has separate read-state
   and preference semantics.
+- An audited action has either its initiating human **User** or the **System
+  Actor** as its actor; the latter never represents a human-initiated action.
 
 ## Example Dialogue
 
@@ -105,6 +112,11 @@ _Avoid_: on-call alert, delivery retry record
 > deny the API call?"
 > **Domain expert:** "No. The server must require the matching **Permission**;
 > menu visibility only presents the effective permission set."
+
+> **Developer:** "A scheduler creates an audited operational record. Which
+> user created it?"
+> **Domain expert:** "Use the **System Actor**. A record initiated by a person
+> must instead name that person."
 
 ## Flagged Ambiguities
 

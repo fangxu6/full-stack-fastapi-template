@@ -31,11 +31,12 @@ logging. Archived task PRDs and designs preserve the decisions made during
 planning, but do not override this specification when an approach has since
 been replaced.
 
-`structlog.contextvars.merge_contextvars` intentionally adds the safe request
-context to every event emitted during that request. `request_id` and the
-low-cardinality `actor_kind` (`anonymous` or `authenticated`) are therefore
-common context fields, not event-specific payload fields. They must never be
-expanded into user, role, permission, token, or business-resource identity.
+`structlog.contextvars.merge_contextvars` intentionally adds safe execution
+context to every event. HTTP requests bind `request_id` and the low-cardinality
+`actor_kind` (`anonymous` or `authenticated`); Celery tasks bind only the
+broker-generated `task_id` and registered `task_name`. These fields must never
+expand into user, role, permission, token, task argument, or business-resource
+identity.
 
 ---
 
@@ -84,7 +85,6 @@ dependency registry is:
 | --- | --- | --- |
 | `postgres` | startup database connectivity or initialization | failure |
 | `iam_bootstrap` | RBAC active-platform-administrator startup invariant | failure |
-| `ai_orchestrator` | AI sidecar call | failure or elapsed time above the AI slow threshold |
 | `smtp` | email delivery | failure |
 
 New external services and named startup components use lowercase ASCII snake
@@ -93,25 +93,25 @@ before emitting `dependency.failed`, `dependency.slow`, or `startup.failed`.
 
 ```python
 log_event(
-    dependency="ai_orchestrator",
+    dependency="smtp",
     event_name="dependency.failed",
     request_id=request_id,
-    elapsed_ms=elapsed_ms,
 )
 ```
 
 ### 3. Contracts
 
 - Every record has a schema version, event name, severity, environment, and
-  timestamp. Request-scoped records also carry `request_id`.
+  timestamp. Request-scoped records also carry `request_id`; task-scoped
+  records carry only `task_id` and `task_name`.
 - Dependency records carry an allowlisted `dependency` name and may carry
   `elapsed_ms` and `slow_threshold_ms`.
 - The only HTTP metadata allowed is method, route template, status code, and
   elapsed time. Authentication metadata is limited to `actor_kind` and
   authorization outcome.
 - Never emit bodies, query strings, headers, passwords, tokens, cookies, API
-  keys, AI actor grants, raw AI questions, user UUIDs, raw exception messages,
-  traceback values, or arbitrary resource/business identifiers.
+  keys, user UUIDs, raw exception messages, traceback values, or arbitrary
+  resource/business identifiers.
 - Application code only writes JSON to stdout. The runtime owns collection and
   external export; application code has no collector credential, buffer,
   persistence, or retry behavior.
@@ -141,9 +141,8 @@ log_event(
 
 ### 5. Good / Base / Bad Cases
 
-- Good: the AI sidecar times out after 12 seconds and emits
-  `dependency.slow` with `dependency="ai_orchestrator"`, `request_id`, elapsed
-  time, and the active 10-second threshold.
+- Good: an SMTP delivery attempt fails and emits `dependency.failed` with
+  `dependency="smtp"`, without recipient or exception text.
 - Base: PostgreSQL is unavailable during startup and emits `startup.failed`
   with `dependency="postgres"`; no request ID exists yet.
 - Bad: an SMTP exception serializes the recipient email or exception message
@@ -156,10 +155,10 @@ log_event(
   `request_id` behavior, duration fields, and JSON serialization.
 - Test the closed facade rejects an arbitrary keyword before serialization;
   supported dependency call paths must not derive their reviewed fields from a
-  token, cookie, email address, UUID, query string, request body, raw exception
-  message, or AI question.
-- Integration test a failed and slow AI dependency without changing its
-  existing service-unavailable response or 90-second timeout contract.
+  token, cookie, email address, UUID, query string, request body, or raw
+  exception message.
+- Integration test an SMTP failure emits only safe dependency fields and does
+  not alter the outbox delivery state machine.
 - Startup test PostgreSQL/RBAC initialization failure remains fail-closed while
   producing one safe `startup.failed` record for its actual root dependency;
   in particular, an IAM invariant failure emits only `iam_bootstrap` and never
@@ -196,8 +195,7 @@ bind arbitrary request, actor, exception, or business context directly.
   JSON record. Do not use `logger.exception`, `exc_info`, exception text, a raw
   URL path, or business/resource identifiers on the stdout collector path.
 - Preserve the public API response contract, including `detail + request_id`.
-  Observability must not change status-code mapping, response bodies, or the
-  90-second AI timeout.
+  Observability must not change status-code mapping or response bodies.
 - The public Nginx location owns request-ID normalization: it overwrites the
   inbound `X-Request-ID` with `$request_id` before proxying and writes the
   response header. The backend is still the direct-access fallback: it accepts
@@ -240,6 +238,9 @@ EventName = Literal[
     "dependency.failed",
     "dependency.slow",
     "startup.failed",
+    "task.started",
+    "task.completed",
+    "task.failed",
 ]
 
 def configure_observability() -> None: ...
@@ -284,9 +285,11 @@ def log_event(
   and bound safe context before `JSONRenderer`.
 - Never configure `format_exc_info`, `dict_tracebacks`, an exception renderer,
   or arbitrary context processors on the stdout path.
-- `request_id` and `actor_kind` are the only request context keys that may be
-  bound with `structlog.contextvars`. Bind no user ID, email, role, permission,
-  token, request body, header, query string, resource ID, or exception object.
+- `request_id` and `actor_kind` are the only HTTP context keys; `task_id` and
+  `task_name` are the only Celery task context keys that may be bound with
+  `structlog.contextvars`. Bind no user ID, email, role, permission, token,
+  request body, header, query string, task argument, resource ID, or exception
+  object.
 - `log_event()` is a closed keyword-only interface containing only reviewed
   safe fields. Do not add `**kwargs`, mapping expansion, or a second generic
   event builder. Unknown fields are rejected at the Python call boundary and
@@ -308,6 +311,8 @@ def log_event(
 | --- | --- |
 | `configure_observability()` runs again in a reload/test process | Replace prior handlers; do not duplicate JSON lines. |
 | Request ID is invalid or absent | Normalize/generate before binding; never bind caller text. |
+| A Celery task begins | The `task_prerun` signal clears prior context, binds only its broker task ID and registered task name, then emits `task.started`. |
+| A Celery task exits | The `task_postrun` signal emits `task.completed` on success or `task.failed` otherwise, then clears task context in every exit path. |
 | CORS preflight short-circuits the inner application | The outer request-correlation middleware adds `X-Request-ID` and emits the sampled/safe `OPTIONS` outcome event; it must not bypass correlation. |
 | A caller supplies an unknown/forbidden `log_event()` keyword | Treat it as a programming error: the closed signature rejects it before serialization. Fix the caller; do not add `**kwargs` to silently filter it. |
 | Event contains a dependency/source name not in the registry | Treat as code-contract failure in unit tests/review; do not ship an ad hoc source. |
@@ -337,15 +342,15 @@ def log_event(
 - Unit test the closed event facade rejects an arbitrary keyword before it can
   reach the renderer. Supported call sites must pass only reviewed fields and
   must not derive them from tokens, cookies, email addresses, UUIDs, queries,
-  bodies, raw exceptions, or AI questions.
+  bodies or raw exceptions.
 - Unit test stable sampling and every mandatory unsampled event class.
 - Integration test an allowed CORS preflight returns `X-Request-ID` and, with
   deterministic sampling, emits an allowlisted `http.request.completed` event
   for `OPTIONS` without a raw origin or URL.
 - Integration test the production Uvicorn command and verify no default access
   line, raw URL, exception message, or traceback reaches stdout.
-- Keep the dependency, AI timeout, startup fail-closed, and Sentry scrub tests
-  specified in the D-002 E2E plan.
+- Keep the dependency, task-lifecycle, startup fail-closed, and Sentry scrub
+  tests specified in the D-002 E2E plan.
 - Unit test Sentry transaction reconstruction retains a valid canonical trace
   ID only, omits malformed or sentinel IDs, and still removes every other trace
   field plus request, user, exception, breadcrumb, and span data.
@@ -358,7 +363,7 @@ def log_event(
 import structlog
 
 log = structlog.get_logger()
-log.exception("sidecar failed", url=url, actor_grant=actor_grant)
+log.exception("mail failed", recipient=recipient)
 ```
 
 This lets arbitrary context and exception rendering cross the stdout boundary.
@@ -371,7 +376,7 @@ from app.core.observability import log_event
 log_event(
     event_name="dependency.failed",
     severity="ERROR",
-    dependency="ai_orchestrator",
+    dependency="smtp",
     request_id=request_id,
 )
 ```

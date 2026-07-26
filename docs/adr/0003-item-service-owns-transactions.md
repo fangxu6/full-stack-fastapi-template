@@ -1,5 +1,7 @@
 # Item Service Owns Transactions
 
+> Status: deprecated; superseded by [ADR-0006](0006-use-request-scoped-unit-of-work-for-http-writes.md).
+
 The `items` CRUD flow makes `services/item.py` responsible for commit and refresh while `crud/item.py` performs database operations without committing. This keeps simple CRUD lightweight while preserving a clear transaction owner.
 
 ## Consequences
