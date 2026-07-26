@@ -1,7 +1,7 @@
 from typing import Annotated, Any
 
 from pydantic import BeforeValidator, EmailStr, Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 from app.core.config import settings
 from app.core.env import get_env_file
@@ -18,7 +18,7 @@ class SchedulerSettings(BaseSettings):
         env_file=get_env_file(), env_ignore_empty=True, extra="ignore"
     )
     SCHEDULED_TASK_ALERT_RECIPIENTS: Annotated[
-        list[EmailStr], BeforeValidator(_parse_recipients)
+        list[EmailStr], NoDecode, BeforeValidator(_parse_recipients)
     ] = Field(default_factory=list)
 
     @field_validator("SCHEDULED_TASK_ALERT_RECIPIENTS")
