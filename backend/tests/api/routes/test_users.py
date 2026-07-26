@@ -474,7 +474,9 @@ def test_delete_user_me_as_superuser(
     )
     assert r.status_code == 409
     response = r.json()
-    assert response["detail"] == "At least one active Platform Administrator is required"
+    assert (
+        response["detail"] == "At least one active Platform Administrator is required"
+    )
 
 
 def test_delete_user_super_user(
@@ -519,7 +521,9 @@ def test_delete_user_current_super_user_error(
         headers=superuser_token_headers,
     )
     assert r.status_code == 409
-    assert r.json()["detail"] == "At least one active Platform Administrator is required"
+    assert (
+        r.json()["detail"] == "At least one active Platform Administrator is required"
+    )
 
 
 def test_delete_user_without_privileges(

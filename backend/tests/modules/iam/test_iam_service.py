@@ -52,15 +52,18 @@ def test_deactivated_role_stops_contributing_permissions(db: Session) -> None:
     )
     service.replace_user_roles(session=db, user_id=user.id, role_ids=[role.id])
 
-    assert "inventory.documents.read" in service.get_effective_permissions(
-        session=db, user_id=user.id
-    ).permissions
+    assert (
+        "inventory.documents.read"
+        in service.get_effective_permissions(session=db, user_id=user.id).permissions
+    )
 
     service.update_role(
         session=db, role_id=role.id, role_in=RoleUpdate(is_active=False)
     )
 
-    assert service.get_effective_permissions(session=db, user_id=user.id).permissions == []
+    assert (
+        service.get_effective_permissions(session=db, user_id=user.id).permissions == []
+    )
 
 
 def test_replace_user_roles_retains_existing_inactive_role(db: Session) -> None:
@@ -103,20 +106,14 @@ def test_replace_user_roles_rejects_new_inactive_role(db: Session) -> None:
 
 
 def test_cannot_remove_last_active_platform_administrator(db: Session) -> None:
-    first_superuser = crud.get_user_by_email(
-        session=db, email=settings.FIRST_SUPERUSER
-    )
+    first_superuser = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
     assert first_superuser is not None
-    platform_role = repository.get_role_by_code(
-        session=db, code=PLATFORM_ADMINISTRATOR
-    )
+    platform_role = repository.get_role_by_code(session=db, code=PLATFORM_ADMINISTRATOR)
     assert platform_role is not None
     assert platform_role.id is not None
 
     with pytest.raises(ConflictError):
-        service.replace_user_roles(
-            session=db, user_id=first_superuser.id, role_ids=[]
-        )
+        service.replace_user_roles(session=db, user_id=first_superuser.id, role_ids=[])
 
     assert platform_role.id in repository.get_user_role_ids(
         session=db, user_id=first_superuser.id

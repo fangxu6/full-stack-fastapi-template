@@ -104,23 +104,31 @@ def test_log_event_swallows_sink_failures() -> None:
     logger.critical.side_effect = OSError("stdout unavailable")
 
     with patch("app.core.observability._LOGGER", logger):
-        log_event(event_name="startup.failed", severity="CRITICAL", dependency="postgres")
+        log_event(
+            event_name="startup.failed", severity="CRITICAL", dependency="postgres"
+        )
 
 
 def test_sentry_scrubbers_remove_sensitive_event_fields() -> None:
     error_payload = scrub_sentry_error(
-        cast(Event, {
-            "request": {"data": "password=secret"},
-            "exception": {"values": [{"value": "sidecar token"}]},
-        }),
+        cast(
+            Event,
+            {
+                "request": {"data": "password=secret"},
+                "exception": {"values": [{"value": "sidecar token"}]},
+            },
+        ),
         {},
     )
     transaction_payload = scrub_sentry_transaction(
-        cast(Event, {
-            "request": {"url": "https://example.invalid/?token=secret"},
-            "contexts": {"trace": {"trace_id": "a" * 32}},
-            "spans": [{"description": "private value"}],
-        }),
+        cast(
+            Event,
+            {
+                "request": {"url": "https://example.invalid/?token=secret"},
+                "contexts": {"trace": {"trace_id": "a" * 32}},
+                "spans": [{"description": "private value"}],
+            },
+        ),
         {},
     )
 
@@ -135,9 +143,12 @@ def test_sentry_scrubbers_remove_sensitive_event_fields() -> None:
 
 def test_sentry_transaction_discards_an_invalid_trace_id() -> None:
     transaction_payload = scrub_sentry_transaction(
-        cast(Event, {
-            "contexts": {"trace": {"trace_id": "trace-token=secret"}},
-        }),
+        cast(
+            Event,
+            {
+                "contexts": {"trace": {"trace_id": "trace-token=secret"}},
+            },
+        ),
         {},
     )
 
@@ -155,7 +166,9 @@ def test_ai_configuration_failure_emits_only_the_registered_dependency(
     )
 
     with patch("app.modules.ai.service.log_event") as mock_log_event:
-        with pytest.raises(ServiceUnavailableError, match="AI inventory query is not configured"):
+        with pytest.raises(
+            ServiceUnavailableError, match="AI inventory query is not configured"
+        ):
             call_inventory_sidecar(
                 run_id=uuid.uuid4(),
                 question="private inventory question",
@@ -187,7 +200,9 @@ def test_ai_http_failure_emits_a_safe_dependency_event(
     monkeypatch.setattr("app.modules.ai.service.httpx.post", fail_post)
 
     with patch("app.modules.ai.service.log_event") as mock_log_event:
-        with pytest.raises(ServiceUnavailableError, match="AI inventory query is unavailable"):
+        with pytest.raises(
+            ServiceUnavailableError, match="AI inventory query is unavailable"
+        ):
             call_inventory_sidecar(
                 run_id=uuid.uuid4(),
                 question="private inventory question",
@@ -215,7 +230,9 @@ def test_smtp_failure_emits_only_the_registered_dependency() -> None:
         patch("app.utils.log_event") as mock_log_event,
         pytest.raises(OSError, match="smtp token=secret"),
     ):
-        send_email(email_to="recipient@example.com", subject="private", html_content="body")
+        send_email(
+            email_to="recipient@example.com", subject="private", html_content="body"
+        )
 
     assert mock_log_event.call_args.kwargs == {
         "event_name": "dependency.failed",
