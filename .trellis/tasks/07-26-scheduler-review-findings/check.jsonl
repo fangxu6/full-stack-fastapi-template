@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/async-task-guidelines.md","reason":"复核消息投递限频、默认队列与至少一次执行语义"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"复核迁移可逆性、并发锁、savepoint 和索引命名"}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"复核后端测试、格式、类型和迁移验证"}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"复核前端测试、类型检查、构建和生成文件策略"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"复核七项 finding 的跨层行为闭环"}

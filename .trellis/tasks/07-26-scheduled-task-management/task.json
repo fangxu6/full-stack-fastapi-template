@@ -18,7 +18,9 @@
   "commit": null,
   "pr_url": null,
   "subtasks": [],
-  "children": [],
+  "children": [
+    "07-26-scheduler-review-findings"
+  ],
   "parent": null,
   "relatedFiles": [],
   "notes": "",

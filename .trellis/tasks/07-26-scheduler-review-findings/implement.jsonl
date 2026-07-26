@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/async-task-guidelines.md","reason":"Celery 默认队列、任务参数、至少一次语义与 Worker 生命周期约束"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"scheduler_run 迁移、UTC 时间、索引、锁与事务边界约束"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"配置错误、业务失败和 API 422/409 的分类规范"}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"前端测试、生成产物边界和质量命令"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"数据库、Celery、API 与前端补发时间的端到端数据流"}
