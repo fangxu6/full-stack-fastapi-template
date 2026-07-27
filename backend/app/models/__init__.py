@@ -1,6 +1,5 @@
 from sqlmodel import SQLModel
 
-from .ai import AiRun, AiToolCall
 from .iam import IamPermission, IamRole, IamRolePermission, IamUserRole
 from .inventory import (
     InventoryDailyReport,
@@ -19,8 +18,6 @@ from .user import User
 
 __all__ = [
     "SQLModel",
-    "AiRun",
-    "AiToolCall",
     "InventoryDocument",
     "InventoryDocumentLine",
     "InventoryDailyReport",

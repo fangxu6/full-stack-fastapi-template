@@ -1,10 +1,8 @@
 import json
-import uuid
 from collections.abc import Callable
 from typing import cast
 from unittest.mock import MagicMock, PropertyMock, patch
 
-import httpx
 import pytest
 import structlog
 from pytest import CaptureFixture
@@ -12,7 +10,6 @@ from sentry_sdk.types import Event
 
 from app.core.config import settings
 from app.core.db import IamBootstrapInitializationError
-from app.core.exceptions import ServiceUnavailableError
 from app.core.observability import (
     bind_request_context,
     clear_request_context,
@@ -24,7 +21,6 @@ from app.core.observability import (
 )
 from app.initial_data import init as init_initial_data
 from app.main import scrub_sentry_error, scrub_sentry_transaction
-from app.modules.ai.service import call_inventory_sidecar
 from app.utils import send_email
 
 
@@ -66,7 +62,7 @@ def test_log_event_emits_only_allowlisted_json(capsys: CaptureFixture[str]) -> N
     log_event(
         event_name="dependency.failed",
         severity="ERROR",
-        dependency="ai_orchestrator",
+        dependency="smtp",
         elapsed_ms=23,
     )
     clear_request_context()
@@ -77,7 +73,7 @@ def test_log_event_emits_only_allowlisted_json(capsys: CaptureFixture[str]) -> N
     assert payload["severity"] == "ERROR"
     assert payload["request_id"] == "a" * 32
     assert payload["actor_kind"] == "anonymous"
-    assert payload["dependency"] == "ai_orchestrator"
+    assert payload["dependency"] == "smtp"
     assert "exception" not in payload
     assert "token" not in payload
 
@@ -115,7 +111,7 @@ def test_sentry_scrubbers_remove_sensitive_event_fields() -> None:
             Event,
             {
                 "request": {"data": "password=secret"},
-                "exception": {"values": [{"value": "sidecar token"}]},
+                "exception": {"values": [{"value": "upstream token"}]},
             },
         ),
         {},
@@ -135,7 +131,7 @@ def test_sentry_scrubbers_remove_sensitive_event_fields() -> None:
     assert error_payload is not None
     assert transaction_payload is not None
     assert "secret" not in str(error_payload)
-    assert "sidecar token" not in str(error_payload)
+    assert "upstream token" not in str(error_payload)
     assert "secret" not in str(transaction_payload)
     assert transaction_payload["spans"] == []
     assert transaction_payload["contexts"] == {"trace": {"trace_id": "a" * 32}}
@@ -155,63 +151,6 @@ def test_sentry_transaction_discards_an_invalid_trace_id() -> None:
     assert transaction_payload is not None
     assert "contexts" not in transaction_payload
     assert "secret" not in str(transaction_payload)
-
-
-def test_ai_configuration_failure_emits_only_the_registered_dependency(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr("app.modules.ai.service.settings.AI_ORCHESTRATOR_URL", None)
-    monkeypatch.setattr(
-        "app.modules.ai.service.settings.AI_ORCHESTRATOR_SERVICE_TOKEN", None
-    )
-
-    with patch("app.modules.ai.service.log_event") as mock_log_event:
-        with pytest.raises(
-            ServiceUnavailableError, match="AI inventory query is not configured"
-        ):
-            call_inventory_sidecar(
-                run_id=uuid.uuid4(),
-                question="private inventory question",
-                request_id="a" * 32,
-                actor_grant="secret-grant",
-            )
-
-    assert mock_log_event.call_args.kwargs == {
-        "event_name": "dependency.failed",
-        "severity": "ERROR",
-        "dependency": "ai_orchestrator",
-    }
-    assert "secret-grant" not in str(mock_log_event.call_args.kwargs)
-
-
-def test_ai_http_failure_emits_a_safe_dependency_event(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        "app.modules.ai.service.settings.AI_ORCHESTRATOR_URL", "http://sidecar:3000"
-    )
-    monkeypatch.setattr(
-        "app.modules.ai.service.settings.AI_ORCHESTRATOR_SERVICE_TOKEN", "service-token"
-    )
-
-    def fail_post(*_: object, **__: object) -> httpx.Response:
-        raise httpx.ConnectError("sidecar token=secret")
-
-    monkeypatch.setattr("app.modules.ai.service.httpx.post", fail_post)
-
-    with patch("app.modules.ai.service.log_event") as mock_log_event:
-        with pytest.raises(
-            ServiceUnavailableError, match="AI inventory query is unavailable"
-        ):
-            call_inventory_sidecar(
-                run_id=uuid.uuid4(),
-                question="private inventory question",
-                request_id="a" * 32,
-                actor_grant="secret-grant",
-            )
-
-    assert mock_log_event.call_args.kwargs["dependency"] == "ai_orchestrator"
-    assert "secret" not in str(mock_log_event.call_args.kwargs)
 
 
 def test_smtp_failure_emits_only_the_registered_dependency() -> None:

@@ -28,7 +28,6 @@ merge:
 | Backend | [backend/index.md](./backend/index.md) | Editing `backend/app/**`, backend tests, migrations, API contracts, or backend tooling |
 | Frontend | [frontend/index.md](./frontend/index.md) | Editing `frontend/src/**`, route/menu/permission behavior, generated-client consumers, or frontend tooling |
 | Project Hooks | [trellis-hook-contract.md](./trellis-hook-contract.md) | Changing project-owned backend/frontend quality hooks |
-| AI Sidecar | [ai-sidecar-contract.md](./ai-sidecar-contract.md) | Changing the private inventory AI sidecar or BFF protocol |
 | Thinking Guides | [guides/index.md](./guides/index.md) | Planning cross-layer work, deciding reuse boundaries, or reviewing architecture-impacting diffs |
 | Spec Templates | [templates/index.md](./templates/index.md) | Creating a new trigger-based scenario contract |
 
@@ -78,7 +77,6 @@ The existing frontend route-permission-navigation contract is the local example:
 
 ## Spec File Inventory
 
-- [AI Inventory Sidecar Contract](./ai-sidecar-contract.md)
 - [Async Task Runtime Guidelines](./backend/async-task-guidelines.md)
 - [Database Guidelines](./backend/database-guidelines.md)
 - [Directory Structure](./backend/directory-structure.md)

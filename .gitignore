@@ -10,7 +10,6 @@ node_modules/
 /upstream_prs.json
 
 .venv/
-/.env.ai.secrets
 /.env.production
 __pycache__/
 *.pyc

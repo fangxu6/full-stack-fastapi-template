@@ -2,8 +2,6 @@ from fastapi import APIRouter
 
 from app.api.routes import docs, items, login, private, users, utils
 from app.core.config import settings
-from app.modules.ai.router import internal_router as ai_internal_router
-from app.modules.ai.router import router as ai_router
 from app.modules.api import router as modules_router
 from app.modules.iam.router import router as iam_router
 from app.modules.inventory.router import router as inventory_router
@@ -15,8 +13,6 @@ api_router.include_router(users.router)
 api_router.include_router(docs.router)
 api_router.include_router(utils.router)
 api_router.include_router(items.router)
-api_router.include_router(ai_router)
-api_router.include_router(ai_internal_router)
 api_router.include_router(inventory_router)
 api_router.include_router(iam_router)
 api_router.include_router(scheduler_router)

@@ -189,19 +189,20 @@ rollback task.
 
 Use a stable module identifier as the domain namespace:
 
-| Object kind | Required form | AI example |
+| Object kind | Required form | Example |
 | --- | --- | --- |
-| Table | `<domain>_<noun>` | `ai_run`, `ai_tool_call` |
-| Index | `ix_<domain>_<table-noun>_<columns>` | `ix_ai_run_request_id` |
-| Unique constraint | `uq_<domain>_<table-noun>_<columns>` | `uq_ai_tool_call_run_sequence` |
-| Check constraint | `ck_<domain>_<table-noun>_<rule>` | `ck_ai_run_tool_calls` |
-| Foreign key | `fk_<domain>_<table-noun>_<target>` | `fk_ai_tool_call_run` |
-| Sequence | `seq_<domain>_<noun>` | `seq_ai_run_number` |
-| Alembic description | `create_<domain>_<objects>` | `create_ai_audit_tables` |
+| Table | `<domain>_<noun>` | `reporting_run`, `reporting_export` |
+| Index | `ix_<domain>_<table-noun>_<columns>` | `ix_reporting_run_request_id` |
+| Unique constraint | `uq_<domain>_<table-noun>_<columns>` | `uq_reporting_export_run_sequence` |
+| Check constraint | `ck_<domain>_<table-noun>_<rule>` | `ck_reporting_run_exports` |
+| Foreign key | `fk_<domain>_<table-noun>_<target>` | `fk_reporting_export_run` |
+| Sequence | `seq_<domain>_<noun>` | `seq_reporting_run_number` |
+| Alembic description | `create_<domain>_<objects>` | `create_reporting_audit_tables` |
 
 The conventional object-kind prefix (`ix_`, `uq_`, `fk_`, and so on) comes
 first; the domain prefix must immediately follow it. For a module with domain
-`ai`, every new persistent object is therefore discoverable with `ai_` in its
+`reporting`, every new persistent object is therefore discoverable with
+`reporting_` in its
 name.
 
 ### 3. Contracts
@@ -231,12 +232,12 @@ name.
 
 ### 5. Good / Base / Bad Cases
 
-- Good: the AI module creates `ai_run`, `ai_tool_call`,
-  `ix_ai_run_request_id`, and `uq_ai_tool_call_run_sequence`; operations can
-  list the entire module family by searching `ai_`.
-- Base: an existing `inventory_document` remains unchanged while a new AI
-  audit table references it or `user`; the new object still uses `ai_`.
-- Bad: a new CRM or AI feature adds generic `run`, `events`, or `log_entries`
+- Good: the reporting module creates `reporting_run`, `reporting_export`,
+  `ix_reporting_run_request_id`, and `uq_reporting_export_run_sequence`;
+  operations can list the entire module family by searching `reporting_`.
+- Base: an existing `inventory_document` remains unchanged while a new reporting
+  audit table references it or `user`; the new object still uses `reporting_`.
+- Bad: a new CRM or reporting feature adds generic `run`, `events`, or `log_entries`
   tables and unnamed constraints. Operators cannot reliably group, audit, or
   clean up the feature's persistence footprint.
 
@@ -272,17 +273,17 @@ inspection cannot distinguish them from other feature runs.
 #### Correct
 
 ```python
-class AiRun(SQLModel, table=True):
-    __tablename__ = "ai_run"
+class ReportingRun(SQLModel, table=True):
+    __tablename__ = "reporting_run"
 
     request_id: str
 
 
-Index("ix_ai_run_request_id", AiRun.request_id)
+Index("ix_reporting_run_request_id", ReportingRun.request_id)
 ```
 
 The model name remains idiomatic Python while every persisted object carries a
-stable AI namespace.
+stable reporting namespace.
 
 ---
 
@@ -464,6 +465,94 @@ change.
   - [`backend/app/alembic/versions/d98dd8ec85a3_edit_replace_id_integers_in_all_models_.py`](../../../backend/app/alembic/versions/d98dd8ec85a3_edit_replace_id_integers_in_all_models_.py)
   - [`backend/app/alembic/versions/fe56fa70289e_add_created_at_to_user_and_item.py`](../../../backend/app/alembic/versions/fe56fa70289e_add_created_at_to_user_and_item.py)
 - Review generated frontend impact whenever public schemas or endpoint payloads change.
+
+---
+
+## Scenario: Retiring A Persisted Module
+
+### 1. Scope / Trigger
+
+Apply this when a deployed bounded capability is permanently retired and its
+tables, enum types, API routes, configuration, and generated-client contract
+must no longer be supported. Existing databases may already be at the prior
+head, so deleting the original creation revision is not a valid removal.
+
+### 2. Signatures
+
+Add a forward Alembic revision whose `down_revision` is the current head:
+
+```python
+def upgrade() -> None:
+    # Drop dependent tables before their parent tables and enum types.
+    ...
+
+
+def downgrade() -> None:
+    # Recreate the original empty schema only.
+    ...
+```
+
+### 3. Contracts
+
+- `upgrade` drops dependent tables first, then parent tables, then module-owned
+  enum types or other shared database objects.
+- `downgrade` recreates the original columns, indexes, constraints, foreign
+  keys, and enum types, but restores no rows. Data recovery belongs to a
+  backup/restore procedure, not a schema downgrade.
+- Keep the original creation revision immutable. It remains necessary to
+  migrate databases that have not yet reached the retirement revision.
+- If public routes or schemas are removed with the module, regenerate the
+  frontend OpenAPI client; do not hand-edit generated output.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| Database at the predecessor revision | Upgrade removes every retired table and enum type. |
+| Downgrade to the predecessor revision | Empty tables, indexes, constraints, foreign keys, and enum types are recreated. |
+| Re-upgrade to head | The same retired objects are removed again without affecting unrelated schema. |
+| Original creation migration is deleted or rewritten | Reject the change; deployed migration history would become invalid. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a forward revision drops a retired module's child audit table before
+  its parent table and then drops its status enums; downgrade recreates only
+  the empty audit schema.
+- Base: a never-deployed module with no tracked migration can be removed from
+  source without a database migration.
+- Bad: deleting the original creation revision or using downgrade to reinsert
+  historical audit rows.
+
+### 6. Tests Required
+
+- Use a newly created isolated database ending in `_test` or `_pytest`.
+- Upgrade to the predecessor revision and inspect that the retired objects
+  exist; upgrade to head and inspect that they do not.
+- Downgrade to the predecessor revision, verify the recreated objects are
+  empty, then re-upgrade to head and verify their absence again.
+- For an API-facing retirement, assert the removed route returns the normal
+  404/error contract and confirm the regenerated OpenAPI/client lacks the
+  retired route and schemas.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```text
+Delete the original create_<module>_tables migration with the module source.
+```
+
+Existing production databases can no longer resolve their Alembic history.
+
+#### Correct
+
+```text
+Keep create_<module>_tables immutable and add remove_<module>_capability as a
+forward revision from the current head.
+```
+
+The migration chain remains executable for both existing and newly provisioned
+databases.
 
 ---
 

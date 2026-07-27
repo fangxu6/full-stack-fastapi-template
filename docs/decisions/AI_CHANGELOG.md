@@ -23,6 +23,11 @@ In most cases, updating `AI_CHANGELOG.md` alone is enough.
 - Risk: 风险、权衡或后续事项
 
 ## Entries
+- Date: 2026-07-27
+- Scope: retired inventory AI query capability
+- Decision: Removed the retired inventory AI query capability and its active operational documentation; ADR-0008 is the authoritative removal record.
+- Reason: The pilot is no longer a supported product capability, so active documentation and planning must not imply an available AI BFF, sidecar, or operations path.
+- Risk: Historical ADRs and archived Trellis task artifacts remain intentionally for auditability; they must not be treated as active implementation guidance.
 - Date: 2026-07-24
 - Scope: internal Sentry transaction correlation
 - Decision: `before_send_transaction` reconstructs the minimal transaction event and may retain only `contexts.trace.trace_id` when it is a canonical 32-character lowercase hexadecimal ID. All other trace fields and all request, user, exception, breadcrumb, tag, context, and span data remain removed.

@@ -34,6 +34,13 @@
   30-second no-retry request, completed-run provider/model audit, and
   fail-before-503 behavior for unavailable or invalid sidecar responses.
 
+## 2026-07-27
+
+- Superseded the active AI inventory sidecar contract and operation guidance
+  under ADR-0008. The inventory AI query capability is retired; its active
+  spec catalog entry and operation guides were removed. Historical ADRs and
+  archived task artifacts remain audit records only.
+
 ## 2026-07-15
 
 - Added the frontend pagination contract for Ant Design 6 server-side lists.

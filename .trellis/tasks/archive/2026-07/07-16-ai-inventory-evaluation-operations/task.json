@@ -3,7 +3,7 @@
   "name": "ai-inventory-evaluation-operations",
   "title": "AI inventory evaluation and operations guardrails",
   "description": "Define and automate the 30-question inventory evaluation, safety/latency/cost metrics, rollout gate, observability checks, and feature-flag rollback procedure.",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "fangxu",
   "assignee": "fangxu",
   "createdAt": "2026-07-16",
-  "completedAt": null,
+  "completedAt": "2026-07-27",
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": "07-16-mastra-ai-orchestration-feasibility",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Superseded by ADR-0008 on 2026-07-27: the inventory AI query capability was retired before this planning task was implemented. Archived as historical planning context only.",
   "meta": {}
 }

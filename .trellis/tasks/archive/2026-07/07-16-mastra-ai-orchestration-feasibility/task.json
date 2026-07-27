@@ -3,7 +3,7 @@
   "name": "mastra-ai-orchestration-feasibility",
   "title": "Mastra AI orchestration feasibility and first pilot plan",
   "description": "Parent task for the Mastra inventory read-only pilot: owns approved product/architecture contracts, child-task ordering, and final cross-layer acceptance.",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "fangxu",
   "assignee": "fangxu",
   "createdAt": "2026-07-16",
-  "completedAt": null,
+  "completedAt": "2026-07-27",
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
@@ -26,6 +26,6 @@
   ],
   "parent": null,
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Superseded by ADR-0008 on 2026-07-27: the inventory AI query capability was retired. Its remaining active planning children were archived first; this parent is retained only as historical planning context.",
   "meta": {}
 }

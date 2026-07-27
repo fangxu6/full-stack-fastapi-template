@@ -23,7 +23,7 @@ EventName = Literal[
 Severity = Literal["INFO", "WARNING", "ERROR", "CRITICAL"]
 
 REQUEST_ID_PATTERN = re.compile(r"^[a-f0-9]{32}$")
-DEPENDENCIES = {"postgres", "iam_bootstrap", "ai_orchestrator", "smtp"}
+DEPENDENCIES = {"postgres", "iam_bootstrap", "smtp"}
 _LOGGER = structlog.get_logger("app.observability")
 
 

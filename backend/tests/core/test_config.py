@@ -20,18 +20,6 @@ def make_settings(**overrides: object) -> Settings:
     return Settings(_env_file=None, **values)
 
 
-def test_ai_enabled_requires_internal_backend_configuration(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.delenv("AI_ORCHESTRATOR_URL", raising=False)
-    monkeypatch.delenv("AI_ORCHESTRATOR_SERVICE_TOKEN", raising=False)
-    monkeypatch.delenv("AI_INTERNAL_SERVICE_TOKEN", raising=False)
-    monkeypatch.delenv("AI_ACTOR_GRANT_SIGNING_KEY", raising=False)
-
-    with pytest.raises(ValidationError, match="AI_ENABLED requires"):
-        make_settings(AI_ENABLED=True)
-
-
 def test_celery_urls_percent_encode_the_redis_password() -> None:
     settings = make_settings(REDIS_PASSWORD="pass:/@word")
 

@@ -13,7 +13,6 @@ from starlette.status import (
     HTTP_409_CONFLICT,
     HTTP_422_UNPROCESSABLE_ENTITY,
     HTTP_500_INTERNAL_SERVER_ERROR,
-    HTTP_503_SERVICE_UNAVAILABLE,
 )
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -77,11 +76,6 @@ class ConflictError(AppError):
     detail = "Conflict"
 
 
-class ServiceUnavailableError(AppError):
-    status_code = HTTP_503_SERVICE_UNAVAILABLE
-    detail = "Service unavailable"
-
-
 class RequestIdMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -134,11 +128,7 @@ def _log_http_response(
 ) -> None:
     elapsed_ms = int((perf_counter() - started_at) * 1000)
     route_template = getattr(scope.get("route"), "path", "unmatched")
-    threshold = (
-        settings.OBSERVABILITY_AI_SLOW_THRESHOLD_MS
-        if route_template == f"{settings.API_V1_STR}/ai/inventory/query"
-        else settings.OBSERVABILITY_HTTP_SLOW_THRESHOLD_MS
-    )
+    threshold = settings.OBSERVABILITY_HTTP_SLOW_THRESHOLD_MS
     is_slow = elapsed_ms >= threshold
     event_name: EventName
     severity: Severity

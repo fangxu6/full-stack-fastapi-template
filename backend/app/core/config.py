@@ -39,7 +39,6 @@ class Settings(BaseSettings):
     FRONTEND_HOST: str = "http://localhost:5173"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
     OBSERVABILITY_HTTP_SLOW_THRESHOLD_MS: int = 1000
-    OBSERVABILITY_AI_SLOW_THRESHOLD_MS: int = 10000
 
     BACKEND_CORS_ORIGINS: Annotated[
         list[AnyUrl] | str, BeforeValidator(parse_cors)
@@ -54,13 +53,6 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str
     SENTRY_DSN: HttpUrl | None = None
-    AI_ENABLED: bool = False
-    AI_ORCHESTRATOR_URL: HttpUrl | None = None
-    AI_ORCHESTRATOR_SERVICE_TOKEN: str | None = None
-    AI_INTERNAL_SERVICE_TOKEN: str | None = None
-    AI_ACTOR_GRANT_SIGNING_KEY: str | None = None
-    AI_ACTOR_GRANT_TTL_SECONDS: int = 300
-    AI_MAX_TOOL_CALLS: int = 3
     POSTGRES_SERVER: str
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str
@@ -143,29 +135,9 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
-    def _validate_ai_settings(self) -> Self:
+    def _validate_observability_settings(self) -> Self:
         if self.OBSERVABILITY_HTTP_SLOW_THRESHOLD_MS <= 0:
             raise ValueError("OBSERVABILITY_HTTP_SLOW_THRESHOLD_MS must be positive")
-        if self.OBSERVABILITY_AI_SLOW_THRESHOLD_MS <= 0:
-            raise ValueError("OBSERVABILITY_AI_SLOW_THRESHOLD_MS must be positive")
-        if not self.AI_ENABLED:
-            return self
-
-        required_settings = {
-            "AI_ORCHESTRATOR_URL": self.AI_ORCHESTRATOR_URL,
-            "AI_ORCHESTRATOR_SERVICE_TOKEN": self.AI_ORCHESTRATOR_SERVICE_TOKEN,
-            "AI_INTERNAL_SERVICE_TOKEN": self.AI_INTERNAL_SERVICE_TOKEN,
-            "AI_ACTOR_GRANT_SIGNING_KEY": self.AI_ACTOR_GRANT_SIGNING_KEY,
-        }
-        missing_settings = [
-            name for name, value in required_settings.items() if not value
-        ]
-        if missing_settings:
-            raise ValueError("AI_ENABLED requires " + ", ".join(missing_settings))
-        if self.AI_ACTOR_GRANT_TTL_SECONDS <= 0:
-            raise ValueError("AI_ACTOR_GRANT_TTL_SECONDS must be positive")
-        if self.AI_MAX_TOOL_CALLS <= 0:
-            raise ValueError("AI_MAX_TOOL_CALLS must be positive")
         return self
 
 

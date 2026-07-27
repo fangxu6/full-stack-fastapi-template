@@ -57,7 +57,7 @@ the shared contracts and validation scope are compatible.
   or scheduler.
 - D-005 must name the first external consumer and contractual API use case.
 - D-006 must choose an MCP transport and client-authentication model; it must
-  never expose raw database, shell, file-system, network, or private-sidecar
+  never expose raw database, shell, file-system, network, or private-service
   access.
 - D-007 must name the first cross-role business process and its acceptance
   conditions before selecting a workflow model or engine.

@@ -3,7 +3,7 @@
   "name": "ai-inventory-superadmin-frontend",
   "title": "AI inventory superadmin frontend experience",
   "description": "Add the superadmin-only React platform AI page, route/menu guards, generated-client integration, and source-aware response/error experience.",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "fangxu",
   "assignee": "fangxu",
   "createdAt": "2026-07-16",
-  "completedAt": null,
+  "completedAt": "2026-07-27",
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": "07-16-mastra-ai-orchestration-feasibility",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Superseded by ADR-0008 on 2026-07-27: the inventory AI query capability was retired before this planning task was implemented. Archived as historical planning context only.",
   "meta": {}
 }
