@@ -10,6 +10,8 @@
 - 用户、IAM、库存、scheduler、items 和 private 路由的写路径，以及部分 CRUD/服务，仍直接调用 `session.commit()` 或 `session.rollback()`。
 - Celery worker、库存日报、导入器、启动初始化和 Alembic 不是 HTTP 请求，必须保留各自显式的短事务。
 - 调度手工运行在提交后由现有每分钟 scanner 投递；HTTP 路径不能在事务提交前直接发布 Celery 消息。
+- 当前共有 38 个 `POST`、`PUT`、`PATCH` 或 `DELETE` 路由处理函数，分布于 items (3)、login (5)、private (1)、users (7)、utils (1)、IAM (5)、inventory (8) 和 scheduler (8)。ADR-0006 已决定全部迁移，即使某些 POST 当前不写库。
+- FastAPI 0.138.1 的普通 yield dependency 默认在响应发送后清理；写依赖必须使用 `scope="function"`，以便 commit/rollback 在响应发送前执行。`SessionDep` 也必须使用相同 scope，否则认证/权限依赖与写依赖会得到不同的 Session。
 
 ## Requirements
 
@@ -18,6 +20,11 @@
 3. HTTP 写服务、CRUD 和路由可以 `add`、`flush`、`refresh` 和转换完整性错误，但不得调用 `commit()` 或 `rollback()`。
 4. 对 HTTP 外直接调用的服务，先在调用方建立明确事务所有者，再移除内部事务终结调用；不得把 worker、CLI、启动、导入或迁移强行接入 HTTP 依赖。
 5. 一次请求内的业务行、审计行和将来的 outbox 行必须同事务提交或回滚；不得以提前发送 Celery 消息替代提交后调度扫描。
+6. `SessionDep` 与 `WriteSessionDep` 都使用 FastAPI `scope="function"`，并共用同一缓存的 `get_db()` Session；不得为认证、权限或写入依赖创建第二个请求 Session。
+
+## Confirmed Decisions
+
+- `SessionDep` 全局使用 `scope="function"`。所有 HTTP 读写、认证和 RBAC 依赖在响应发送前关闭同一 Session；`WriteSessionDep` 只额外拥有成功提交与异常回滚职责。
 
 ## Acceptance Criteria
 
@@ -26,6 +33,7 @@
 - [ ] HTTP 路径中的服务、CRUD 和路由不再调用 `session.commit()`/`session.rollback()`。
 - [ ] 非 HTTP 任务保留显式短事务，并且没有数据库事务跨 SMTP、HTTP 或 Celery broker 调用。
 - [ ] 用户、IAM、库存、scheduler、items、private 与登录相关写路径的现有 API 回归通过。
+- [ ] 38 个 HTTP 写路由均完成迁移；所有 HTTP `SessionDep` 和 `WriteSessionDep` 均为 function scope，成功提交和失败回滚发生在响应发送前，认证/权限依赖与 endpoint 观察到同一 Session。
 
 ## Out Of Scope
 
@@ -38,3 +46,4 @@
 - 前置：无。
 - 后续：`07-27-explicit-audit-actor` 与 `07-27-generic-email-outbox` 依赖此任务提供的 HTTP 原子提交边界。
 - 决策依据：`docs/adr/0006-use-request-scoped-unit-of-work-for-http-writes.md`。
+- 研究记录：`research/fastapi-function-scope-evidence.md`。

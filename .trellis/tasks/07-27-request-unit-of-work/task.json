@@ -3,7 +3,7 @@
   "name": "request-unit-of-work",
   "title": "请求级 Unit of Work",
   "description": "建立 HTTP 写请求的统一提交与异常回滚边界，移除服务、CRUD 和路由层的事务终结调用。",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": "backend HTTP write transaction boundary",
   "package": "backend",
