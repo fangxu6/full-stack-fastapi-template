@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"独立 BIGINT identity、审计字段、命名约束和迁移往返。"}
+{"file":".trellis/spec/backend/async-task-guidelines.md","reason":"Celery ID 参数、默认队列、可见性租约和至少一次投递语义。"}
+{"file":".trellis/spec/backend/logging-guidelines.md","reason":"SMTP 失败与任务日志的安全字段边界。"}
+{"file":"docs/adr/0009-use-generic-email-outbox-for-non-report-mail.md","reason":"邮件类型、状态机、生产者和调度边界的确认决策。"}
+{"file":"docs/adr/0007-require-an-explicit-audit-actor.md","reason":"outbox 创建、重试和补偿的 actor 归属。"}

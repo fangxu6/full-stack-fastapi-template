@@ -1,1 +1,7 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"检查模型、迁移、事务和审计字段是否符合数据库规范。"}
+{"file":".trellis/spec/backend/async-task-guidelines.md","reason":"检查 Celery、Redis、调度和 outbox worker 的运行时契约。"}
+{"file":".trellis/spec/backend/logging-guidelines.md","reason":"检查日志是否泄漏参数、凭据、token 或用户标识。"}
+{"file":"docs/adr/0006-use-request-scoped-unit-of-work-for-http-writes.md","reason":"按 ADR 检查 HTTP 写事务边界。"}
+{"file":"docs/adr/0007-require-an-explicit-audit-actor.md","reason":"按 ADR 检查 actor 解析、System Actor 保护和异步传播。"}
+{"file":"docs/adr/0009-use-generic-email-outbox-for-non-report-mail.md","reason":"按 ADR 检查邮件持久化、幂等和重试。"}
+{"file":"docs/adr/0010-use-safe-celery-task-observability-context.md","reason":"按 ADR 检查 Celery signal 和安全观测字段。"}

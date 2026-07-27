@@ -1,0 +1,32 @@
+{
+  "id": "explicit-audit-actor",
+  "name": "explicit-audit-actor",
+  "title": "显式审计 Actor 与 System Actor",
+  "description": "为可审计写入建立显式 actor 传播、唯一受保护 System Actor 和非 HTTP 入口的 actor 绑定。",
+  "status": "planning",
+  "dev_type": null,
+  "scope": "backend auditable write actor propagation and protected System Actor",
+  "package": "backend",
+  "priority": "P1",
+  "creator": "fx",
+  "assignee": "fx",
+  "createdAt": "2026-07-27",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "07-27-python-cross-cutting-capabilities",
+  "relatedFiles": [
+    "backend/app/models/base.py",
+    "backend/app/models/user.py",
+    "backend/app/api/dependencies",
+    "backend/app/modules/scheduler",
+    "backend/app/alembic/versions"
+  ],
+  "notes": "Execution order 2 of 4. Requires the request Unit of Work task to be committed first. Generic email outbox consumes this actor contract.",
+  "meta": {}
+}

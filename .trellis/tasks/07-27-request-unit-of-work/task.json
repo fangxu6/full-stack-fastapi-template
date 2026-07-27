@@ -1,0 +1,33 @@
+{
+  "id": "request-unit-of-work",
+  "name": "request-unit-of-work",
+  "title": "请求级 Unit of Work",
+  "description": "建立 HTTP 写请求的统一提交与异常回滚边界，移除服务、CRUD 和路由层的事务终结调用。",
+  "status": "planning",
+  "dev_type": null,
+  "scope": "backend HTTP write transaction boundary",
+  "package": "backend",
+  "priority": "P0",
+  "creator": "fx",
+  "assignee": "fx",
+  "createdAt": "2026-07-27",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "07-27-python-cross-cutting-capabilities",
+  "relatedFiles": [
+    "backend/app/api/dependencies/database.py",
+    "backend/app/api/dependencies/auth.py",
+    "backend/app/api/routes",
+    "backend/app/services",
+    "backend/app/crud",
+    "backend/app/modules"
+  ],
+  "notes": "Execution order 1 of 4. Do not start until planning artifacts are reviewed; later actor and outbox tasks depend on this transaction boundary.",
+  "meta": {}
+}

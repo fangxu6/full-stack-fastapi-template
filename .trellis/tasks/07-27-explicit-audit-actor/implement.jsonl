@@ -1,0 +1,4 @@
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"AuditFields、User 约束、迁移和 UTC 时间戳契约。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"缺少或非法 actor 的失败响应边界。"}
+{"file":"docs/adr/0007-require-an-explicit-audit-actor.md","reason":"System Actor、Session.info 与异步 actor 传播的确认决策。"}
+{"file":"docs/adr/0006-use-request-scoped-unit-of-work-for-http-writes.md","reason":"HTTP actor 绑定的会话和最终提交边界。"}

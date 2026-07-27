@@ -1,0 +1,4 @@
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"检查 outbox schema、约束、审计与迁移。"}
+{"file":".trellis/spec/backend/async-task-guidelines.md","reason":"检查领取、租约、ID-only task 和重试边界。"}
+{"file":".trellis/spec/backend/logging-guidelines.md","reason":"检查 SMTP/task 日志不泄漏邮件、token、用户或异常文本。"}
+{"file":"docs/adr/0009-use-generic-email-outbox-for-non-report-mail.md","reason":"检查所有邮件生产者和库存日报边界符合 ADR。"}

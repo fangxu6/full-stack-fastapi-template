@@ -1,0 +1,3 @@
+{"file":".trellis/spec/backend/logging-guidelines.md","reason":"任务/HTTP 结构化日志、字段白名单和敏感信息边界。"}
+{"file":".trellis/spec/backend/async-task-guidelines.md","reason":"Celery 任务注册、默认队列和至少一次运行时约束。"}
+{"file":"docs/adr/0010-use-safe-celery-task-observability-context.md","reason":"Celery lifecycle signal 的确认决策。"}

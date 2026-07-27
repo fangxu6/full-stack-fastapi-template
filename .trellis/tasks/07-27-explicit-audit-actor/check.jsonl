@@ -1,0 +1,3 @@
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"检查审计字段、User 约束与迁移往返。"}
+{"file":".trellis/spec/backend/logging-guidelines.md","reason":"确保日志上下文未成为审计 actor 来源或泄漏身份。"}
+{"file":"docs/adr/0007-require-an-explicit-audit-actor.md","reason":"检查唯一 System Actor、ORM hook 与跨入口 actor 传播。"}

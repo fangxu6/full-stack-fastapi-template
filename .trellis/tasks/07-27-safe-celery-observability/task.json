@@ -1,0 +1,32 @@
+{
+  "id": "safe-celery-observability",
+  "name": "safe-celery-observability",
+  "title": "安全 Celery 任务观测",
+  "description": "通过 Celery 生命周期 signal 提供最小、安全的 task id/name 日志上下文，不承担业务副作用或启动校验。",
+  "status": "planning",
+  "dev_type": null,
+  "scope": "backend Celery lifecycle logging context and safe event schema",
+  "package": "backend",
+  "priority": "P2",
+  "creator": "fx",
+  "assignee": "fx",
+  "createdAt": "2026-07-27",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "07-27-python-cross-cutting-capabilities",
+  "relatedFiles": [
+    "backend/app/core/celery.py",
+    "backend/app/core/observability.py",
+    "backend/app/core/tasks.py",
+    "backend/tests/core/test_observability.py",
+    "backend/tests/core/test_celery.py"
+  ],
+  "notes": "Execution order 3 of 4. Signals are restricted to safe lifecycle logs; do not use them for startup validation or business side effects.",
+  "meta": {}
+}

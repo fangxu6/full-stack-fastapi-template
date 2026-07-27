@@ -1,1 +1,7 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"事务边界、审计字段、BIGINT identity、命名空间和迁移约束。"}
+{"file":".trellis/spec/backend/async-task-guidelines.md","reason":"Celery 参数边界、默认队列、可见性租约、调度和日报投递约束。"}
+{"file":".trellis/spec/backend/logging-guidelines.md","reason":"HTTP request/actor 与 Celery 任务日志的安全字段边界。"}
+{"file":"docs/adr/0006-use-request-scoped-unit-of-work-for-http-writes.md","reason":"请求级 Unit of Work 的已确认决策。"}
+{"file":"docs/adr/0007-require-an-explicit-audit-actor.md","reason":"System Actor 和显式审计归属的已确认决策。"}
+{"file":"docs/adr/0009-use-generic-email-outbox-for-non-report-mail.md","reason":"通用邮件发件箱的范围、状态和重试决策。"}
+{"file":"docs/adr/0010-use-safe-celery-task-observability-context.md","reason":"Celery 生命周期观测上下文的安全边界。"}
