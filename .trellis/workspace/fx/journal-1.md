@@ -442,3 +442,37 @@ Removed the retired inventory AI BFF, sidecar workspace, Compose and configurati
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: 修复定时任务管理审查问题
+
+**Date**: 2026-07-27
+**Task**: 修复定时任务管理审查问题
+**Branch**: `master`
+
+### Summary
+
+修复调度器告警启动校验、凭据边界、投递租约、并发事务、失败分类与上海补发时间；完成迁移、后端、前端和浏览器回归验证。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `75ea147` | (see git log) |
+| `8a3abbf` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
