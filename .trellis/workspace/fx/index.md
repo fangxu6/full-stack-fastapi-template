@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 12
-- **Last Active**: 2026-07-25
+- **Total Sessions**: 13
+- **Last Active**: 2026-07-27
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~411 | Active |
+| `journal-1.md` | ~444 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 13 | 2026-07-27 | Remove retired AI inventory query capability | `fd2d545` | `master` |
 | 12 | 2026-07-25 | Add daily inventory email reports | `db4c591` | `master` |
 | 11 | 2026-07-25 | 定义未来告警契约 | `efb238b` | `master` |
 | 10 | 2026-07-23 | Implement structured observability | `e369923` | `master` |

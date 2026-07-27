@@ -409,3 +409,36 @@ Implemented scheduled prior-day inventory report snapshots, per-recipient SMTP d
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: Remove retired AI inventory query capability
+
+**Date**: 2026-07-27
+**Task**: Remove retired AI inventory query capability
+**Branch**: `master`
+
+### Summary
+
+Removed the retired inventory AI BFF, sidecar workspace, Compose and configuration wiring, audit schema through a forward migration, generated client surface, and superseded planning artifacts. Verified migration upgrade/downgrade/re-upgrade, backend tests and checks, generated client, frontend build, and local 404 behavior.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fd2d545` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
