@@ -1,7 +1,7 @@
 ---
 title: LLM-Wiki Log
 created: 2026-06-04
-updated: 2026-06-07
+updated: 2026-07-27
 type: log
 tags:
   - llm-wiki
@@ -40,3 +40,14 @@ Append new records at the end. Do not rewrite historical entries except for obvi
 - Ingested local Codex documentation clippings under `docs/llm-wiki/sources/codex/` into [[docs/llm-wiki/sources/codex-official-configuration|Codex official configuration source]].
 - Added [[docs/llm-wiki/entities/codex|Codex]] as the durable entity page for repository-relevant Codex surfaces: config, hooks, subagents, rules, skills, and plugins.
 - Updated [[docs/llm-wiki/index|index]] and [[docs/llm-wiki/entities/trellis|Trellis]] so future wiki-aware work can discover Codex integration guidance.
+
+## [2026-07-27] ingest | Scheduler runtime boundary
+
+- Added [[docs/llm-wiki/sources/scheduler-runtime|Scheduler runtime source]]
+  from the scheduler code-spec, reviewed Trellis task, migration, and runtime
+  implementation.
+- Recorded the durable PostgreSQL/Celery dispatch lease, credential boundary,
+  startup validation, failure classification, concurrency, and Shanghai-time
+  input contracts.
+- Updated [[docs/llm-wiki/index|index]] so scheduler runtime guidance is
+  discoverable during future backend and frontend work.

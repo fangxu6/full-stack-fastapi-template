@@ -9,22 +9,22 @@
 
 ## Cases
 
-| ID | Flow | Setup / Action | Expected |
-| --- | --- | --- | --- |
-| SRF-E2E-001 | `.env` CSV | 临时 `.env` 设置两个逗号分隔邮箱并创建 `SchedulerSettings` | 两个邮箱成功加载；非法或大小写重复值启动失败。 |
-| SRF-E2E-002 | Worker fail-fast | production 缺 SMTP 或收件人，启动 Celery Worker | 进程在 app 导入阶段非零退出，不进入消费循环。 |
-| SRF-E2E-003 | Beat fail-fast | 同上，启动 Celery Beat | 进程非零退出；local 配置可启动到应用加载完成。 |
-| SRF-E2E-004 | HTTP isolation | production 缺调度告警配置，导入/启动 FastAPI app | HTTP app 正常启动；不提前导入 Celery app。 |
-| SRF-E2E-005 | Credential rejection | POST job，配置模型含嵌套 Secret/union，或 JSON 含 `credential`/`authorization`/`access_key` | 422；`scheduler_job` 和 `scheduler_run` 不保存配置。 |
-| SRF-E2E-006 | First dispatch | 创建自动、立即运行和补发 run | 每个 run 尽快投递一次，消息参数只有 run ID。 |
-| SRF-E2E-007 | Dispatch throttling | Worker 忙碌使 run 保持 queued，连续执行两次分钟扫描 | visibility timeout 前不重复投递；扫描每批不超过 100 条。 |
-| SRF-E2E-008 | Dispatch recovery | broker 首次发送失败或模拟发送边界中断 | DB run 保持 queued，后续到期扫描可重投；不创建第二个 active run。 |
-| SRF-E2E-009 | Business ValueError | 合法实现类在 `run()` 抛 `ValueError` | run 为 FAILED/EXECUTION_FAILED，发送 FAILURE 类告警。 |
-| SRF-E2E-010 | Config failure | 冻结类路径或配置在 Worker 侧失效 | run 为 FAILED/CONFIGURATION_INVALID，发送 CONFIGURATION 类告警。 |
-| SRF-E2E-011 | Concurrent run creation | 人工 run 与 scanner 同时为同一 job 创建 active run | 只有一个 active run；另一条按 API 409 或自动 overlap 处理。 |
-| SRF-E2E-012 | Batch conflict isolation | 同批两个 due job，其中一个在插入时发生唯一冲突 | 无冲突 job 的 run 和两个 job 的时点推进按预期提交，不发生整批回滚。 |
-| SRF-E2E-013 | Shanghai backfill | 固定当前时刻为 `00:30Z`，打开补发弹窗并提交最近上海时间 | max 显示 `08:30`；提交值转换回对应 UTC，浏览器不拦截。 |
-| SRF-E2E-014 | Migration | 升级含既有 queued/terminal runs 的数据库，再降级 | queued 的 `next_dispatch_at=created_at`，其他为 NULL；索引和列可逆。 |
+| ID | Endpoint / flow | Setup data | Request / action | Expected response | Persistence / side effect | Failure assertion |
+| --- | --- | --- | --- | --- | --- | --- |
+| SRF-E2E-001 | Settings CSV | 临时 `.env` 与进程环境各提供两个 CSV 邮箱 | 创建 `SchedulerSettings` | 两个邮箱被解析；非法或大小写重复值抛校验错误 | 不写数据库 | `NoDecode` 不得被回退为 JSON 预解码。 |
+| SRF-E2E-002 | Celery Worker fail-fast | `ENVIRONMENT=production`，缺 SMTP 或收件人 | 启动 `celery -A app.core.celery:celery_app worker` | 进程非零退出 | 不连接 broker、不消费消息 | 异常不能只被 signal 记录后继续启动。 |
+| SRF-E2E-003 | Celery Beat fail-fast | 与 SRF-E2E-002 相同；另设 `local` 对照 | 启动 Beat | production 非零退出；local 可完成应用加载 | 不创建 scheduler run | Worker 与 Beat 采用相同的启动边界。 |
+| SRF-E2E-004 | HTTP isolation | 与 SRF-E2E-002 相同 | 启动 FastAPI 或请求 `GET /api/v1/utils/health-check/` | HTTP 可用 | 不触发 Celery runtime 校验 | HTTP router 不得因告警配置缺失失败。 |
+| SRF-E2E-005 | `POST /api/v1/scheduler/jobs` | manage 用户；测试专用允许类声明嵌套 Secret、union 或敏感键配置 | 提交 `credential`、`authorization`、`access_key` 或 Secret schema 配置 | 422，统一 `detail` 与 `request_id` | `scheduler_job` 与 `scheduler_run` 均无新增快照 | 不扫描、清洗或轮换历史 JSONB；已确认不存在历史凭据。 |
+| SRF-E2E-006 | 自动、立即与补发 dispatch | 有效 job 与 mock broker | 扫描 due job；`POST /jobs/{id}/run-now`；`POST /jobs/{id}/backfill` | 手工端点返回 queued run | 每条新 queued run 仅传递 `run_id` 并立即获得一次投递机会 | 终态 run 不得进入投递查询。 |
+| SRF-E2E-007 | Dispatch throttling | 100+ queued runs、Worker 忙碌、固定时间 | 连续两次扫描 | 扫描正常完成 | 每批最多 100 条；visibility timeout 前不重复投递 | 默认队列不得按分钟累积同一 run 的重复消息。 |
+| SRF-E2E-008 | Dispatch recovery | mock broker 首次失败或发送边界中断 | 执行扫描并推进时间 | run 保持 `QUEUED`，后续到期后可重投 | 不创建第二个 active run | broker 单条失败不能终止同批其他投递。 |
+| SRF-E2E-009 | `scheduler.execute_run(run_id)` business failure | 合法任务类的 `run()` 抛 `ValueError` | 执行 worker task | run 为 `FAILED/EXECUTION_FAILED` | 记录 FAILURE 限频字段并发送 FAILURE 告警 | 不得标记为 `CONFIGURATION_INVALID`。 |
+| SRF-E2E-010 | `scheduler.execute_run(run_id)` config failure | 冻结类路径或配置失效 | 执行 worker task | run 为 `FAILED/CONFIGURATION_INVALID` | 记录 CONFIGURATION 限频字段 | 不调用任务业务 `run()`。 |
+| SRF-E2E-011 | `POST /jobs/{id}/run-now` 与扫描并发 | 同一 job、两个事务屏障 | 同时创建人工和自动 active run | 人工为 409 或自动为 overlap skip | 仅一条 `QUEUED/RUNNING` run | 不依赖先查后插作为唯一并发控制。 |
+| SRF-E2E-012 | Scanner batch conflict isolation | 两个 due job；其中一个制造唯一索引冲突 | 扫描批次 | 扫描正常完成 | 无冲突 job 的 run 与两个 job 的 `next_run_at` 均提交 | 冲突只回滚 savepoint，不能回滚整个扫描批次。 |
+| SRF-E2E-013 | `/scheduler/jobs` backfill UI | 固定当前时间 `00:30Z`，有 manage 权限会话 | 打开补发弹窗，输入上海最近时间并提交 | 浏览器接受 max `08:30`，请求 payload 转为对应 UTC | 创建 `MANUAL_BACKFILL` run | 不得以 UTC 文本作为 `datetime-local.max`。 |
+| SRF-E2E-014 | Migration | 含 queued 与 terminal run 的隔离数据库 | upgrade 新 revision 后 downgrade | upgrade/downgrade 均成功 | queued 行回填 `next_dispatch_at=created_at`，其他为 NULL | 索引与列按依赖顺序移除，不影响既有 run 数据之外的表。 |
 
 ## Regression
 

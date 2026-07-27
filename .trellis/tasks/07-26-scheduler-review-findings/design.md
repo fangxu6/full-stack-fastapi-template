@@ -8,13 +8,14 @@
 - Beat 仍每分钟扫描，所有消息仍进入默认队列，Worker 仍单并发。
 - 运行仍采用至少一次语义，业务实现负责自身幂等，通用运行器不重试业务失败。
 - HTTP API 可以在告警邮件配置缺失时启动。
+- 已确认现有 scheduler 定义和运行快照没有凭据；凭据边界修复仅约束未来保存和公开的配置，
+  不加入历史数据扫描、清洗或轮换迁移。
 
 ## 1. Recipient parsing and startup validation
 
-`SchedulerSettings.SCHEDULED_TASK_ALERT_RECIPIENTS` 保留 `list[EmailStr]` 类型和现有
-`BeforeValidator`。在字段 `Annotated` 中加入已安装的 `pydantic_settings.NoDecode`，阻止
-Settings source 在业务 validator 前按 JSON 解析逗号字符串。这样环境变量和 `.env` 都进入
-同一个 CSV parser，不增加备用格式或依赖。
+`0d3c59d` 已在 `SchedulerSettings.SCHEDULED_TASK_ALERT_RECIPIENTS` 的 `Annotated` 字段加入
+`pydantic_settings.NoDecode`，保留 `list[EmailStr]` 和现有 `BeforeValidator`。本任务不回退
+该基线；环境变量和 `.env` 均应继续进入同一个 CSV parser，不增加备用格式或依赖。
 
 Celery 的 `Signal.send()` 会捕获接收器异常，因此移除 `worker_init`/`beat_init` 校验。改为在
 `app.core.celery` 模块加载、创建 Celery app 前直接调用

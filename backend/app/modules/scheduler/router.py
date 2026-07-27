@@ -28,9 +28,9 @@ def _run(run: object) -> SchedulerRunPublic:
 
 def _enqueue_run(run: SchedulerRunPublic) -> None:
     try:
-        from app.core.celery import celery_app
+        from app.modules.scheduler.tasks import dispatch_queued_runs
 
-        celery_app.send_task("scheduler.execute_run", args=[run.id])
+        dispatch_queued_runs(run_ids=[run.id])
     except Exception:
         log_event(event_name="scheduler.enqueue.failed", severity="ERROR")
 

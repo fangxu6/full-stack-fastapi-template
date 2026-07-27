@@ -77,6 +77,12 @@ function toShanghaiIso(value: string) {
   return new Date(`${value}:00+08:00`).toISOString()
 }
 
+function toShanghaiDateTimeLocal(value: Date) {
+  return new Date(value.getTime() + 8 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 16)
+}
+
 export function SchedulerJobsPage() {
   const { message } = App.useApp()
   const queryClient = useQueryClient()
@@ -479,7 +485,7 @@ export function SchedulerJobsPage() {
         title="补发任务"
       >
         <Input
-          max={new Date().toISOString().slice(0, 16)}
+          max={toShanghaiDateTimeLocal(new Date())}
           onChange={(event) => setBackfillTime(event.target.value)}
           type="datetime-local"
           value={backfillTime}

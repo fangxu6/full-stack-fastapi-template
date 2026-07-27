@@ -78,6 +78,108 @@ deliver_alert.delay(alert_outbox_id)
 The task reloads the durable outbox row and records its idempotent delivery
 transition in PostgreSQL.
 
+## Scenario: Scheduler Dispatch And Configuration Boundary
+
+### 1. Scope / Trigger
+
+- Trigger: code creates, dispatches, or executes a `SchedulerRun`, or changes
+  scheduler alert/runtime configuration.
+- PostgreSQL remains the scheduler source of truth; Celery/Redis only carries
+  a run ID for at-least-once execution.
+
+### 2. Signatures
+
+- Celery app import: `app.core.celery:celery_app`.
+- Tasks: `scheduler.scan_due_jobs()` and `scheduler.execute_run(run_id: int)`.
+- Internal run field: `scheduler_run.next_dispatch_at TIMESTAMPTZ NULL` with
+  partial index `ix_scheduler_run_queued_dispatch` for `status = 'QUEUED'`.
+- Alert configuration: `SCHEDULED_TASK_ALERT_RECIPIENTS` is CSV email input;
+  `SchedulerSettings` uses `NoDecode` so environment and `.env` sources share
+  the CSV parser.
+
+### 3. Contracts
+
+- Outside `local`, importing the Celery app validates SMTP plus alert
+  recipients before creating the app. Worker and Beat therefore exit nonzero
+  on missing configuration; FastAPI startup must not import this module.
+- Scheduler task configuration rejects credential-like keys and any Pydantic
+  JSON Schema node with `format: password`, including nested models,
+  containers, unions, and `$defs`. Validate before saving job config, frozen
+  run snapshots, or exposing task schema.
+- New `QUEUED` runs set `next_dispatch_at` to their creation time. Dispatch
+  claims only due queued rows with `FOR UPDATE SKIP LOCKED`, orders by
+  `created_at, id`, caps a batch at 100, and advances the lease by
+  `CELERY_VISIBILITY_TIMEOUT_SECONDS` before broker send.
+- Broker-send failure returns a queued run to the next minute; a worker clears
+  `next_dispatch_at` when it moves the run to `RUNNING`. The field is internal
+  persistence state and is never added to public scheduler schemas.
+- All active-run creation paths lock the `SchedulerJob` row before checking
+  the active-run constraint. Scanner inserts use a savepoint so one unique
+  conflict cannot roll back other jobs in the same scan.
+- Frozen class/config failures are `CONFIGURATION_INVALID`; after successful
+  construction, every uncontrolled `run()` exception, including `ValueError`,
+  is `EXECUTION_FAILED`. `ScheduledTaskSkipped` remains a controlled skip.
+
+### 4. Validation And Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| `staging` or `production` Celery import lacks SMTP or recipients | Worker/Beat process exits nonzero before consuming messages. |
+| HTTP app starts without scheduler email settings | Startup remains available; runtime validation is not imported. |
+| Submitted config has `credential`, `authorization`, `access_key`, password-schema field, or equivalent | Return the unified 422 error before any job/run JSONB write. |
+| Queued run has an active dispatch lease | Do not send it again until the lease expires. |
+| One broker send fails in a claimed batch | Keep other sends independent and retry that run on the next scan minute. |
+| Concurrent active-run insert conflicts | Return/record the overlap without rolling back other scanner updates. |
+| Task business code raises `ValueError` | Persist `FAILED/EXECUTION_FAILED` and use the failure alert limit. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a manual run commits a `QUEUED` record, then the shared dispatch helper
+  claims only that run and sends its numeric ID.
+- Base: a broker accepts a message just before a process dies; the queued row
+  is eligible again after the visibility timeout and business idempotency
+  handles a possible duplicate.
+- Bad: a scan selects every queued run each minute, passes config or ORM
+  objects through Celery, catches task `ValueError` as configuration failure,
+  or adds secrets to scheduler JSONB.
+
+### 6. Tests Required
+
+- Cover real environment and dotenv CSV sources, duplicate/invalid recipient
+  rejection, and Worker/Beat CLI failure with FastAPI import isolation.
+- Cover nested/container/union secret schema and credential-key rejection at
+  service and API boundaries, including no persisted job on 422.
+- Cover dispatch lease, broker-send retry timing, 100-row cap, active-run
+  conflict savepoint isolation, and migration upgrade/downgrade.
+- Cover configuration-invalid versus business-`ValueError` terminal status,
+  alert category, and retained `ScheduledTaskSkipped` behavior.
+
+### 7. Wrong Vs Correct
+
+#### Wrong
+
+```python
+queued_ids = session.exec(
+    select(SchedulerRun.id).where(SchedulerRun.status == "QUEUED")
+).all()
+for run_id in queued_ids:
+    celery_app.tasks["scheduler.execute_run"].delay(run_id)
+```
+
+This creates an unbounded duplicate-message storm while a worker is busy or
+Redis is unavailable.
+
+#### Correct
+
+```python
+run.next_dispatch_at = now + LEASE_DURATION
+session.commit()
+celery_app.tasks["scheduler.execute_run"].delay(run.id)
+```
+
+Claim and persist the dispatch lease before broker send, then let the durable
+record become eligible again only after the defined retry boundary.
+
 ## Scenario: Daily Inventory Email Reports
 
 ### 1. Scope / Trigger

@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
+from pydantic import ValidationError
 from sqlmodel import Session, col, select
 
 from app.core.celery import celery_app
@@ -26,6 +27,7 @@ from app.modules.scheduler.service import (
 from app.utils import send_email
 
 ALERT_INTERVAL = timedelta(hours=1)
+DISPATCH_BATCH_SIZE = 100
 
 
 def _send_alert(
@@ -76,9 +78,69 @@ def _send_alert(
             log_event(event_name="scheduler.alert.unsent", severity="WARNING")
 
 
+def _dispatch_now(now: datetime | None = None) -> datetime:
+    if now is None:
+        return utc_now()
+    if now.tzinfo is None:
+        raise ValueError("scheduled task timestamps must be timezone-aware")
+    return now.astimezone(UTC)
+
+
+def _next_scan_at(now: datetime) -> datetime:
+    return now.replace(second=0, microsecond=0) + timedelta(minutes=1)
+
+
+def _retry_dispatch_on_next_scan(*, run_id: int, now: datetime) -> None:
+    with Session(engine) as session:
+        run = session.exec(
+            select(SchedulerRun).where(SchedulerRun.id == run_id).with_for_update()
+        ).first()
+        if run is None or run.status is not SchedulerRunStatus.QUEUED:
+            return
+        run.next_dispatch_at = _next_scan_at(now)
+        session.add(run)
+        session.commit()
+
+
+def dispatch_queued_runs(
+    *, run_ids: list[int] | None = None, now: datetime | None = None
+) -> None:
+    current = _dispatch_now(now)
+    if run_ids is not None and not run_ids:
+        return
+    with Session(engine) as session:
+        query = (
+            select(SchedulerRun)
+            .where(
+                SchedulerRun.status == SchedulerRunStatus.QUEUED,
+                col(SchedulerRun.next_dispatch_at).is_not(None),
+                col(SchedulerRun.next_dispatch_at) <= current,
+            )
+            .order_by(col(SchedulerRun.created_at), col(SchedulerRun.id))
+            .limit(DISPATCH_BATCH_SIZE)
+            .with_for_update(skip_locked=True)
+        )
+        if run_ids is not None:
+            query = query.where(col(SchedulerRun.id).in_(run_ids))
+        runs = list(session.exec(query).all())
+        dispatch_ids: list[int] = []
+        for run in runs:
+            if run.id is None:
+                raise RuntimeError("scheduled task run must be persisted")
+            run.next_dispatch_at = current + LEASE_DURATION
+            session.add(run)
+            dispatch_ids.append(run.id)
+        session.commit()
+    for run_id in dispatch_ids:
+        try:
+            celery_app.tasks["scheduler.execute_run"].delay(run_id)
+        except Exception:
+            _retry_dispatch_on_next_scan(run_id=run_id, now=current)
+            log_event(event_name="scheduler.enqueue.failed", severity="ERROR")
+
+
 def scan_due_jobs() -> None:
     now = utc_now()
-    run_ids: list[int] = []
     alerts: list[tuple[int, str, str, str, datetime]] = []
     with Session(engine) as session:
         jobs = list(
@@ -108,7 +170,7 @@ def scan_due_jobs() -> None:
                     cron_expression=job.cron_expression,
                     config=job.config,
                 )
-                run = create_run(
+                create_run(
                     session=session,
                     job=job,
                     trigger=SchedulerRunTrigger.SCHEDULED,
@@ -118,7 +180,7 @@ def scan_due_jobs() -> None:
                     now=now,
                 )
             except ValueError:
-                run = create_run(
+                create_run(
                     session=session,
                     job=job,
                     trigger=SchedulerRunTrigger.SCHEDULED,
@@ -142,7 +204,7 @@ def scan_due_jobs() -> None:
                 )
                 continue
             except ConflictError:
-                run = create_run(
+                create_run(
                     session=session,
                     job=job,
                     trigger=SchedulerRunTrigger.SCHEDULED,
@@ -165,18 +227,8 @@ def scan_due_jobs() -> None:
                     )
                 )
                 continue
-            if run.id is not None:
-                run_ids.append(run.id)
         session.commit()
-        queued_ids = list(
-            session.exec(
-                select(SchedulerRun.id).where(
-                    col(SchedulerRun.status) == SchedulerRunStatus.QUEUED
-                )
-            ).all()
-        )
-    for run_id in set(run_ids + [value for value in queued_ids if value is not None]):
-        celery_app.tasks["scheduler.execute_run"].delay(run_id)
+    dispatch_queued_runs(now=now)
     for job_id, kind, category, summary, planned_at in alerts:
         _send_alert(
             job_id=job_id,
@@ -206,6 +258,7 @@ def execute_run(run_id: int) -> None:
         run.status = SchedulerRunStatus.RUNNING
         run.started_at = now
         run.lease_expires_at = now + LEASE_DURATION
+        run.next_dispatch_at = None
         run.attempt_count += 1
         session.add(run)
         session.commit()
@@ -215,37 +268,43 @@ def execute_run(run_id: int) -> None:
         trigger = run.trigger
         planned_at = run.planned_at
         job_id = run.job_id
+    status: SchedulerRunStatus
+    category: str | None
+    summary: str | None
     try:
         task_class = resolve_task_class(class_path)
         config = task_class.config_model.model_validate(config_snapshot)
-        task_class().run(
-            context=ScheduledTaskContext(
-                run_id=run_id,
-                trigger=trigger,
-                planned_at=planned_at,
-                started_at=now,
-            ),
-            config=config,
-        )
-        status, category, summary = SchedulerRunStatus.SUCCEEDED, None, None
-    except ScheduledTaskSkipped as skipped:
-        status, category, summary = (
-            SchedulerRunStatus.SKIPPED,
-            skipped.category,
-            skipped.summary,
-        )
-    except ValueError:
+        task = task_class()
+    except ValidationError, ValueError:
         status, category, summary = (
             SchedulerRunStatus.FAILED,
             "CONFIGURATION_INVALID",
             "Scheduled task configuration is invalid",
         )
-    except Exception:
-        status, category, summary = (
-            SchedulerRunStatus.FAILED,
-            "EXECUTION_FAILED",
-            "Scheduled task execution failed",
-        )
+    else:
+        try:
+            task.run(
+                context=ScheduledTaskContext(
+                    run_id=run_id,
+                    trigger=trigger,
+                    planned_at=planned_at,
+                    started_at=now,
+                ),
+                config=config,
+            )
+            status, category, summary = SchedulerRunStatus.SUCCEEDED, None, None
+        except ScheduledTaskSkipped as skipped:
+            status, category, summary = (
+                SchedulerRunStatus.SKIPPED,
+                skipped.category,
+                skipped.summary,
+            )
+        except Exception:
+            status, category, summary = (
+                SchedulerRunStatus.FAILED,
+                "EXECUTION_FAILED",
+                "Scheduled task execution failed",
+            )
     with Session(engine) as session:
         run = session.get(SchedulerRun, run_id)
         if run is None:
@@ -255,6 +314,7 @@ def execute_run(run_id: int) -> None:
         run.error_summary = summary
         run.finished_at = utc_now()
         run.lease_expires_at = None
+        run.next_dispatch_at = None
         session.add(run)
         job = session.get(SchedulerJob, job_id)
         if job is not None and status is SchedulerRunStatus.SUCCEEDED:

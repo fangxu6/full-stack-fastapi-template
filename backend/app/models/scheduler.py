@@ -93,6 +93,12 @@ class SchedulerRun(SQLModel, table=True):
         Index("ix_scheduler_run_job_created_at", "job_id", "created_at"),
         Index("ix_scheduler_run_finished_at", "finished_at"),
         Index(
+            "ix_scheduler_run_queued_dispatch",
+            "next_dispatch_at",
+            "created_at",
+            postgresql_where=text("status = 'QUEUED'"),
+        ),
+        Index(
             "uq_scheduler_run_job_active",
             "job_id",
             unique=True,
@@ -145,6 +151,10 @@ class SchedulerRun(SQLModel, table=True):
     )
     created_at: datetime = Field(
         default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+    )
+    next_dispatch_at: datetime | None = Field(
+        default=None,
         sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
     )
     started_at: datetime | None = Field(

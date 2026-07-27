@@ -1,3 +1,7 @@
+import os
+import subprocess
+import sys
+from pathlib import Path
 from typing import cast
 from unittest.mock import patch
 
@@ -7,6 +11,72 @@ from app.core.celery import celery_app
 from app.core.config import settings
 from app.core.tasks import runtime_ping, send_scheduled_test_email
 from app.utils import EmailData
+
+
+def _runtime_environment(tmp_path: Path) -> dict[str, str]:
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "APP_ENV_FILE": str(tmp_path / "scheduler-runtime.env"),
+            "ENVIRONMENT": "production",
+            "FIRST_SUPERUSER": str(settings.FIRST_SUPERUSER),
+            "FIRST_SUPERUSER_PASSWORD": settings.FIRST_SUPERUSER_PASSWORD,
+            "POSTGRES_DB": settings.POSTGRES_DB,
+            "POSTGRES_PASSWORD": settings.POSTGRES_PASSWORD,
+            "POSTGRES_SERVER": settings.POSTGRES_SERVER,
+            "POSTGRES_USER": settings.POSTGRES_USER,
+            "PROJECT_NAME": settings.PROJECT_NAME,
+            "REDIS_PASSWORD": settings.REDIS_PASSWORD,
+        }
+    )
+    environment.pop("SMTP_HOST", None)
+    environment.pop("EMAILS_FROM_EMAIL", None)
+    environment.pop("SCHEDULED_TASK_ALERT_RECIPIENTS", None)
+    return environment
+
+
+@pytest.mark.parametrize("command", ["worker", "beat"])
+def test_celery_cli_refuses_missing_alert_runtime_settings(
+    tmp_path: Path, command: str
+) -> None:
+    environment = _runtime_environment(tmp_path)
+    (tmp_path / "scheduler-runtime.env").write_text("", encoding="utf-8")
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "celery",
+            "-A",
+            "app.core.celery:celery_app",
+            command,
+            "--help",
+        ],
+        capture_output=True,
+        cwd=Path(__file__).resolve().parents[2],
+        env=environment,
+        text=True,
+        timeout=10,
+    )
+
+    assert completed.returncode != 0
+    assert "require SMTP" in completed.stderr
+
+
+def test_fastapi_import_does_not_require_alert_runtime_settings(tmp_path: Path) -> None:
+    environment = _runtime_environment(tmp_path)
+    (tmp_path / "scheduler-runtime.env").write_text("", encoding="utf-8")
+
+    completed = subprocess.run(
+        [sys.executable, "-c", "from app.main import app; print(app.title)"],
+        capture_output=True,
+        cwd=Path(__file__).resolve().parents[2],
+        env=environment,
+        text=True,
+        timeout=10,
+    )
+
+    assert completed.returncode == 0, completed.stderr
 
 
 def test_runtime_ping_executes_eagerly() -> None:

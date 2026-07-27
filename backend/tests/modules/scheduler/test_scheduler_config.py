@@ -27,6 +27,23 @@ def test_alert_recipients_parse_from_csv() -> None:
     ]
 
 
+def test_alert_recipients_parse_from_process_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "SCHEDULED_TASK_ALERT_RECIPIENTS", "ops@example.com, oncall@example.com"
+    )
+
+    scheduler_settings = SchedulerSettings(_env_file=None)
+
+    assert [
+        str(value) for value in scheduler_settings.SCHEDULED_TASK_ALERT_RECIPIENTS
+    ] == [
+        "ops@example.com",
+        "oncall@example.com",
+    ]
+
+
 def test_alert_recipients_parse_from_dotenv(tmp_path: Path) -> None:
     env_file = tmp_path / ".env"
     env_file.write_text(

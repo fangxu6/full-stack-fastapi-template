@@ -1,9 +1,35 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlmodel import Session, select
+
+from app.models.scheduler import SchedulerJob
 
 INVENTORY_RETRY_CLASS = (
     "app.modules.inventory.scheduled_tasks.InventoryDailyReportRetryTask"
 )
+
+
+def test_scheduler_rejects_credential_config_before_creating_a_job(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    before = list(db.exec(select(SchedulerJob.id)).all())
+
+    response = client.post(
+        "/api/v1/scheduler/jobs",
+        headers=superuser_token_headers,
+        json={
+            "name": "Credential config",
+            "class_path": INVENTORY_RETRY_CLASS,
+            "cron_expression": "0 8 * * *",
+            "config": {"authorization": "Bearer value"},
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "scheduled task configuration cannot contain credentials"
+    assert list(db.exec(select(SchedulerJob.id)).all()) == before
 
 
 def test_scheduler_job_management_flow(
@@ -12,7 +38,7 @@ def test_scheduler_job_management_flow(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        "app.core.celery.celery_app.send_task", lambda *_, **__: None
+        "app.modules.scheduler.tasks.dispatch_queued_runs", lambda **_: None
     )
     invalid = client.post(
         "/api/v1/scheduler/jobs",

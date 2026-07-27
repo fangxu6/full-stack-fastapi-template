@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import cast
 
-from pydantic import SecretStr, ValidationError
+from pydantic import ValidationError
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, select
@@ -26,9 +26,27 @@ from app.schemas.scheduler import SchedulerJobCreate, SchedulerJobUpdate
 CLASS_PATH = re.compile(
     r"^app\.modules\.[a-z][a-z0-9_]*\.scheduled_tasks\.[A-Z][A-Za-z0-9_]*$"
 )
-SENSITIVE_KEY = re.compile(
-    r"(^|[_-])(password|token|secret|api[_-]?key|dsn|connection[_-]?string)($|[_-])",
-    re.I,
+CAMEL_CASE_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
+NON_ALPHANUMERIC = re.compile(r"[^a-z0-9]+")
+SENSITIVE_KEY_NAMES = frozenset(
+    {
+        "password",
+        "token",
+        "secret",
+        "credential",
+        "authorization",
+        "api_key",
+        "access_key",
+        "private_key",
+        "dsn",
+        "connection_string",
+    }
+)
+SENSITIVE_KEY_SEGMENTS = frozenset(
+    {"password", "token", "secret", "credential", "authorization", "dsn"}
+)
+SENSITIVE_KEY_COMPOUNDS = frozenset(
+    {"api_key", "access_key", "private_key", "connection_string"}
 )
 LEASE_DURATION = timedelta(seconds=settings.CELERY_VISIBILITY_TIMEOUT_SECONDS)
 INVENTORY_BOOTSTRAP_JOBS = (
@@ -69,10 +87,25 @@ def _job_id(job: SchedulerJob) -> int:
     return job.id
 
 
+def _normalized_key(key: str) -> str:
+    return NON_ALPHANUMERIC.sub(
+        "_", CAMEL_CASE_BOUNDARY.sub("_", key).casefold()
+    ).strip("_")
+
+
+def _is_credential_key(key: str) -> bool:
+    normalized = _normalized_key(key)
+    if normalized in SENSITIVE_KEY_NAMES:
+        return True
+    if any(compound in normalized for compound in SENSITIVE_KEY_COMPOUNDS):
+        return True
+    return bool(set(normalized.split("_")) & SENSITIVE_KEY_SEGMENTS)
+
+
 def _validate_no_credentials(value: object) -> None:
     if isinstance(value, dict):
         for key, child in value.items():
-            if not isinstance(key, str) or SENSITIVE_KEY.search(key):
+            if not isinstance(key, str) or _is_credential_key(key):
                 raise ValueError(
                     "scheduled task configuration cannot contain credentials"
                 )
@@ -80,6 +113,16 @@ def _validate_no_credentials(value: object) -> None:
     elif isinstance(value, list):
         for child in value:
             _validate_no_credentials(child)
+
+
+def _schema_declares_credentials(schema: object) -> bool:
+    if isinstance(schema, dict):
+        if schema.get("format") == "password":
+            return True
+        return any(_schema_declares_credentials(child) for child in schema.values())
+    if isinstance(schema, list):
+        return any(_schema_declares_credentials(child) for child in schema)
+    return False
 
 
 def resolve_task_class(class_path: str) -> type[ScheduledTask]:
@@ -101,9 +144,7 @@ def resolve_task_class(class_path: str) -> type[ScheduledTask]:
         config_model, ScheduledTaskConfig
     ):
         raise ValueError("scheduled task class must declare ScheduledTaskConfig")
-    if any(
-        field.annotation is SecretStr for field in config_model.model_fields.values()
-    ):
+    if _schema_declares_credentials(config_model.model_json_schema()):
         raise ValueError("scheduled task configuration cannot declare credentials")
     return target
 
@@ -262,6 +303,11 @@ def create_run(
 ) -> SchedulerRun:
     current = utc_now(now)
     job_id = _job_id(job)
+    locked_job = session.exec(
+        select(SchedulerJob).where(SchedulerJob.id == job_id).with_for_update()
+    ).first()
+    if locked_job is None:
+        raise SchedulerJobNotFoundError()
     if require_no_active and _active_run(session=session, job_id=job_id) is not None:
         raise ConflictError("Scheduled task already has an active run")
     run = SchedulerRun(
@@ -269,26 +315,27 @@ def create_run(
         status=status,
         trigger=trigger,
         planned_at=planned_at.astimezone(UTC),
-        class_path=job.class_path,
-        config=job.config,
+        class_path=locked_job.class_path,
+        config=locked_job.config,
         requested_by=requested_by,
         created_at=current,
+        next_dispatch_at=current if status is SchedulerRunStatus.QUEUED else None,
         finished_at=current
         if status not in {SchedulerRunStatus.QUEUED, SchedulerRunStatus.RUNNING}
         else None,
         error_category=error_category,
         error_summary=error_summary,
     )
-    session.add(run)
     try:
-        if commit:
-            session.commit()
-        else:
+        with session.begin_nested():
+            session.add(run)
             session.flush()
     except IntegrityError as error:
-        session.rollback()
+        if commit:
+            session.rollback()
         raise ConflictError("Scheduled task already has an active run") from error
     if commit:
+        session.commit()
         session.refresh(run)
     return run
 
@@ -368,6 +415,7 @@ def set_enabled(
             run.status = SchedulerRunStatus.CANCELLED
             run.finished_at = current
             run.lease_expires_at = None
+            run.next_dispatch_at = None
             session.add(run)
     job.updated_at = current
     job.updated_by = actor.id

@@ -9,16 +9,21 @@
 ## Background
 
 - 审查范围为 `c8175af` 及其前端生成产物提交 `97eae74`。
+- `0d3c59d` 已为收件人字段加入 `NoDecode`，并覆盖临时 `.env` 的 CSV 读取；本任务保留该
+  修复作为当前基线，并补齐其余运行时边界验证，不重复实现同一解析改动。
 - 当前架构保持不变：PostgreSQL 保存定义与运行记录，固定 Beat 每分钟扫描，Celery 默认
   单队列，Worker `--concurrency=1`，所有 Cron 按 `Asia/Shanghai` 解释。
 - 本任务是父任务 `07-26-scheduled-task-management` 的修复子任务。只处理已确认 findings，
   不新增调度能力。
+- 已确认现有 `scheduler_job.config` 和 `scheduler_run.config` 均未写入凭据；本任务不包含
+  历史数据审计、清洗、删除或凭据轮换。
 
 ## Requirements
 
 ### SRF-001 Alert recipient configuration
 
-- `SCHEDULED_TASK_ALERT_RECIPIENTS` 必须能从真实进程环境和 `.env` 读取逗号分隔邮箱。
+- 保持 `0d3c59d` 已实现的 `SCHEDULED_TASK_ALERT_RECIPIENTS` CSV 读取能力，使真实进程环境
+  和 `.env` 都能读取逗号分隔邮箱。
 - 保留邮箱格式校验、大小写不敏感的重复拒绝和空值兼容。
 - 测试必须经过 Pydantic Settings 的环境来源，不得只用模型构造参数绕过预解析流程。
 
@@ -90,6 +95,8 @@
 - 通用业务失败重试、批量补发、人工能力开关、恢复邮件或新的告警渠道。
 - 调度管理页重设计、动态配置表单、Cron 预览或新增日期组件库。
 - 修改库存日报的库存口径、收件人规则或 SMTP 投递语义。
+- 对既有 `scheduler_job.config` 或 `scheduler_run.config` 的历史敏感数据审计、清洗、删除或
+  凭据轮换；已确认不存在这类数据。
 
 ## Notes
 

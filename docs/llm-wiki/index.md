@@ -1,7 +1,7 @@
 ---
 title: LLM-Wiki Index
 created: 2026-06-04
-updated: 2026-06-07
+updated: 2026-07-27
 type: index
 tags:
   - llm-wiki
@@ -22,6 +22,7 @@ This is the entrypoint for repository-aware AI work. Read this file before answe
 
 - [[docs/llm-wiki/sources/root-architecture|Root architecture source]]: Top-level repository architecture, stack, boundaries, and integration flows.
 - [[docs/llm-wiki/sources/backend-architecture|Backend architecture source]]: FastAPI backend structure, request flow, error handling, and module-growth guidance.
+- [[docs/llm-wiki/sources/scheduler-runtime|Scheduler runtime source]]: Durable PostgreSQL/Celery scheduler dispatch, configuration, and failure-boundary rules.
 - [[docs/llm-wiki/sources/frontend-architecture|Frontend architecture source]]: React frontend layering, route boundaries, navigation, and shared component strategy.
 - [[docs/llm-wiki/sources/trellis-workflow|Trellis workflow source]]: Task lifecycle, planning artifacts, implementation/check phases, and finish workflow.
 - [[docs/llm-wiki/sources/private-knowledge-architecture|Private knowledge architecture source]]: Chinese internal architecture analysis and existing knowledge-maintenance rules.
