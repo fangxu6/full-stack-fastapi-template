@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import CurrentUser, SessionDep
-from app.core.observability import log_event
+from app.api.deps import CurrentUser, SessionDep, WriteSessionDep
 from app.modules.iam.dependencies import permission_required
 from app.modules.scheduler import service
 from app.schemas.scheduler import (
@@ -24,15 +23,6 @@ def _job(job: object) -> SchedulerJobPublic:
 
 def _run(run: object) -> SchedulerRunPublic:
     return SchedulerRunPublic.model_validate(run, from_attributes=True)
-
-
-def _enqueue_run(run: SchedulerRunPublic) -> None:
-    try:
-        from app.modules.scheduler.tasks import dispatch_queued_runs
-
-        dispatch_queued_runs(run_ids=[run.id])
-    except Exception:
-        log_event(event_name="scheduler.enqueue.failed", severity="ERROR")
 
 
 @router.get(
@@ -58,7 +48,7 @@ def read_jobs(
     response_model=SchedulerJobPublic,
 )
 def create_job(
-    session: SessionDep, current_user: CurrentUser, body: SchedulerJobCreate
+    session: WriteSessionDep, current_user: CurrentUser, body: SchedulerJobCreate
 ) -> SchedulerJobPublic:
     return _job(service.create_job(session=session, actor=current_user, job_in=body))
 
@@ -79,7 +69,7 @@ def read_job(job_id: int, session: SessionDep) -> SchedulerJobPublic:
 )
 def update_job(
     job_id: int,
-    session: SessionDep,
+    session: WriteSessionDep,
     current_user: CurrentUser,
     body: SchedulerJobUpdate,
 ) -> SchedulerJobPublic:
@@ -96,7 +86,7 @@ def update_job(
     response_model=SchedulerJobPublic,
 )
 def enable_job(
-    job_id: int, session: SessionDep, current_user: CurrentUser
+    job_id: int, session: WriteSessionDep, current_user: CurrentUser
 ) -> SchedulerJobPublic:
     return _job(
         service.set_enabled(
@@ -111,7 +101,7 @@ def enable_job(
     response_model=SchedulerJobPublic,
 )
 def disable_job(
-    job_id: int, session: SessionDep, current_user: CurrentUser
+    job_id: int, session: WriteSessionDep, current_user: CurrentUser
 ) -> SchedulerJobPublic:
     return _job(
         service.set_enabled(
@@ -125,7 +115,7 @@ def disable_job(
     dependencies=[Depends(permission_required("scheduler.jobs.manage"))],
 )
 def delete_job(
-    job_id: int, session: SessionDep, current_user: CurrentUser
+    job_id: int, session: WriteSessionDep, current_user: CurrentUser
 ) -> dict[str, str]:
     service.delete_job(session=session, actor=current_user, job_id=job_id)
     return {"message": "Scheduled task deleted"}
@@ -137,7 +127,7 @@ def delete_job(
     response_model=SchedulerJobPublic,
 )
 def restore_job(
-    job_id: int, session: SessionDep, current_user: CurrentUser
+    job_id: int, session: WriteSessionDep, current_user: CurrentUser
 ) -> SchedulerJobPublic:
     return _job(service.restore_job(session=session, actor=current_user, job_id=job_id))
 
@@ -148,11 +138,9 @@ def restore_job(
     response_model=SchedulerRunPublic,
 )
 def run_now(
-    job_id: int, session: SessionDep, current_user: CurrentUser
+    job_id: int, session: WriteSessionDep, current_user: CurrentUser
 ) -> SchedulerRunPublic:
-    run = _run(service.run_now(session=session, actor=current_user, job_id=job_id))
-    _enqueue_run(run)
-    return run
+    return _run(service.run_now(session=session, actor=current_user, job_id=job_id))
 
 
 @router.post(
@@ -162,11 +150,11 @@ def run_now(
 )
 def backfill(
     job_id: int,
-    session: SessionDep,
+    session: WriteSessionDep,
     current_user: CurrentUser,
     body: SchedulerRunBackfill,
 ) -> SchedulerRunPublic:
-    run = _run(
+    return _run(
         service.backfill(
             session=session,
             actor=current_user,
@@ -174,8 +162,6 @@ def backfill(
             planned_at=body.planned_at,
         )
     )
-    _enqueue_run(run)
-    return run
 
 
 @router.get(

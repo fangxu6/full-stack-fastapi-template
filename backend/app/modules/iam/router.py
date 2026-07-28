@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends
 
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import CurrentUser, SessionDep, WriteSessionDep
 from app.modules.iam import service
 from app.modules.iam.dependencies import permission_required
 from app.schemas.iam import (
@@ -51,7 +51,7 @@ def read_roles(session: SessionDep) -> RolesPublic:
     dependencies=[Depends(permission_required("iam.roles.manage"))],
     response_model=RolePublic,
 )
-def create_role(session: SessionDep, role_in: RoleCreate) -> RolePublic:
+def create_role(session: WriteSessionDep, role_in: RoleCreate) -> RolePublic:
     return service.create_role(session=session, role_in=role_in)
 
 
@@ -60,7 +60,9 @@ def create_role(session: SessionDep, role_in: RoleCreate) -> RolePublic:
     dependencies=[Depends(permission_required("iam.roles.manage"))],
     response_model=RolePublic,
 )
-def update_role(session: SessionDep, role_id: int, role_in: RoleUpdate) -> RolePublic:
+def update_role(
+    session: WriteSessionDep, role_id: int, role_in: RoleUpdate
+) -> RolePublic:
     return service.update_role(session=session, role_id=role_id, role_in=role_in)
 
 
@@ -70,7 +72,7 @@ def update_role(session: SessionDep, role_id: int, role_in: RoleUpdate) -> RoleP
     response_model=RolePublic,
 )
 def replace_role_permissions(
-    session: SessionDep, role_id: int, body: RolePermissionsReplace
+    session: WriteSessionDep, role_id: int, body: RolePermissionsReplace
 ) -> RolePublic:
     return service.replace_role_permissions(
         session=session, role_id=role_id, permission_codes=body.permission_codes
@@ -82,7 +84,7 @@ def replace_role_permissions(
     dependencies=[Depends(permission_required("iam.roles.manage"))],
     response_model=Message,
 )
-def delete_role(session: SessionDep, role_id: int) -> Message:
+def delete_role(session: WriteSessionDep, role_id: int) -> Message:
     service.delete_role(session=session, role_id=role_id)
     return Message(message="Role deleted successfully")
 
@@ -93,7 +95,7 @@ def delete_role(session: SessionDep, role_id: int) -> Message:
     response_model=UserRolesPublic,
 )
 def replace_user_roles(
-    session: SessionDep, user_id: uuid.UUID, body: UserRolesReplace
+    session: WriteSessionDep, user_id: uuid.UUID, body: UserRolesReplace
 ) -> UserRolesPublic:
     return UserRolesPublic(
         data=service.replace_user_roles(

@@ -199,3 +199,7 @@ Document the Shanghai schedule window, immutable inventory snapshot, recipient m
 ## [2026-07-26 15:11:26] update | Document generated frontend artifact commit flow
 
 Require reviewed generated client and route-tree output to be a dedicated first commit through Phase 3.4; quality hooks guide rather than auto-commit.
+
+## [2026-07-28 10:29:42] update | Request Unit of Work
+
+Documented function-scoped WriteSessionDep, explicit non-HTTP transaction owners, post-commit external effects, and cross-session test setup commits.

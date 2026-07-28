@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 from pwdlib.hashers.bcrypt import BcryptHasher
 from sqlmodel import Session
@@ -53,10 +54,7 @@ def test_use_access_token(
 def test_recovery_password(
     client: TestClient, normal_user_token_headers: dict[str, str]
 ) -> None:
-    with (
-        patch("app.core.config.settings.SMTP_HOST", "smtp.example.com"),
-        patch("app.core.config.settings.SMTP_USER", "admin@example.com"),
-    ):
+    with patch("app.services.auth.send_email"):
         email = "test@example.com"
         r = client.post(
             f"{settings.API_V1_STR}/password-recovery/{email}",
@@ -66,6 +64,31 @@ def test_recovery_password(
         assert r.json() == {
             "message": "If that email is registered, we sent a password recovery link"
         }
+
+
+def test_recovery_password_sends_email_after_request_commit(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    events: list[str] = []
+    original_commit = Session.commit
+
+    def record_commit(session: Session) -> None:
+        events.append("commit")
+        original_commit(session)
+
+    def send_email_after_commit(**_: str) -> None:
+        events.append("email")
+        assert events == ["commit", "email"]
+
+    monkeypatch.setattr(Session, "commit", record_commit)
+    monkeypatch.setattr("app.services.auth.send_email", send_email_after_commit)
+
+    response = client.post(
+        f"{settings.API_V1_STR}/password-recovery/{settings.FIRST_SUPERUSER}"
+    )
+
+    assert response.status_code == 200
+    assert events == ["commit", "email"]
 
 
 def test_recovery_password_user_not_exits(
@@ -95,6 +118,7 @@ def test_reset_password(client: TestClient, db: Session) -> None:
         is_active=True,
     )
     user = create_user(session=db, user_create=user_create)
+    db.commit()
     token = generate_password_reset_token(email=email)
     headers = user_authentication_headers(client=client, email=email, password=password)
     data = {"new_password": new_password, "token": token}

@@ -1,12 +1,13 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 
 from app import services
 from app.api.deps import (
     CurrentUser,
     SessionDep,
+    WriteSessionDep,
 )
 from app.modules.iam.dependencies import permission_required
 from app.schemas.security import Message
@@ -40,17 +41,24 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
     dependencies=[Depends(permission_required("system.users.manage"))],
     response_model=UserPublic,
 )
-def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
+def create_user(
+    *,
+    background_tasks: BackgroundTasks,
+    session: WriteSessionDep,
+    user_in: UserCreate,
+) -> Any:
     """
     Create new user.
     """
-    user = services.user.create_user(session=session, user_in=user_in)
+    user = services.user.create_user(
+        session=session, user_in=user_in, background_tasks=background_tasks
+    )
     return services.user.user_public(session=session, user=user)
 
 
 @router.patch("/me", response_model=UserPublic)
 def update_user_me(
-    *, session: SessionDep, user_in: UserUpdateMe, current_user: CurrentUser
+    *, session: WriteSessionDep, user_in: UserUpdateMe, current_user: CurrentUser
 ) -> Any:
     """
     Update own user.
@@ -63,7 +71,7 @@ def update_user_me(
 
 @router.patch("/me/password", response_model=Message)
 def update_password_me(
-    *, session: SessionDep, body: UpdatePassword, current_user: CurrentUser
+    *, session: WriteSessionDep, body: UpdatePassword, current_user: CurrentUser
 ) -> Any:
     """
     Update own password.
@@ -82,7 +90,7 @@ def read_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
 
 
 @router.delete("/me", response_model=Message)
-def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
+def delete_user_me(session: WriteSessionDep, current_user: CurrentUser) -> Any:
     """
     Delete own user.
     """
@@ -90,7 +98,7 @@ def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
 
 
 @router.post("/signup", response_model=UserPublic)
-def register_user(session: SessionDep, user_in: UserRegister) -> Any:
+def register_user(session: WriteSessionDep, user_in: UserRegister) -> Any:
     """
     Create new user without the need to be logged in.
     """
@@ -126,7 +134,7 @@ def read_user_by_id(
 )
 def update_user(
     *,
-    session: SessionDep,
+    session: WriteSessionDep,
     user_id: uuid.UUID,
     user_in: UserUpdate,
 ) -> Any:
@@ -140,7 +148,7 @@ def update_user(
 @router.delete(
     "/{user_id}", dependencies=[Depends(permission_required("system.users.manage"))]
 )
-def delete_user(session: SessionDep, user_id: uuid.UUID) -> Message:
+def delete_user(session: WriteSessionDep, user_id: uuid.UUID) -> Message:
     """
     Delete a user.
     """

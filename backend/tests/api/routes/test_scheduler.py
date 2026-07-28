@@ -37,8 +37,13 @@ def test_scheduler_job_management_flow(
     superuser_token_headers: dict[str, str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    dispatch_calls: list[dict[str, object]] = []
+
+    def record_dispatch(**kwargs: object) -> None:
+        dispatch_calls.append(kwargs)
+
     monkeypatch.setattr(
-        "app.modules.scheduler.tasks.dispatch_queued_runs", lambda **_: None
+        "app.modules.scheduler.tasks.dispatch_queued_runs", record_dispatch
     )
     invalid = client.post(
         "/api/v1/scheduler/jobs",
@@ -87,6 +92,7 @@ def test_scheduler_job_management_flow(
     )
     assert queued.status_code == 200
     assert queued.json()["trigger"] == "MANUAL_NOW"
+    assert dispatch_calls == []
     assert (
         client.post(
             f"/api/v1/scheduler/jobs/{job['id']}/run-now",

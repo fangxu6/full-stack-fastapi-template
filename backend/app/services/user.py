@@ -1,5 +1,6 @@
 import uuid
 
+from fastapi import BackgroundTasks
 from sqlmodel import Session, col, func, select
 
 from app import crud
@@ -52,28 +53,26 @@ def user_public(*, session: Session, user: User) -> UserPublic:
     )
 
 
-def create_user(*, session: Session, user_in: UserCreate) -> User:
+def create_user(
+    *, session: Session, user_in: UserCreate, background_tasks: BackgroundTasks
+) -> User:
     user = crud.get_user_by_email(session=session, email=user_in.email)
     if user:
         raise BadRequestError("The user with this email already exists in the system.")
 
-    try:
-        user = crud.create_user(session=session, user_create=user_in, commit=False)
-        if user_in.role_ids:
-            iam_service.replace_user_roles(
-                session=session, user_id=user.id, role_ids=user_in.role_ids
-            )
-        else:
-            session.commit()
-            session.refresh(user)
-    except Exception:
-        session.rollback()
-        raise
+    user = crud.create_user(session=session, user_create=user_in)
+    if user_in.role_ids:
+        iam_service.replace_user_roles(
+            session=session, user_id=user.id, role_ids=user_in.role_ids
+        )
+    session.flush()
+    session.refresh(user)
     if settings.emails_enabled and user_in.email:
         email_data = generate_new_account_email(
             email_to=user_in.email, username=user_in.email, password=user_in.password
         )
-        send_email(
+        background_tasks.add_task(
+            send_email,
             email_to=user_in.email,
             subject=email_data.subject,
             html_content=email_data.html_content,
@@ -102,7 +101,7 @@ def update_user_me(
     user_data = user_in.model_dump(exclude_unset=True)
     current_user.sqlmodel_update(user_data)
     session.add(current_user)
-    session.commit()
+    session.flush()
     session.refresh(current_user)
     return current_user
 
@@ -118,7 +117,7 @@ def update_password_me(
     hashed_password = get_password_hash(body.new_password)
     current_user.hashed_password = hashed_password
     session.add(current_user)
-    session.commit()
+    session.flush()
     return Message(message="Password updated successfully")
 
 
@@ -140,29 +139,17 @@ def update_user(*, session: Session, user_id: uuid.UUID, user_in: UserUpdate) ->
         if existing_user and existing_user.id != user_id:
             raise ConflictError("User with this email already exists")
 
-    try:
-        was_active = db_user.is_active
-        if was_active and user_in.is_active is False:
-            iam_service.ensure_user_deactivation_is_safe(session=session, user=db_user)
-        db_user = crud.update_user(
-            session=session, db_user=db_user, user_in=user_in, commit=False
-        )
-        session.commit()
-        session.refresh(db_user)
-        return db_user
-    except Exception:
-        session.rollback()
-        raise
+    was_active = db_user.is_active
+    if was_active and user_in.is_active is False:
+        iam_service.ensure_user_deactivation_is_safe(session=session, user=db_user)
+    db_user = crud.update_user(session=session, db_user=db_user, user_in=user_in)
+    session.refresh(db_user)
+    return db_user
 
 
 def delete_user(*, session: Session, user_id: uuid.UUID) -> Message:
     user = _get_required_user(session=session, user_id=user_id)
-    try:
-        iam_service.ensure_user_deactivation_is_safe(session=session, user=user)
-        crud.delete_items_by_owner(session=session, owner_id=user_id)
-        crud.delete_user(session=session, db_user=user, commit=False)
-        session.commit()
-        return Message(message="User deleted successfully")
-    except Exception:
-        session.rollback()
-        raise
+    iam_service.ensure_user_deactivation_is_safe(session=session, user=user)
+    crud.delete_items_by_owner(session=session, owner_id=user_id)
+    crud.delete_user(session=session, db_user=user)
+    return Message(message="User deleted successfully")

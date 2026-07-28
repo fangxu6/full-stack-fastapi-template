@@ -42,8 +42,20 @@ def test_get_users_normal_user_me(
 def test_create_user_new_email(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
+    events: list[str] = []
+    original_commit = Session.commit
+
+    def record_commit(session: Session) -> None:
+        events.append("commit")
+        original_commit(session)
+
+    def send_email_after_commit(**_: str) -> None:
+        events.append("email")
+        assert events == ["commit", "email"]
+
     with (
-        patch("app.utils.send_email", return_value=None),
+        patch.object(Session, "commit", new=record_commit),
+        patch("app.services.user.send_email", new=send_email_after_commit),
         patch("app.core.config.settings.SMTP_HOST", "smtp.example.com"),
         patch("app.core.config.settings.SMTP_USER", "admin@example.com"),
     ):
@@ -60,6 +72,30 @@ def test_create_user_new_email(
         user = crud.get_user_by_email(session=db, email=username)
         assert user
         assert user.email == created_user["email"]
+    assert events == ["commit", "email"]
+
+
+def test_create_user_commits_once_at_request_boundary(
+    client: TestClient, superuser_token_headers: dict[str, str], monkeypatch
+) -> None:
+    commit_count = 0
+    original_commit = Session.commit
+
+    def count_commit(session: Session) -> None:
+        nonlocal commit_count
+        commit_count += 1
+        original_commit(session)
+
+    monkeypatch.setattr(Session, "commit", count_commit)
+
+    response = client.post(
+        f"{settings.API_V1_STR}/users/",
+        headers=superuser_token_headers,
+        json={"email": random_email(), "password": random_lower_string()},
+    )
+
+    assert response.status_code == 200
+    assert commit_count == 1
 
 
 def test_get_existing_user_as_superuser(
@@ -69,6 +105,7 @@ def test_get_existing_user_as_superuser(
     password = random_lower_string()
     user_in = UserCreate(email=username, password=password)
     user = crud.create_user(session=db, user_create=user_in)
+    db.commit()
     user_id = user.id
     r = client.get(
         f"{settings.API_V1_STR}/users/{user_id}",
@@ -99,6 +136,7 @@ def test_get_existing_user_current_user(client: TestClient, db: Session) -> None
     password = random_lower_string()
     user_in = UserCreate(email=username, password=password)
     user = crud.create_user(session=db, user_create=user_in)
+    db.commit()
     user_id = user.id
 
     login_data = {
@@ -162,6 +200,7 @@ def test_create_user_existing_username(
     password = random_lower_string()
     user_in = UserCreate(email=username, password=password)
     crud.create_user(session=db, user_create=user_in)
+    db.commit()
     data = {"email": username, "password": password}
     r = client.post(
         f"{settings.API_V1_STR}/users/",
@@ -199,6 +238,7 @@ def test_retrieve_users(
     password2 = random_lower_string()
     user_in2 = UserCreate(email=username2, password=password2)
     crud.create_user(session=db, user_create=user_in2)
+    db.commit()
 
     r = client.get(f"{settings.API_V1_STR}/users/", headers=superuser_token_headers)
     all_users = r.json()
@@ -298,6 +338,7 @@ def test_update_user_me_email_exists(
     password = random_lower_string()
     user_in = UserCreate(email=username, password=password)
     user = crud.create_user(session=db, user_create=user_in)
+    db.commit()
 
     data = {"email": user.email}
     r = client.patch(
@@ -379,6 +420,7 @@ def test_update_user(
     password = random_lower_string()
     user_in = UserCreate(email=username, password=password)
     user = crud.create_user(session=db, user_create=user_in)
+    db.commit()
 
     data = {"full_name": "Updated_full_name"}
     r = client.patch(
@@ -423,6 +465,7 @@ def test_update_user_email_exists(
     password2 = random_lower_string()
     user_in2 = UserCreate(email=username2, password=password2)
     user2 = crud.create_user(session=db, user_create=user_in2)
+    db.commit()
 
     data = {"email": user2.email}
     r = client.patch(
@@ -439,6 +482,7 @@ def test_delete_user_me(client: TestClient, db: Session) -> None:
     password = random_lower_string()
     user_in = UserCreate(email=username, password=password)
     user = crud.create_user(session=db, user_create=user_in)
+    db.commit()
     user_id = user.id
 
     login_data = {
@@ -486,6 +530,7 @@ def test_delete_user_super_user(
     password = random_lower_string()
     user_in = UserCreate(email=username, password=password)
     user = crud.create_user(session=db, user_create=user_in)
+    db.commit()
     user_id = user.id
     r = client.delete(
         f"{settings.API_V1_STR}/users/{user_id}",
@@ -533,6 +578,7 @@ def test_delete_user_without_privileges(
     password = random_lower_string()
     user_in = UserCreate(email=username, password=password)
     user = crud.create_user(session=db, user_create=user_in)
+    db.commit()
 
     r = client.delete(
         f"{settings.API_V1_STR}/users/{user.id}",

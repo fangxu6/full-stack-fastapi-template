@@ -27,6 +27,31 @@ def test_create_item(
     assert "owner_id" in content
 
 
+def test_create_item_commits_once_at_request_boundary(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    commit_count = 0
+    original_commit = Session.commit
+
+    def count_commit(session: Session) -> None:
+        nonlocal commit_count
+        commit_count += 1
+        original_commit(session)
+
+    monkeypatch.setattr(Session, "commit", count_commit)
+
+    response = client.post(
+        f"{ITEMS_PATH}/",
+        headers=superuser_token_headers,
+        json={"title": "request transaction", "description": "single commit"},
+    )
+
+    assert response.status_code == 200
+    assert commit_count == 1
+
+
 def test_create_item_without_trailing_slash(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:

@@ -14,4 +14,7 @@ def create_random_item(db: Session) -> Item:
     title = random_lower_string()
     description = random_lower_string()
     item_in = ItemCreate(title=title, description=description)
-    return services.item.create_item(session=db, current_user=user, item_in=item_in)
+    item = services.item.create_item(session=db, current_user=user, item_in=item_in)
+    db.commit()
+    db.refresh(item)
+    return item

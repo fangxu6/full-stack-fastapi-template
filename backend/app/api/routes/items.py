@@ -4,7 +4,7 @@ from typing import Any
 from fastapi import APIRouter, Query
 
 from app import services
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import CurrentUser, SessionDep, WriteSessionDep
 from app.schemas.item import ItemCreate, ItemPublic, ItemsPublic, ItemUpdate
 from app.schemas.security import Message
 
@@ -36,7 +36,7 @@ def read_item(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) -> 
 
 @router.post("/", response_model=ItemPublic)
 def create_item(
-    *, session: SessionDep, current_user: CurrentUser, item_in: ItemCreate
+    *, session: WriteSessionDep, current_user: CurrentUser, item_in: ItemCreate
 ) -> Any:
     """
     Create new item.
@@ -49,7 +49,7 @@ def create_item(
 @router.put("/{id}", response_model=ItemPublic)
 def update_item(
     *,
-    session: SessionDep,
+    session: WriteSessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
     item_in: ItemUpdate,
@@ -64,7 +64,7 @@ def update_item(
 
 @router.delete("/{id}")
 def delete_item(
-    session: SessionDep, current_user: CurrentUser, id: uuid.UUID
+    session: WriteSessionDep, current_user: CurrentUser, id: uuid.UUID
 ) -> Message:
     """
     Delete an item.

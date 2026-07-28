@@ -130,9 +130,8 @@ def _create_unit(
     unit = model(name=name, normalized_name=name, **_audit(current_user))  # ty:ignore[invalid-argument-type]
     session.add(unit)
     try:
-        session.commit()
+        session.flush()
     except IntegrityError as err:
-        session.rollback()
         raise ConflictError("Unit name already exists") from err
     session.refresh(unit)
     return unit
@@ -183,9 +182,8 @@ def _update_unit(
     unit.updated_by = current_user.id
     session.add(unit)
     try:
-        session.commit()
+        session.flush()
     except IntegrityError as err:
-        session.rollback()
         raise ConflictError("Unit name already exists") from err
     session.refresh(unit)
     return unit
@@ -367,12 +365,10 @@ def create_document(
         _reject_negative_balances(
             session=session, processing_unit_id=document.processing_unit_id
         )
-        session.commit()
+        session.flush()
     except BadRequestError, ConflictError:
-        session.rollback()
         raise
     except IntegrityError as err:
-        session.rollback()
         raise ConflictError("Document number already exists") from err
     return _document_public(session=session, document=document)
 
@@ -474,12 +470,10 @@ def update_document(
             _reject_negative_balances(
                 session=session, processing_unit_id=document.processing_unit_id
             )
-        session.commit()
+        session.flush()
     except BadRequestError, ConflictError:
-        session.rollback()
         raise
     except IntegrityError as err:
-        session.rollback()
         raise ConflictError("Document number already exists") from err
     return _document_public(session=session, document=document)
 
@@ -502,7 +496,7 @@ def delete_document(
     _set_document_ledger_deleted(
         session=session, document=document, deleted_at=now, current_user=current_user
     )
-    session.commit()
+    session.flush()
 
 
 def restore_document(
@@ -528,9 +522,8 @@ def restore_document(
             session=session, processing_unit_id=document.processing_unit_id
         )
         session.add(document)
-        session.commit()
+        session.flush()
     except ConflictError:
-        session.rollback()
         raise
 
 

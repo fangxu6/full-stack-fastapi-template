@@ -235,7 +235,7 @@ def create_job(
         updated_by=actor.id,
     )
     session.add(job)
-    session.commit()
+    session.flush()
     session.refresh(job)
     return job
 
@@ -271,7 +271,7 @@ def update_job(
     job.updated_at = current
     job.updated_by = actor.id
     session.add(job)
-    session.commit()
+    session.flush()
     session.refresh(job)
     return job
 
@@ -298,7 +298,6 @@ def create_run(
     error_category: str | None = None,
     error_summary: str | None = None,
     require_no_active: bool = True,
-    commit: bool = True,
     now: datetime | None = None,
 ) -> SchedulerRun:
     current = utc_now(now)
@@ -331,12 +330,7 @@ def create_run(
             session.add(run)
             session.flush()
     except IntegrityError as error:
-        if commit:
-            session.rollback()
         raise ConflictError("Scheduled task already has an active run") from error
-    if commit:
-        session.commit()
-        session.refresh(run)
     return run
 
 
@@ -420,7 +414,7 @@ def set_enabled(
     job.updated_at = current
     job.updated_by = actor.id
     session.add(job)
-    session.commit()
+    session.flush()
     session.refresh(job)
     return job
 
@@ -439,7 +433,7 @@ def delete_job(
     job.updated_at = current
     job.updated_by = actor.id
     session.add(job)
-    session.commit()
+    session.flush()
 
 
 def restore_job(
@@ -453,7 +447,7 @@ def restore_job(
     job.updated_at = current
     job.updated_by = actor.id
     session.add(job)
-    session.commit()
+    session.flush()
     session.refresh(job)
     return job
 
@@ -491,7 +485,7 @@ def cleanup_runs(*, session: Session, now: datetime | None = None) -> int:
     ).all()
     for run in runs:
         session.delete(run)
-    session.commit()
+    session.flush()
     return len(runs)
 
 
@@ -521,4 +515,4 @@ def bootstrap_inventory_jobs(*, session: Session, actor: User) -> None:
         )
         added = True
     if added:
-        session.commit()
+        session.flush()

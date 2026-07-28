@@ -148,7 +148,6 @@ def test_conflicting_run_creation_does_not_rollback_prior_batch_run(
         trigger=service.SchedulerRunTrigger.MANUAL_NOW,
         planned_at=second_job.next_run_at,
         requested_by=actor.id,
-        commit=False,
     )
     monkeypatch.setattr(service, "_active_run", lambda **_: None)
 
@@ -159,7 +158,6 @@ def test_conflicting_run_creation_does_not_rollback_prior_batch_run(
             trigger=service.SchedulerRunTrigger.MANUAL_NOW,
             planned_at=first_job.next_run_at,
             requested_by=actor.id,
-            commit=False,
         )
 
     db.commit()

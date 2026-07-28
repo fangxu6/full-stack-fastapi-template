@@ -4,7 +4,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import CurrentUser, SessionDep, WriteSessionDep
 from app.models.inventory import InventoryDocumentType, InventoryLedgerKind
 from app.modules.iam.dependencies import permission_required
 from app.modules.inventory import service
@@ -53,7 +53,7 @@ def read_processing_units(
     response_model=MasterUnitPublic,
 )
 def create_processing_unit(
-    *, session: SessionDep, current_user: CurrentUser, unit_in: MasterUnitCreate
+    *, session: WriteSessionDep, current_user: CurrentUser, unit_in: MasterUnitCreate
 ) -> Any:
     return service.create_processing_unit(
         session=session, current_user=current_user, unit_in=unit_in
@@ -67,7 +67,7 @@ def create_processing_unit(
 )
 def update_processing_unit(
     *,
-    session: SessionDep,
+    session: WriteSessionDep,
     current_user: CurrentUser,
     unit_id: uuid.UUID,
     unit_in: MasterUnitUpdate,
@@ -109,7 +109,7 @@ def read_receiving_units(
     response_model=MasterUnitPublic,
 )
 def create_receiving_unit(
-    *, session: SessionDep, current_user: CurrentUser, unit_in: MasterUnitCreate
+    *, session: WriteSessionDep, current_user: CurrentUser, unit_in: MasterUnitCreate
 ) -> Any:
     return service.create_receiving_unit(
         session=session, current_user=current_user, unit_in=unit_in
@@ -123,7 +123,7 @@ def create_receiving_unit(
 )
 def update_receiving_unit(
     *,
-    session: SessionDep,
+    session: WriteSessionDep,
     current_user: CurrentUser,
     unit_id: uuid.UUID,
     unit_in: MasterUnitUpdate,
@@ -143,7 +143,7 @@ def update_receiving_unit(
 )
 def create_inventory_document(
     *,
-    session: SessionDep,
+    session: WriteSessionDep,
     current_user: CurrentUser,
     document_in: InventoryDocumentCreate,
 ) -> Any:
@@ -204,7 +204,7 @@ def read_inventory_document(
 )
 def update_inventory_document(
     *,
-    session: SessionDep,
+    session: WriteSessionDep,
     current_user: CurrentUser,
     document_id: uuid.UUID,
     document_in: InventoryDocumentCreate,
@@ -222,7 +222,7 @@ def update_inventory_document(
     dependencies=[Depends(permission_required("inventory.documents.manage"))],
 )
 def delete_inventory_document(
-    document_id: uuid.UUID, session: SessionDep, current_user: CurrentUser
+    document_id: uuid.UUID, session: WriteSessionDep, current_user: CurrentUser
 ) -> dict[str, str]:
     service.delete_document(
         session=session, current_user=current_user, document_id=document_id
@@ -235,7 +235,7 @@ def delete_inventory_document(
     dependencies=[Depends(permission_required("inventory.documents.manage"))],
 )
 def restore_inventory_document(
-    document_id: uuid.UUID, session: SessionDep, current_user: CurrentUser
+    document_id: uuid.UUID, session: WriteSessionDep, current_user: CurrentUser
 ) -> dict[str, str]:
     service.restore_document(
         session=session, current_user=current_user, document_id=document_id

@@ -31,7 +31,7 @@ def read_item(*, session: Session, current_user: User, id: uuid.UUID) -> Item:
 
 def create_item(*, session: Session, current_user: User, item_in: ItemCreate) -> Item:
     item = crud.create_item(session=session, item_in=item_in, owner_id=current_user.id)
-    session.commit()
+    session.flush()
     session.refresh(item)
     return item
 
@@ -45,7 +45,7 @@ def update_item(
     if not current_user.is_superuser and (item.owner_id != current_user.id):
         raise PermissionDeniedError("Not enough permissions")
     item = crud.update_item(session=session, db_item=item, item_in=item_in)
-    session.commit()
+    session.flush()
     session.refresh(item)
     return item
 
@@ -57,5 +57,5 @@ def delete_item(*, session: Session, current_user: User, id: uuid.UUID) -> Messa
     if not current_user.is_superuser and (item.owner_id != current_user.id):
         raise PermissionDeniedError("Not enough permissions")
     crud.delete_item(session=session, db_item=item)
-    session.commit()
+    session.flush()
     return Message(message="Item deleted successfully")

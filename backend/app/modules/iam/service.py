@@ -169,7 +169,7 @@ def create_role(*, session: Session, role_in: RoleCreate) -> RolePublic:
             if permission.id is not None
         ]
     )
-    session.commit()
+    session.flush()
     session.refresh(role)
     return role_public(session=session, role=role)
 
@@ -183,7 +183,7 @@ def update_role(*, session: Session, role_id: int, role_in: RoleUpdate) -> RoleP
     role.sqlmodel_update(role_data)
     role.updated_at = get_datetime_utc()
     session.add(role)
-    session.commit()
+    session.flush()
     session.refresh(role)
     return role_public(session=session, role=role)
 
@@ -210,7 +210,7 @@ def replace_role_permissions(
     )
     role.updated_at = get_datetime_utc()
     session.add(role)
-    session.commit()
+    session.flush()
     session.refresh(role)
     return role_public(session=session, role=role)
 
@@ -231,7 +231,7 @@ def delete_role(*, session: Session, role_id: int) -> None:
         delete(IamRolePermission).where(col(IamRolePermission.role_id) == role_id)
     )
     session.delete(role)
-    session.commit()
+    session.flush()
 
 
 def _lock_platform_administrator(session: Session) -> IamRole:
@@ -253,43 +253,34 @@ def _ensure_active_platform_administrator(*, session: Session, role: IamRole) ->
 def replace_user_roles(
     *, session: Session, user_id: uuid.UUID, role_ids: list[int]
 ) -> list[RoleSummary]:
-    try:
-        user = session.get(User, user_id)
-        if user is None:
-            raise NotFoundError("User does not exist")
-        selected_role_ids = set(role_ids)
-        existing_role_ids = repository.get_user_role_ids(
-            session=session, user_id=user_id
-        )
-        roles = [
-            role
-            for role_id in selected_role_ids
-            if (role := repository.get_role_by_id(session=session, role_id=role_id))
-            is not None
-        ]
-        if len(roles) != len(selected_role_ids):
-            raise NotFoundError("One or more roles do not exist")
-        if any(
-            not role.is_active and role.id not in existing_role_ids for role in roles
-        ):
-            raise ConflictError("Inactive roles cannot be assigned")
+    user = session.get(User, user_id)
+    if user is None:
+        raise NotFoundError("User does not exist")
+    selected_role_ids = set(role_ids)
+    existing_role_ids = repository.get_user_role_ids(session=session, user_id=user_id)
+    roles = [
+        role
+        for role_id in selected_role_ids
+        if (role := repository.get_role_by_id(session=session, role_id=role_id))
+        is not None
+    ]
+    if len(roles) != len(selected_role_ids):
+        raise NotFoundError("One or more roles do not exist")
+    if any(not role.is_active and role.id not in existing_role_ids for role in roles):
+        raise ConflictError("Inactive roles cannot be assigned")
 
-        platform_role = _lock_platform_administrator(session)
-        session.exec(delete(IamUserRole).where(col(IamUserRole.user_id) == user_id))
-        session.add_all(
-            [
-                IamUserRole(user_id=user_id, role_id=role.id)
-                for role in roles
-                if role.id is not None
-            ]
-        )
-        session.flush()
-        _ensure_active_platform_administrator(session=session, role=platform_role)
-        session.commit()
-        return get_user_role_summaries(session=session, user_id=user_id)
-    except Exception:
-        session.rollback()
-        raise
+    platform_role = _lock_platform_administrator(session)
+    session.exec(delete(IamUserRole).where(col(IamUserRole.user_id) == user_id))
+    session.add_all(
+        [
+            IamUserRole(user_id=user_id, role_id=role.id)
+            for role in roles
+            if role.id is not None
+        ]
+    )
+    session.flush()
+    _ensure_active_platform_administrator(session=session, role=platform_role)
+    return get_user_role_summaries(session=session, user_id=user_id)
 
 
 def ensure_user_deactivation_is_safe(*, session: Session, user: User) -> None:
@@ -378,4 +369,3 @@ def ensure_bootstrap_state(*, session: Session, first_superuser: User) -> None:
         session.add(IamUserRole(user_id=first_superuser.id, role_id=platform_role.id))
     session.flush()
     _ensure_active_platform_administrator(session=session, role=platform_role)
-    session.commit()

@@ -2,6 +2,7 @@ from .dependencies import (
     CurrentUser,
     SessionDep,
     TokenDep,
+    WriteSessionDep,
     get_current_active_superuser,
     get_current_user,
     get_db,
@@ -11,6 +12,7 @@ from .dependencies import (
 __all__ = [
     "CurrentUser",
     "SessionDep",
+    "WriteSessionDep",
     "TokenDep",
     "get_current_active_superuser",
     "get_current_user",

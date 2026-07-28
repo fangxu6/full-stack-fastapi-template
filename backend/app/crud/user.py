@@ -11,23 +11,15 @@ from app.schemas.user import UserCreate, UserUpdate
 DUMMY_HASH = "$argon2id$v=19$m=65536,t=3,p=4$MjQyZWE1MzBjYjJlZTI0Yw$YTU4NGM5ZTZmYjE2NzZlZjY0ZWY3ZGRkY2U2OWFjNjk"
 
 
-def create_user(
-    *, session: Session, user_create: UserCreate, commit: bool = True
-) -> User:
+def create_user(*, session: Session, user_create: UserCreate) -> User:
     user_data = user_create.model_dump(exclude={"password", "role_ids"})
     db_obj = User(**user_data, hashed_password=get_password_hash(user_create.password))
     session.add(db_obj)
-    if commit:
-        session.commit()
-        session.refresh(db_obj)
-    else:
-        session.flush()
+    session.flush()
     return db_obj
 
 
-def update_user(
-    *, session: Session, db_user: User, user_in: UserUpdate, commit: bool = True
-) -> User:
+def update_user(*, session: Session, db_user: User, user_in: UserUpdate) -> User:
     user_data = user_in.model_dump(exclude_unset=True)
     extra_data = {}
     if "password" in user_data:
@@ -36,11 +28,7 @@ def update_user(
         extra_data["hashed_password"] = hashed_password
     db_user.sqlmodel_update(user_data, update=extra_data)
     session.add(db_user)
-    if commit:
-        session.commit()
-        session.refresh(db_user)
-    else:
-        session.flush()
+    session.flush()
     return db_user
 
 
@@ -48,12 +36,9 @@ def get_user_by_id(*, session: Session, user_id: uuid.UUID) -> User | None:
     return session.get(User, user_id)
 
 
-def delete_user(*, session: Session, db_user: User, commit: bool = True) -> None:
+def delete_user(*, session: Session, db_user: User) -> None:
     session.delete(db_user)
-    if commit:
-        session.commit()
-    else:
-        session.flush()
+    session.flush()
 
 
 def get_user_by_email(*, session: Session, email: str) -> User | None:
@@ -75,6 +60,6 @@ def authenticate(*, session: Session, email: str, password: str) -> User | None:
     if updated_password_hash:
         db_user.hashed_password = updated_password_hash
         session.add(db_user)
-        session.commit()
+        session.flush()
         session.refresh(db_user)
     return db_user

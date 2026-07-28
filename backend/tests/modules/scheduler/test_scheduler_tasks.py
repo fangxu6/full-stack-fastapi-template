@@ -102,6 +102,7 @@ def test_scan_skips_missed_time_and_records_overlap(
         requested_by=overlap.created_by,
         now=now,
     )
+    db.commit()
     monkeypatch.setattr(tasks, "utc_now", lambda: now)
     monkeypatch.setattr(tasks, "_send_alert", lambda **_: None)
 
@@ -148,6 +149,7 @@ def test_execute_run_records_safe_terminal_state(
         now=now,
     )
     assert run.id is not None
+    db.commit()
     monkeypatch.setattr(tasks, "resolve_task_class", lambda _: task_class)
     monkeypatch.setattr(tasks, "_send_alert", lambda **_: None)
 
@@ -177,6 +179,7 @@ def test_execute_run_marks_frozen_config_failure_as_configuration_invalid(
         now=now,
     )
     assert run.id is not None
+    db.commit()
     monkeypatch.setattr(
         tasks,
         "resolve_task_class",
@@ -207,6 +210,7 @@ def test_dispatch_retries_broker_failure_on_the_next_scan_minute(
         now=now,
     )
     assert run.id is not None
+    db.commit()
     monkeypatch.setattr(tasks, "utc_now", lambda: now)
 
     with patch.object(
@@ -286,6 +290,7 @@ def test_alert_is_rate_limited_and_cleanup_removes_old_runs(
         now=now - timedelta(days=91),
     )
     assert old_run.id is not None
+    db.commit()
     monkeypatch.setattr(settings, "SMTP_HOST", "smtp.example.com")
     monkeypatch.setattr(settings, "EMAILS_FROM_EMAIL", "sender@example.com")
     monkeypatch.setattr(
@@ -310,4 +315,5 @@ def test_alert_is_rate_limited_and_cleanup_removes_old_runs(
 
     assert send_email.call_count == 1
     assert service.cleanup_runs(session=db, now=now) == 1
+    db.commit()
     assert db.get(SchedulerRun, old_run.id) is None

@@ -115,6 +115,7 @@ def test_cannot_remove_last_active_platform_administrator(db: Session) -> None:
     with pytest.raises(ConflictError):
         service.replace_user_roles(session=db, user_id=first_superuser.id, role_ids=[])
 
+    db.rollback()
     assert platform_role.id in repository.get_user_role_ids(
         session=db, user_id=first_superuser.id
     )

@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from fastapi import BackgroundTasks
 from fastapi.responses import HTMLResponse
 from sqlmodel import Session
 
@@ -34,7 +35,9 @@ def login_access_token(*, session: Session, username: str, password: str) -> Tok
     )
 
 
-def recover_password(*, session: Session, email: str) -> Message:
+def recover_password(
+    *, session: Session, email: str, background_tasks: BackgroundTasks
+) -> Message:
     user = crud.get_user_by_email(session=session, email=email)
 
     # Always return the same response to prevent email enumeration attacks
@@ -44,7 +47,8 @@ def recover_password(*, session: Session, email: str) -> Message:
         email_data = generate_reset_password_email(
             email_to=user.email, email=email, token=password_reset_token
         )
-        send_email(
+        background_tasks.add_task(
+            send_email,
             email_to=user.email,
             subject=email_data.subject,
             html_content=email_data.html_content,

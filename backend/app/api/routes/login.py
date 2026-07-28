@@ -1,11 +1,11 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app import services
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import CurrentUser, WriteSessionDep
 from app.modules.iam.dependencies import permission_required
 from app.schemas.security import Message, NewPassword, Token
 from app.schemas.user import UserPublic
@@ -15,7 +15,7 @@ router = APIRouter(tags=["login"])
 
 @router.post("/login/access-token")
 def login_access_token(
-    session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+    session: WriteSessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> Token:
     """
     OAuth2 compatible token login, get an access token for future requests
@@ -26,7 +26,7 @@ def login_access_token(
 
 
 @router.post("/login/test-token", response_model=UserPublic)
-def test_token(session: SessionDep, current_user: CurrentUser) -> Any:
+def test_token(session: WriteSessionDep, current_user: CurrentUser) -> Any:
     """
     Test access token
     """
@@ -34,15 +34,19 @@ def test_token(session: SessionDep, current_user: CurrentUser) -> Any:
 
 
 @router.post("/password-recovery/{email}")
-def recover_password(email: str, session: SessionDep) -> Message:
+def recover_password(
+    email: str, background_tasks: BackgroundTasks, session: WriteSessionDep
+) -> Message:
     """
     Password Recovery
     """
-    return services.auth.recover_password(session=session, email=email)
+    return services.auth.recover_password(
+        session=session, email=email, background_tasks=background_tasks
+    )
 
 
 @router.post("/reset-password/")
-def reset_password(session: SessionDep, body: NewPassword) -> Message:
+def reset_password(session: WriteSessionDep, body: NewPassword) -> Message:
     """
     Reset password
     """
@@ -54,7 +58,7 @@ def reset_password(session: SessionDep, body: NewPassword) -> Message:
     dependencies=[Depends(permission_required("system.users.manage"))],
     response_class=HTMLResponse,
 )
-def recover_password_html_content(email: str, session: SessionDep) -> Any:
+def recover_password_html_content(email: str, session: WriteSessionDep) -> Any:
     """
     HTML Content for Password Recovery
     """

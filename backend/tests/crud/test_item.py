@@ -40,7 +40,7 @@ def test_create_item_requires_explicit_commit(db: Session) -> None:
         )
 
 
-def test_module_service_create_item_commits(db: Session) -> None:
+def test_module_service_create_item_requires_explicit_commit(db: Session) -> None:
     user = create_random_user(db)
     assert user.id is not None
 
@@ -50,6 +50,7 @@ def test_module_service_create_item_commits(db: Session) -> None:
     )
 
     item = services.item.create_item(session=db, current_user=user, item_in=item_in)
+    db.commit()
 
     with Session(engine) as verification_session:
         db_item = crud.get_item_by_id(session=verification_session, item_id=item.id)

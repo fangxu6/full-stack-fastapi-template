@@ -37,13 +37,14 @@ def init_db(session: Session) -> None:
             email=settings.FIRST_SUPERUSER,
             password=settings.FIRST_SUPERUSER_PASSWORD,
         )
-        user = crud.create_user(session=session, user_create=user_in, commit=False)
+        user = crud.create_user(session=session, user_create=user_in)
         user.is_superuser = True
         session.add(user)
         session.flush()
     try:
         iam_service.ensure_bootstrap_state(session=session, first_superuser=user)
         bootstrap_inventory_jobs(session=session, actor=user)
+        session.commit()
     except Exception as error:
         session.rollback()
         log_event(

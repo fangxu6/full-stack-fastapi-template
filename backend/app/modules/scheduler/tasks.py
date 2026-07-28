@@ -176,7 +176,6 @@ def scan_due_jobs() -> None:
                     trigger=SchedulerRunTrigger.SCHEDULED,
                     planned_at=planned_at,
                     requested_by=None,
-                    commit=False,
                     now=now,
                 )
             except ValueError:
@@ -190,7 +189,6 @@ def scan_due_jobs() -> None:
                     error_category="CONFIGURATION_INVALID",
                     error_summary="Scheduled task configuration is invalid",
                     require_no_active=False,
-                    commit=False,
                     now=now,
                 )
                 alerts.append(
@@ -214,7 +212,6 @@ def scan_due_jobs() -> None:
                     error_category="OVERLAPPING_ACTIVE_RUN",
                     error_summary="Scheduled task has an active run",
                     require_no_active=False,
-                    commit=False,
                     now=now,
                 )
                 alerts.append(
@@ -337,6 +334,7 @@ def cleanup_scheduled_runs() -> None:
 
     with Session(engine) as session:
         cleanup_runs(session=session)
+        session.commit()
 
 
 celery_app.task(name="scheduler.scan_due_jobs", ignore_result=True)(scan_due_jobs)

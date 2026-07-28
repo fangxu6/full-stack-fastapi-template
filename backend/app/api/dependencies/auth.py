@@ -25,7 +25,7 @@ reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token"
 )
 
-SessionDep = Annotated[Session, Depends(get_db)]
+SessionDep = Annotated[Session, Depends(get_db, scope="function")]
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 

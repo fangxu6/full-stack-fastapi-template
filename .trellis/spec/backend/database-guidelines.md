@@ -453,7 +453,125 @@ change.
   - [`backend/app/services/user.py`](../../../backend/app/services/user.py)
   - [`backend/app/crud/user.py`](../../../backend/app/crud/user.py)
 - Keep ownership and permission filtering in service orchestration. CRUD helpers should stay database-focused and not become hidden authorization layers.
-- In the item CRUD flow, `services/item.py` owns commit/refresh and `crud/item.py` does not commit. Do not assume this item-only transaction contract has migrated to users/auth yet.
+- In HTTP mutation flows, routes, services, and CRUD helpers may `add`, `flush`, and `refresh`, but only the request write dependency may commit or roll back.
+
+---
+
+## Scenario: HTTP Request Unit Of Work
+
+### 1. Scope / Trigger
+
+Apply this to every FastAPI `POST`, `PUT`, `PATCH`, and `DELETE` route. The
+request owns one transaction shared by authentication, permission, route, and
+service dependencies. Read routes retain the read-only session dependency.
+
+### 2. Signatures
+
+```python
+SessionDep = Annotated[Session, Depends(get_db, scope="function")]
+
+
+def get_write_db(
+    session: Annotated[Session, Depends(get_db, scope="function")],
+) -> Generator[Session]:
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+
+
+WriteSessionDep = Annotated[Session, Depends(get_write_db, scope="function")]
+```
+
+`get_db()` remains the only request session factory and closes the session.
+Both dependency signatures use the same callable and `scope="function"` so
+FastAPI reuses one cached `Session` and finalizes it before response sending.
+
+### 3. Contracts
+
+- Every HTTP write handler declares `WriteSessionDep`, including a write-method
+  endpoint that currently only authenticates or reads.
+- `SessionDep` remains the dependency for reads and authentication/RBAC
+  dependencies. It must use the same function scope as `WriteSessionDep`.
+- HTTP services, CRUD helpers, and route handlers do not call
+  `session.commit()` or `session.rollback()`. They flush to obtain identities
+  or translate expected integrity errors before the response is built.
+- A successful request commits exactly once at `get_write_db`; any exception
+  rolls back the whole request and preserves the original exception/error
+  contract.
+- Workers, startup initialization, importers, CLI commands, and direct service
+  callers are not HTTP requests. Their caller explicitly commits or rolls back
+  a short transaction after the operation.
+- Do not call SMTP, an HTTP dependency, or a broker while the request database
+  transaction is open. Existing HTTP mail paths use `BackgroundTasks` after
+  the function-scoped commit. Durable retry and delivery state remain the
+  responsibility of the generic email outbox capability.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| HTTP write succeeds | One final commit occurs before the shared session closes. |
+| Endpoint, dependency, or service raises | The write dependency rolls back before close; no partial business, audit, or outbox rows persist. |
+| Authentication/RBAC and endpoint both need a session | They observe the same cached function-scoped `Session`, not a second request session. |
+| Expected unique/integrity conflict | Flush and convert it to the existing domain error before final commit; the dependency performs the rollback. |
+| Direct test setup calls an HTTP route or worker that opens another session | Commit setup data first. After an expected direct-service exception, roll back before asserting durable state. |
+| Direct setup retains a row lock and calls a second-session worker | Commit before the worker call so it can read or update the same row without blocking. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a route creates a user, role links, and an item through services that
+  flush, then `WriteSessionDep` commits all rows once.
+- Base: a direct scheduler-task test creates a run through a service, commits
+  the fixture session, then invokes a worker that opens its own session.
+- Bad: a CRUD helper commits to make one test pass, a route dispatches Celery
+  before commit, or a password-recovery service calls SMTP synchronously in
+  the request transaction.
+
+### 6. Tests Required
+
+- Dependency test: assert `SessionDep` and `WriteSessionDep` share one session,
+  commit/rollback occurs before close, and all HTTP write routes declare the
+  write dependency.
+- API regression: assert successful writes commit once and error responses keep
+  `detail + request_id` while leaving no partial state.
+- Side-effect regression: patch SMTP/broker boundaries and assert they execute
+  only after the request commit.
+- Direct-caller regression: commit test/worker setup before a second session
+  reads it; roll back an expected direct-service failure before querying state.
+- E2E: verify an isolated live backend persists a successful write, rejects an
+  invalid write without persistence, keeps a manual scheduler run `QUEUED`,
+  and preserves authenticated read behavior.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+def create_item(*, session: Session, item_in: ItemCreate) -> Item:
+    item = Item.model_validate(item_in)
+    session.add(item)
+    session.commit()
+    return item
+```
+
+The helper terminates a transaction that may also contain audit, role, or
+future outbox changes, so later request failures cannot roll it back.
+
+#### Correct
+
+```python
+def create_item(*, session: Session, item_in: ItemCreate) -> Item:
+    item = Item.model_validate(item_in)
+    session.add(item)
+    session.flush()
+    return item
+```
+
+The HTTP write dependency owns the final commit or rollback. A non-HTTP caller
+commits explicitly after the service returns.
 
 ---
 
