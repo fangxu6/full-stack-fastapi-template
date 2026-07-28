@@ -476,3 +476,36 @@ Removed the retired inventory AI BFF, sidecar workspace, Compose and configurati
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: 请求级 Unit of Work
+
+**Date**: 2026-07-28
+**Task**: 请求级 Unit of Work
+**Branch**: `master`
+
+### Summary
+
+完成请求级事务边界：HTTP 写操作统一由函数作用域依赖提交或回滚，服务层移除 HTTP 事务控制；补充 SMTP、调度及跨会话回归验证。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9f69027` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
