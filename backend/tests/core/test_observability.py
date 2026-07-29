@@ -12,10 +12,14 @@ from app.core.config import settings
 from app.core.db import IamBootstrapInitializationError
 from app.core.observability import (
     bind_request_context,
+    bind_task_context,
     clear_request_context,
+    clear_task_context,
     configure_observability,
     log_event,
     normalize_request_id,
+    normalize_task_id,
+    normalize_task_name,
     set_actor_kind_authenticated,
     should_sample_success,
 )
@@ -30,6 +34,22 @@ def test_request_id_normalization_accepts_only_lowercase_hex() -> None:
     assert normalize_request_id(request_id) == request_id
     assert normalize_request_id("A" * 32) != "A" * 32
     assert len(normalize_request_id("not-a-request-id")) == 32
+
+
+def test_task_id_normalization_accepts_only_canonical_lowercase_uuid() -> None:
+    task_id = "12345678-1234-4234-8234-123456789abc"
+
+    assert normalize_task_id(task_id) == task_id
+    assert normalize_task_id(task_id.upper()) is None
+    assert normalize_task_id(task_id.replace("-", "")) is None
+    assert normalize_task_id("not-a-task-id") is None
+
+
+def test_task_name_normalization_rejects_framework_and_invalid_names() -> None:
+    assert normalize_task_name("runtime.ping") == "runtime.ping"
+    assert normalize_task_name("celery.chord_unlock") is None
+    assert normalize_task_name("runtime") is None
+    assert normalize_task_name("runtime.ping/task") is None
 
 
 def test_success_sampling_is_stable() -> None:
@@ -55,6 +75,20 @@ def test_request_context_contains_only_safe_keys() -> None:
     clear_request_context()
 
 
+def test_task_context_contains_only_task_keys() -> None:
+    bind_task_context(
+        task_id="12345678-1234-4234-8234-123456789abc",
+        task_name="runtime.ping",
+    )
+
+    assert structlog.contextvars.get_contextvars() == {
+        "task_id": "12345678-1234-4234-8234-123456789abc",
+        "task_name": "runtime.ping",
+    }
+
+    clear_task_context()
+
+
 def test_log_event_emits_only_allowlisted_json(capsys: CaptureFixture[str]) -> None:
     configure_observability()
     bind_request_context(request_id="a" * 32)
@@ -76,6 +110,34 @@ def test_log_event_emits_only_allowlisted_json(capsys: CaptureFixture[str]) -> N
     assert payload["dependency"] == "smtp"
     assert "exception" not in payload
     assert "token" not in payload
+
+
+def test_task_log_event_emits_only_safe_task_context(
+    capsys: CaptureFixture[str],
+) -> None:
+    configure_observability()
+    bind_task_context(
+        task_id="12345678-1234-4234-8234-123456789abc",
+        task_name="runtime.ping",
+    )
+
+    log_event(event_name="task.started", severity="INFO")
+    clear_task_context()
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["event_name"] == "task.started"
+    assert payload["severity"] == "INFO"
+    assert payload["task_id"] == "12345678-1234-4234-8234-123456789abc"
+    assert payload["task_name"] == "runtime.ping"
+    assert set(payload) == {
+        "environment",
+        "event_name",
+        "schema_version",
+        "severity",
+        "task_id",
+        "task_name",
+        "timestamp",
+    }
 
 
 def test_log_event_rejects_unknown_fields_before_serialization(

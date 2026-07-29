@@ -33,10 +33,11 @@ been replaced.
 
 `structlog.contextvars.merge_contextvars` intentionally adds safe execution
 context to every event. HTTP requests bind `request_id` and the low-cardinality
-`actor_kind` (`anonymous` or `authenticated`); Celery tasks bind only the
-broker-generated `task_id` and registered `task_name`. These fields must never
-expand into user, role, permission, token, task argument, or business-resource
-identity.
+`actor_kind` (`anonymous` or `authenticated`); Celery tasks bind only a
+canonical, lowercase, hyphenated UUID `task_id` supplied by the caller and a
+registered `task_name` belonging to the single application Celery instance.
+These fields must never expand into user, role, permission, token, task
+argument, or business-resource identity.
 
 ---
 
@@ -260,13 +261,17 @@ def log_event(
     status_code: int | None = None,
     actor_kind: str | None = None,
     authorization_result: str | None = None,
+    task_id: str | None = None,
+    task_name: str | None = None,
 ) -> None: ...
 ```
 
 - `configure_observability()` runs once at each application/startup entry
-  point. It configures `structlog.contextvars`, the direct JSON renderer, and
-  one stdout NDJSON sink. Reconfiguration replaces the lazy logger so reload
-  and test processes do not retain a stale output stream.
+  point, including the direct Celery worker import path
+  `app.core.celery:celery_app`; FastAPI startup is not the worker's
+  configuration path. It configures `structlog.contextvars`, the direct JSON
+  renderer, and one stdout NDJSON sink. Reconfiguration replaces the lazy
+  logger so reload and test processes do not retain a stale output stream.
 - Request middleware first clears context, then binds the normalized
   32-character lowercase hexadecimal `request_id`. It clears context at
   completion so a request cannot leak data into another request.
@@ -289,7 +294,13 @@ def log_event(
   `task_name` are the only Celery task context keys that may be bound with
   `structlog.contextvars`. Bind no user ID, email, role, permission, token,
   request body, header, query string, task argument, resource ID, or exception
-  object.
+  object. Task IDs are external correlation values, not broker-generated
+  identity; invalid values are rejected rather than replaced with a new ID.
+- The task name boundary requires the sender to belong to the application
+  `celery_app`, the name to match the normalized dotted application-task
+  syntax, and the name not to use a Celery framework prefix. Do not use the
+  entire dynamic task registry as an allowlist or maintain a static list that
+  can omit future application tasks.
 - `log_event()` is a closed keyword-only interface containing only reviewed
   safe fields. Do not add `**kwargs`, mapping expansion, or a second generic
   event builder. Unknown fields are rejected at the Python call boundary and
@@ -311,8 +322,9 @@ def log_event(
 | --- | --- |
 | `configure_observability()` runs again in a reload/test process | Replace prior handlers; do not duplicate JSON lines. |
 | Request ID is invalid or absent | Normalize/generate before binding; never bind caller text. |
-| A Celery task begins | The `task_prerun` signal clears prior context, binds only its broker task ID and registered task name, then emits `task.started`. |
-| A Celery task exits | The `task_postrun` signal emits `task.completed` on success or `task.failed` otherwise, then clears task context in every exit path. |
+| A Celery task begins | The `task_prerun` signal clears prior context, validates the caller-provided canonical task ID and registered application task name, binds only those two fields, then emits `task.started` at `INFO`. |
+| A Celery task exits | The `task_postrun` signal reads only allowlisted `state` plus the already-bound safe task context. It maps only `SUCCESS` to `task.completed` and `FAILURE` to `task.failed`, both at `INFO`, and only when prerun accepted and bound the task identity; `RETRY`, `REJECTED`, `IGNORED`, unknown states, and rejected identities emit no terminal event. It clears task context in `finally` for every exit path. |
+| Celery passes signal payload extensions | The receiver may accept an opaque signal keyword mapping to satisfy Celery dispatch, but must delete it without reading, forwarding, or serializing args, kwargs, return values, exceptions, tracebacks, or headers. |
 | CORS preflight short-circuits the inner application | The outer request-correlation middleware adds `X-Request-ID` and emits the sampled/safe `OPTIONS` outcome event; it must not bypass correlation. |
 | A caller supplies an unknown/forbidden `log_event()` keyword | Treat it as a programming error: the closed signature rejects it before serialization. Fix the caller; do not add `**kwargs` to silently filter it. |
 | Event contains a dependency/source name not in the registry | Treat as code-contract failure in unit tests/review; do not ship an ad hoc source. |
@@ -328,6 +340,9 @@ def log_event(
   status_code=200, elapsed_ms=12)` emits one JSON line.
 - Base: a fast successful request falls outside the stable 10% sample bucket;
   `log_event()` emits nothing and the HTTP response remains unchanged.
+- Good: a task emits `task.started` and `task.completed` with only its validated
+  `task_id` and registered `task_name`; a failed task emits `task.failed` at
+  `INFO` without exception text.
 - Bad: `structlog.get_logger().bind(email=user.email, token=token).error(...)`
   adds uncontrolled context that may be serialized. Do not use it.
 - Bad: configuring an exception renderer makes traceback values appear in the

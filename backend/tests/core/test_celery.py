@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import sys
@@ -6,9 +7,12 @@ from typing import cast
 from unittest.mock import patch
 
 import pytest
+import structlog
+from celery.signals import task_postrun, task_prerun  # type: ignore[import-untyped]
 
 from app.core.celery import celery_app
 from app.core.config import settings
+from app.core.observability import clear_task_context, configure_observability
 from app.core.tasks import runtime_ping, send_scheduled_test_email
 from app.utils import EmailData
 
@@ -88,6 +92,203 @@ def test_runtime_ping_executes_eagerly() -> None:
         celery_app.conf.task_always_eager = previous
 
     assert result.get(timeout=1) == "ping"
+
+
+def test_celery_worker_import_configures_json_task_events() -> None:
+    task_id = "12345678-1234-4234-8234-123456789abc"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "\n".join(
+                (
+                    "from app.core.celery import celery_app",
+                    "celery_app.loader.import_default_modules()",
+                    "celery_app.conf.task_always_eager = True",
+                    (
+                        'result = celery_app.tasks["runtime.ping"].apply_async('
+                        f'args=("ping",), task_id="{task_id}")'
+                    ),
+                    'assert result.get(timeout=1) == "ping"',
+                )
+            ),
+        ],
+        capture_output=True,
+        cwd=Path(__file__).resolve().parents[2],
+        env=os.environ.copy(),
+        text=True,
+        timeout=10,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    payloads = [
+        json.loads(line) for line in completed.stdout.splitlines() if line.strip()
+    ]
+    assert [payload["event_name"] for payload in payloads] == [
+        "task.started",
+        "task.completed",
+    ]
+    assert all(
+        payload["schema_version"] == 1
+        and payload["severity"] == "INFO"
+        and payload["task_id"] == task_id
+        and payload["task_name"] == "runtime.ping"
+        for payload in payloads
+    )
+
+
+def test_eager_task_with_rejected_task_id_emits_no_lifecycle_events(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    configure_observability()
+    clear_task_context()
+    task = celery_app.tasks["runtime.ping"]
+    previous = celery_app.conf.task_always_eager
+    celery_app.conf.task_always_eager = True
+    try:
+        result = task.apply_async(args=("ping",), task_id="not-a-canonical-task-id")
+    finally:
+        celery_app.conf.task_always_eager = previous
+
+    assert result.get(timeout=1) == "ping"
+    assert structlog.contextvars.get_contextvars() == {}
+    assert capsys.readouterr().out == ""
+
+
+def test_task_lifecycle_logs_safe_success_and_clears_context(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    configure_observability()
+    clear_task_context()
+    task = celery_app.tasks["runtime.ping"]
+    task_id = "12345678-1234-4234-8234-123456789abc"
+
+    structlog.contextvars.bind_contextvars(
+        request_id="a" * 32,
+        actor_kind="authenticated",
+    )
+    task_prerun.send(
+        sender=task,
+        task_id=task_id,
+        task=task,
+        args=("recipient@example.com",),
+        kwargs={"token": "secret-token"},
+    )
+
+    assert structlog.contextvars.get_contextvars() == {
+        "task_id": task_id,
+        "task_name": "runtime.ping",
+    }
+
+    task_postrun.send(
+        sender=task,
+        task_id=task_id,
+        task=task,
+        args=("recipient@example.com",),
+        kwargs={"token": "secret-token"},
+        retval="private-result",
+        state="SUCCESS",
+    )
+
+    assert structlog.contextvars.get_contextvars() == {}
+    payloads = [line for line in capsys.readouterr().out.splitlines() if line.strip()]
+    assert len(payloads) == 2
+    assert '"event_name": "task.started"' in payloads[0]
+    assert '"event_name": "task.completed"' in payloads[1]
+    assert all('"severity": "INFO"' in line for line in payloads)
+    assert all(
+        secret not in "\n".join(payloads)
+        for secret in (
+            "recipient@example.com",
+            "secret-token",
+            "private-result",
+            "a" * 32,
+        )
+    )
+
+
+def test_task_postrun_logs_failure_without_exception_payload(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    configure_observability()
+    task = celery_app.tasks["runtime.ping"]
+    task_id = "12345678-1234-4234-8234-123456789abc"
+
+    task_prerun.send(
+        sender=task,
+        task_id=task_id,
+        task=task,
+        args=("actor-uuid",),
+        kwargs={"run_id": "delivery-123"},
+    )
+    task_postrun.send(
+        sender=task,
+        task_id=task_id,
+        task=task,
+        args=("actor-uuid",),
+        kwargs={"run_id": "delivery-123"},
+        retval=None,
+        state="FAILURE",
+        exception=RuntimeError("private exception text"),
+        traceback="private traceback",
+    )
+
+    assert structlog.contextvars.get_contextvars() == {}
+    output = capsys.readouterr().out
+    assert '"event_name": "task.failed"' in output
+    assert '"severity": "INFO"' in output
+    assert "actor-uuid" not in output
+    assert "delivery-123" not in output
+    assert "private exception text" not in output
+    assert "private traceback" not in output
+
+
+def test_task_postrun_clears_context_without_terminal_event(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    configure_observability()
+    task = celery_app.tasks["runtime.ping"]
+    task_id = "12345678-1234-4234-8234-123456789abc"
+
+    task_prerun.send(sender=task, task_id=task_id, task=task, args=(), kwargs={})
+    task_postrun.send(
+        sender=task,
+        task_id=task_id,
+        task=task,
+        args=(),
+        kwargs={},
+        retval=None,
+        state="RETRY",
+    )
+
+    assert structlog.contextvars.get_contextvars() == {}
+    output = capsys.readouterr().out
+    assert '"event_name": "task.started"' in output
+    assert '"event_name": "task.completed"' not in output
+    assert '"event_name": "task.failed"' not in output
+
+
+def test_task_prerun_rejects_invalid_identity_without_binding(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    configure_observability()
+
+    class InvalidTask:
+        app = celery_app
+        name = "celery.fake"
+
+    invalid_task = InvalidTask()
+
+    task_prerun.send(
+        sender=invalid_task,
+        task_id="caller-controlled-invalid-id",
+        task=invalid_task,
+        args=("secret",),
+        kwargs={"token": "secret-token"},
+    )
+
+    assert structlog.contextvars.get_contextvars() == {}
+    assert capsys.readouterr().out == ""
 
 
 @pytest.mark.parametrize(

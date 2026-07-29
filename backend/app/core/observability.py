@@ -4,7 +4,7 @@ import re
 import sys
 from collections.abc import MutableMapping
 from typing import Any, Literal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import structlog
 
@@ -19,10 +19,17 @@ EventName = Literal[
     "scheduler.alert.unsent",
     "scheduler.enqueue.failed",
     "startup.failed",
+    "task.started",
+    "task.completed",
+    "task.failed",
 ]
 Severity = Literal["INFO", "WARNING", "ERROR", "CRITICAL"]
 
 REQUEST_ID_PATTERN = re.compile(r"^[a-f0-9]{32}$")
+TASK_ID_PATTERN = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+)
+TASK_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$")
 DEPENDENCIES = {"postgres", "iam_bootstrap", "smtp"}
 _LOGGER = structlog.get_logger("app.observability")
 
@@ -31,6 +38,23 @@ def normalize_request_id(value: str | None) -> str:
     if value and REQUEST_ID_PATTERN.fullmatch(value):
         return value
     return uuid4().hex
+
+
+def normalize_task_id(value: object | None) -> str | None:
+    if not isinstance(value, str) or not TASK_ID_PATTERN.fullmatch(value):
+        return None
+    try:
+        return value if str(UUID(value)) == value else None
+    except ValueError:
+        return None
+
+
+def normalize_task_name(value: object | None) -> str | None:
+    if not isinstance(value, str):
+        return None
+    if value.startswith("celery.") or not TASK_NAME_PATTERN.fullmatch(value):
+        return None
+    return value
 
 
 def configure_observability() -> None:
@@ -75,11 +99,36 @@ def bind_request_context(*, request_id: str, actor_kind: str = "anonymous") -> N
     structlog.contextvars.bind_contextvars(request_id=request_id, actor_kind=actor_kind)
 
 
+def bind_task_context(*, task_id: str, task_name: str) -> bool:
+    safe_task_id = normalize_task_id(task_id)
+    safe_task_name = normalize_task_name(task_name)
+    clear_task_context()
+    if safe_task_id is None or safe_task_name is None:
+        return False
+    structlog.contextvars.bind_contextvars(
+        task_id=safe_task_id,
+        task_name=safe_task_name,
+    )
+    return True
+
+
+def has_task_context() -> bool:
+    context = structlog.contextvars.get_contextvars()
+    return (
+        normalize_task_id(context.get("task_id")) is not None
+        and normalize_task_name(context.get("task_name")) is not None
+    )
+
+
 def set_actor_kind_authenticated() -> None:
     structlog.contextvars.bind_contextvars(actor_kind="authenticated")
 
 
 def clear_request_context() -> None:
+    structlog.contextvars.clear_contextvars()
+
+
+def clear_task_context() -> None:
     structlog.contextvars.clear_contextvars()
 
 
@@ -107,6 +156,8 @@ def log_event(
     status_code: int | None = None,
     actor_kind: str | None = None,
     authorization_result: Literal["denied"] | None = None,
+    task_id: str | None = None,
+    task_name: str | None = None,
 ) -> None:
     if dependency is not None and dependency not in DEPENDENCIES:
         return
@@ -121,6 +172,8 @@ def log_event(
         "status_code": status_code,
         "actor_kind": actor_kind,
         "authorization_result": authorization_result,
+        "task_id": task_id,
+        "task_name": task_name,
     }
     try:
         getattr(_LOGGER, severity.lower())(

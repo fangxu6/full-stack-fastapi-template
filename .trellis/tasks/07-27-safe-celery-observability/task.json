@@ -3,7 +3,7 @@
   "name": "safe-celery-observability",
   "title": "安全 Celery 任务观测",
   "description": "通过 Celery 生命周期 signal 提供最小、安全的 task id/name 日志上下文，不承担业务副作用或启动校验。",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": "backend Celery lifecycle logging context and safe event schema",
   "package": "backend",

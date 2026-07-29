@@ -221,3 +221,11 @@ Actors and unique per key. The default `system` key remains the scheduler actor;
 an explicit provisioning command creates other script identities. Inventory
 imports may bind an active human or a pre-provisioned System Actor. Destructive
 backend tests and local API E2E now use `POSTGRES_DB=aiadmin_test`.
+
+## [2026-07-29 14:20:33] update | 同步 Celery 任务观测契约
+
+记录 task_prerun/task_postrun 清理边界、外部 canonical UUID task ID、应用 task name 过滤、INFO 级别及非终态状态处理。
+
+## [2026-07-29 15:23:01] update | Celery worker observability
+
+Configured the direct worker import path for NDJSON and suppressed terminal task events unless prerun accepted the identity.
