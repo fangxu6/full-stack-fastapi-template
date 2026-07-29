@@ -19,6 +19,8 @@ class User(UserBase, table=True):
     hashed_password: str
     # Compatibility marker for template Items and AI only. RBAC owns new access checks.
     is_superuser: bool = Field(default=False)
+    is_system_actor: bool = Field(default=False, nullable=False)
+    system_actor_key: str | None = Field(default=None, max_length=100)
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore

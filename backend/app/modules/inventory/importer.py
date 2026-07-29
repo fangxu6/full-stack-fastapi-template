@@ -12,6 +12,7 @@ from openpyxl.utils.datetime import from_excel  # type: ignore[import-untyped]
 from openpyxl.worksheet.worksheet import Worksheet  # type: ignore[import-untyped]
 from sqlmodel import Session, select
 
+from app.core.audit import bind_audit_actor, clear_audit_actor
 from app.core.exceptions import BadRequestError, ConflictError
 from app.models import (
     InventoryDocument,
@@ -208,41 +209,43 @@ def import_workbooks(
     dry_run: bool = False,
 ) -> dict[str, int]:
     actor = session.get(User, actor_user_id)
-    if not actor:
+    if actor is None:
         raise BadRequestError("Import actor does not exist")
-    raw_hash, finished_hash = _sha256(raw_workbook), _sha256(finished_workbook)
-    fingerprint = hashlib.sha256(
-        f"{raw_hash}:{finished_hash}:{IMPORTER_VERSION}".encode()
-    ).hexdigest()
-    if session.exec(
-        select(InventoryImportBatch).where(
-            InventoryImportBatch.source_fingerprint == fingerprint
+    if not actor.is_system_actor and not actor.is_active:
+        raise BadRequestError(
+            "Import actor must be active or a provisioned System Actor"
         )
-    ).first():
-        raise ConflictError("These workbooks were already imported")
-    batch = InventoryImportBatch(
-        source_fingerprint=fingerprint,
-        raw_workbook_sha256=raw_hash,
-        finished_workbook_sha256=finished_hash,
-        importer_version=IMPORTER_VERSION,
-        reconciliation_report={},
-        created_by=actor.id,
-        updated_by=actor.id,
-    )
-    session.add(batch)
-    session.flush()
-    report: dict[str, int] = {
-        "source_rows": 0,
-        "ledger_entries": 0,
-        "requires_cleanup": 0,
-        "reconciliation_openings": 0,
-    }
-    balances: dict[tuple[object, ...], tuple[Decimal, Decimal]] = {}
+    bind_audit_actor(session=session, actor_id=actor_user_id)
     try:
+        raw_hash, finished_hash = _sha256(raw_workbook), _sha256(finished_workbook)
+        fingerprint = hashlib.sha256(
+            f"{raw_hash}:{finished_hash}:{IMPORTER_VERSION}".encode()
+        ).hexdigest()
+        if session.exec(
+            select(InventoryImportBatch).where(
+                InventoryImportBatch.source_fingerprint == fingerprint
+            )
+        ).first():
+            raise ConflictError("These workbooks were already imported")
+        batch = InventoryImportBatch(
+            source_fingerprint=fingerprint,
+            raw_workbook_sha256=raw_hash,
+            finished_workbook_sha256=finished_hash,
+            importer_version=IMPORTER_VERSION,
+            reconciliation_report={},
+        )
+        session.add(batch)
+        session.flush()
+        report: dict[str, int] = {
+            "source_rows": 0,
+            "ledger_entries": 0,
+            "requires_cleanup": 0,
+            "reconciliation_openings": 0,
+        }
+        balances: dict[tuple[object, ...], tuple[Decimal, Decimal]] = {}
         _import_book(
             session,
             batch,
-            actor,
             raw_workbook,
             LegacyWorkbookKind.RAW,
             report,
@@ -251,7 +254,6 @@ def import_workbooks(
         _import_book(
             session,
             batch,
-            actor,
             finished_workbook,
             LegacyWorkbookKind.FINISHED,
             report,
@@ -265,13 +267,14 @@ def import_workbooks(
     except Exception:
         session.rollback()
         raise
+    finally:
+        clear_audit_actor(session=session)
     return report
 
 
 def _import_book(
     session: Session,
     batch: InventoryImportBatch,
-    actor: User,
     path: Path,
     kind: LegacyWorkbookKind,
     report: dict[str, int],
@@ -288,9 +291,7 @@ def _import_book(
             )
             unit = cast(
                 ProcessingUnit,
-                _find_or_create_unit(
-                    session, ProcessingUnit, processing_unit_name, actor
-                ),
+                _find_or_create_unit(session, ProcessingUnit, processing_unit_name),
             )
             report["source_rows"] += 1
             item_code = _text(_value(cells, "品号", "货号"), MISSING_ITEM_CODE)
@@ -317,8 +318,6 @@ def _import_book(
                 raw_cells=json.loads(json.dumps(cells, default=str)),
                 source_balance_snapshot=_source_balance_snapshot(cells, kind),
                 requires_cleanup=cleanup,
-                created_by=actor.id,
-                updated_by=actor.id,
             )
             session.add(source)
             session.flush()
@@ -332,7 +331,6 @@ def _import_book(
                     session=session,
                     batch=batch,
                     source=source,
-                    actor=actor,
                     unit=unit,
                     document_type=document_type,
                     item_name=item_name,
@@ -354,7 +352,6 @@ def _find_or_create_unit(
     session: Session,
     model: type[ProcessingUnit] | type[ReceivingUnit],
     name: str,
-    actor: User,
 ) -> ProcessingUnit | ReceivingUnit:
     normalized = " ".join(name.split())
     unit = session.exec(
@@ -365,8 +362,6 @@ def _find_or_create_unit(
     unit = model(
         name=normalized,
         normalized_name=normalized,
-        created_by=actor.id,
-        updated_by=actor.id,
     )
     session.add(unit)
     session.flush()
@@ -378,7 +373,6 @@ def _write_legacy_movement(
     session: Session,
     batch: InventoryImportBatch,
     source: LegacyImportRow,
-    actor: User,
     unit: ProcessingUnit,
     document_type: InventoryDocumentType,
     item_name: str,
@@ -412,7 +406,6 @@ def _write_legacy_movement(
             session,
             ReceivingUnit,
             receiving_name or "历史未填写收货单位",
-            actor,
         )
         if document_type is InventoryDocumentType.FINISHED_SHIPMENT
         else None
@@ -424,8 +417,6 @@ def _write_legacy_movement(
         receiving_unit_id=receiving.id if receiving else None,
         document_number=number,
         is_legacy=True,
-        created_by=actor.id,
-        updated_by=actor.id,
     )
     session.add(document)
     session.flush()
@@ -439,8 +430,6 @@ def _write_legacy_movement(
         dye_lot_no=lot if is_finished else None,
         quantity_rolls=rolls,
         quantity_meters=meters if is_finished and meters else None,
-        created_by=actor.id,
-        updated_by=actor.id,
     )
     session.add(line)
     session.flush()
@@ -483,8 +472,6 @@ def _write_legacy_movement(
                 rolls_delta=opening_rolls,
                 meters_delta=opening_meters,
                 reason="历史迁移对账期初",
-                created_by=actor.id,
-                updated_by=actor.id,
             )
         )
         report["ledger_entries"] += 1
@@ -507,8 +494,6 @@ def _write_legacy_movement(
             dye_lot_no=ledger_lot,
             rolls_delta=rolls_delta,
             meters_delta=meter_delta,
-            created_by=actor.id,
-            updated_by=actor.id,
         )
     )
     balances[balance_key] = (balance_rolls + rolls_delta, balance_meters + meter_delta)

@@ -350,20 +350,21 @@ class AuditFields(SQLModel):
     )
 ```
 
-The service creates rows with the four actor/timestamp values and
-`deleted_at=None`. Ordinary updates change only `updated_at` and `updated_by`.
+The audit listener owns all four actor/timestamp values and `deleted_at` stays
+`None` on creation. Ordinary updates change only `updated_at` and `updated_by`.
 `created_at`, `created_by`, and `deleted_at` are never accepted from public
 create or update payloads.
 
 ### 3. Contracts
 
-- HTTP mutations obtain the actor from the existing authenticated-user
-  dependency. Services receive that actor or its UUID explicitly; repositories
-  do not infer it from global state.
-- Controlled commands, importers, workers, and scripts must require an
-  `actor_user_id: UUID` argument and validate that the user exists before they
-  create auditable rows. They must not write `NULL`, a sentinel UUID, or a
-  fabricated "system" user.
+- HTTP mutations bind the authenticated user to the existing write `Session`
+  through `AuditedWriteSessionDep`. Services and repositories must not accept,
+  infer, or assign audit actor fields themselves.
+- User-initiated commands and importers require an `actor_user_id: UUID`, bind
+  it to their owned session before the first auditable flush, and clear it when
+  the session scope ends. Automated scheduler paths may instead use the one
+  protected System Actor. They must not write `NULL`, a sentinel UUID, or an
+  ad hoc fabricated user.
 - Soft deletion is an update: set `deleted_at` to the current UTC time, retain
   the original creator, and set `updated_at` / `updated_by` to the deletion
   actor. Restore sets `deleted_at=NULL` and updates the same updater pair.
@@ -378,7 +379,7 @@ create or update payloads.
 | Condition | Required behavior |
 |---|---|
 | HTTP mutation has no authenticated actor | Reject through the existing authentication flow; do not persist a row. |
-| Command lacks `actor_user_id` | Reject before opening the write transaction with a validation error. |
+| User-initiated command lacks `actor_user_id`, or any audited flush has no binding | Reject before the business row persists with a validation or `AuditActorError`; no partial commit. |
 | Supplied actor does not exist | Reject with the repository's not-found or validation error; do not persist a row. |
 | Client sends a creator or updater field in a public payload | Ignore no values silently: reject the payload schema as unsupported. |
 | Client sends `deleted_at` in a create or ordinary update payload | Reject the payload schema as unsupported; use the explicit delete or restore operation. |
@@ -387,24 +388,25 @@ create or update payloads.
 
 ### 5. Good / Base / Bad Cases
 
-- Good: a receipt is created by the authenticated user. Both creator and updater
-  IDs are that user's UUID, and both timestamps use the same UTC instant.
+- Good: a receipt is created through a bound request session. The listener sets
+  both creator and updater IDs to that user's UUID at the same UTC instant.
 - Base: editing the receipt changes only the updater pair; the creator pair
   remains unchanged.
-- Bad: an Excel importer writes rows with `created_by = NULL` because it
-  runs outside HTTP. The importer must instead require the operator's UUID.
+- Bad: an Excel importer writes rows with `created_by = NULL` because it runs
+  outside HTTP, or a worker invents its own actor. The importer binds the
+  operator UUID; an automated scheduler resolves the System Actor.
 
 ### 6. Tests Required
 
-- Insert test: assert all four actor/timestamp fields are non-null, the two
-  creator/updater pairs are equal on creation, and `deleted_at` is `NULL`.
+- Insert test: assert the listener sets all four actor/timestamp fields, the
+  two creator/updater pairs are equal on creation, and `deleted_at` is `NULL`.
 - Update test: assert only the updater pair changes, while creator fields remain
   unchanged.
 - Soft-delete/restore test: assert delete sets a UTC `deleted_at` value and
   changes the updater pair; restore sets it back to `NULL` without changing
   creator fields.
-- Authorization/command test: assert unauthenticated mutation and a command
-  without an actor fail before inserting any business rows.
+- Authorization/command test: assert unauthenticated mutation, invalid actor,
+  and an audited flush without a binding fail before inserting business rows.
 - Referential-integrity test: assert physical deletion of a referenced user is
   rejected, while user deactivation preserves historical rows.
 - Migration test: assert every new in-scope table contains the five audit
@@ -416,10 +418,8 @@ create or update payloads.
 #### Wrong
 
 ```python
-document = InventoryDocument(
-    created_by=payload.created_by,
-    updated_by=payload.updated_by,
-)
+document = InventoryDocument()
+document.created_by = current_user.id
 ```
 
 This lets a caller forge audit history and leaves command-driven writes without
@@ -428,18 +428,131 @@ an accountable actor.
 #### Correct
 
 ```python
-now = get_datetime_utc()
-document = InventoryDocument(
-    created_at=now,
-    created_by=current_user.id,
-    updated_at=now,
-    updated_by=current_user.id,
-)
+bind_audit_actor(session=session, actor_id=current_user.id)
+document = InventoryDocument(...)
+session.add(document)
 ```
 
-For a later mutation, obtain the current actor again and change only
-`updated_at` and `updated_by` in the same transaction as the business
-change.
+For a later mutation, bind the actor to the transaction and update only
+business fields. The listener changes `updated_at` and `updated_by` in the
+same flush.
+
+---
+
+## Scenario: Explicit Audit Actor and System Actor
+
+### 1. Scope / Trigger
+
+- Trigger: a write can persist one of `ProcessingUnit`, `ReceivingUnit`,
+  `InventoryDocument`, `InventoryDocumentLine`, `InventoryImportBatch`,
+  `LegacyImportRow`, `InventoryLedgerEntry`, or `SchedulerJob`.
+- The contract applies to HTTP routes, the inventory importer, initialization,
+  and scheduler runtime paths. `User`, `Item`, `SchedulerRun`, daily reports,
+  and deliveries remain outside this audit-listener scope.
+
+### 2. Signatures
+
+```python
+bind_audit_actor(*, session: Session, actor_id: uuid.UUID) -> None
+clear_audit_actor(*, session: Session) -> None
+ensure_system_actor(*, session: Session) -> User
+require_system_actor(*, session: Session) -> uuid.UUID
+AuditedWriteSessionDep = Annotated[Session, Depends(...)]
+```
+
+- The session key is private to `app.core.audit`; actor propagation uses only
+  `Session.info`, never a context variable, request object, detached `User`,
+  log context, or broker payload.
+- `User.is_system_actor` and private `system_actor_key` identify protected
+  non-human accounts. A check constraint requires a key exactly for a System
+  Actor, and a PostgreSQL partial unique index makes each key unique. The
+  default key `system` has email `system@example.com`, an unusable random
+  password, `is_active=False`, and zero IAM roles; provisioning may create
+  additional keys with explicit display emails.
+
+### 3. Contracts
+
+- The SQLAlchemy `before_flush` listener stamps new audited rows and refreshes
+  only `updated_at` / `updated_by` for material audited updates. It rejects a
+  missing, nonexistent, or pending-deleted actor and creator-field tampering.
+- `AuditedWriteSessionDep` composes the request Unit of Work with
+  `CurrentUser`; it must reuse the same session and must not add a commit
+  owner. Non-HTTP owners bind and clear around their own transaction scope.
+- `init_db()` creates the System Actor before scheduler bootstrap. Scheduler
+  scans, bootstrap, alert throttling, and scheduled runs bind it. Manual runs
+  preserve the durable human `SchedulerRun.requested_by` as their actor across
+  worker retry/reclaim.
+- `requested_by` is business attribution for `SchedulerRun`, not an audit
+  field. Scheduled runs retain `requested_by=NULL`; it never acquires the
+  System Actor UUID solely for audit purposes.
+- Every System Actor is private infrastructure: it cannot log in, receive or
+  use a password reset, appear in user list/detail output, be updated/deleted,
+  or receive roles. Public schemas and OpenAPI never expose `is_system_actor`
+  or `system_actor_key`.
+- The marker/key migration is forward-only once a System Actor reference exists
+  in any of the eight audited tables. Downgrade must reject that state rather
+  than erasing audit semantics.
+
+### 4. Validation and Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| Audited insert/update without a valid bound UUID | `AuditActorError` before flush/commit; no persisted business mutation. |
+| Caller changes `created_at` or `created_by` after insert | `AuditActorError`; creator fields stay unchanged. |
+| HTTP inventory or scheduler write | Bind `CurrentUser.id` through `AuditedWriteSessionDep` in the request UoW. |
+| Importer write | Require and bind an active human or pre-provisioned System Actor `actor_user_id`; reject a missing or inactive human actor. |
+| Scheduled scan, bootstrap, or alert-only mutation | Resolve and bind the default System Actor key `system`. |
+| Manual scheduler execution finalizes an audited job | Bind the run's persisted `requested_by`; do not substitute System Actor. |
+| System Actor management/auth request | Preserve the existing non-disclosing public failure shape; no mutable side effect. |
+| Downgrade after System Actor audit reference | Raise and require a forward fix or database backup restore. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: an authenticated inventory create uses one request session. The listener
+  persists both actor pairs as the current human without service assignments.
+- Base: scheduler scanning creates a `SchedulerRun` with `requested_by=NULL`
+  while the listener attributes its `SchedulerJob` mutation to System Actor.
+- Bad: a Celery message carries an actor UUID or a worker uses a detached
+  `User`. Reload the persisted run and resolve the actor into its local session.
+
+### 6. Tests Required
+
+- Cover insert, update, soft-delete/restore, missing/invalid/deleted actor, and
+  creator tampering for all eight audited models.
+- Cover default and custom System Actor provisioning, key uniqueness, public/auth
+  protection, role mutation rejection, and migration downgrade before/after an
+  audit reference.
+- Cover request-session identity reuse, importer binding and rollback, manual
+  scheduler retry/reclaim actor preservation, and default System Actor scheduler
+  paths.
+- Run destructive backend tests and isolated API validation with
+  `POSTGRES_DB=aiadmin_test`; use a fresh session asserting inventory and
+  scheduler persistence, plus System Actor list/detail/login/recovery/role
+  protection.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+run_task.delay(run_id, current_user.id)
+job.updated_by = current_user.id
+```
+
+The broker payload leaks attribution state and manual field assignment bypasses
+the authoritative listener.
+
+#### Correct
+
+```python
+actor_id = run.requested_by or require_system_actor(session=session)
+bind_audit_actor(session=session, actor_id=actor_id)
+job.run_failure_alerted_at = None
+session.commit()
+```
+
+The worker passes only the durable run ID, reloads its actor into the local
+session, and lets the listener own the audit fields.
 
 ---
 

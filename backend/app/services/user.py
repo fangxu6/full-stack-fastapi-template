@@ -27,11 +27,16 @@ from app.utils import generate_new_account_email, send_email
 
 
 def read_users(*, session: Session, skip: int = 0, limit: int = 100) -> UsersPublic:
-    count_statement = select(func.count()).select_from(User)
+    system_actor_filter = col(User.is_system_actor).is_(False)
+    count_statement = select(func.count()).select_from(User).where(system_actor_filter)
     count = session.exec(count_statement).one()
 
     statement = (
-        select(User).order_by(col(User.created_at).desc()).offset(skip).limit(limit)
+        select(User)
+        .where(system_actor_filter)
+        .order_by(col(User.created_at).desc())
+        .offset(skip)
+        .limit(limit)
     )
     users = session.exec(statement).all()
 
@@ -82,7 +87,7 @@ def create_user(
 
 def _get_required_user(*, session: Session, user_id: uuid.UUID) -> User:
     user = crud.get_user_by_id(session=session, user_id=user_id)
-    if user is None:
+    if user is None or user.is_system_actor:
         raise UserNotFoundError()
     return user
 
@@ -94,6 +99,8 @@ def read_user_by_id(*, session: Session, user_id: uuid.UUID) -> User:
 def update_user_me(
     *, session: Session, user_in: UserUpdateMe, current_user: User
 ) -> User:
+    if current_user.is_system_actor:
+        raise UserNotFoundError()
     if user_in.email:
         existing_user = crud.get_user_by_email(session=session, email=user_in.email)
         if existing_user and existing_user.id != current_user.id:
@@ -109,6 +116,8 @@ def update_user_me(
 def update_password_me(
     *, session: Session, body: UpdatePassword, current_user: User
 ) -> Message:
+    if current_user.is_system_actor:
+        raise UserNotFoundError()
     verified, _ = verify_password(body.current_password, current_user.hashed_password)
     if not verified:
         raise BadRequestError("Incorrect password")
@@ -134,6 +143,8 @@ def update_user(*, session: Session, user_id: uuid.UUID, user_in: UserUpdate) ->
     db_user = crud.get_user_by_id(session=session, user_id=user_id)
     if db_user is None:
         raise UserNotFoundError("The user with this id does not exist in the system")
+    if db_user.is_system_actor:
+        raise UserNotFoundError()
     if user_in.email:
         existing_user = crud.get_user_by_email(session=session, email=user_in.email)
         if existing_user and existing_user.id != user_id:

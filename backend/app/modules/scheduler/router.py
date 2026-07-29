@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import CurrentUser, SessionDep, WriteSessionDep
+from app.api.deps import AuditedWriteSessionDep, CurrentUser, SessionDep
 from app.modules.iam.dependencies import permission_required
 from app.modules.scheduler import service
 from app.schemas.scheduler import (
@@ -48,9 +48,11 @@ def read_jobs(
     response_model=SchedulerJobPublic,
 )
 def create_job(
-    session: WriteSessionDep, current_user: CurrentUser, body: SchedulerJobCreate
+    session: AuditedWriteSessionDep,
+    _current_user: CurrentUser,
+    body: SchedulerJobCreate,
 ) -> SchedulerJobPublic:
-    return _job(service.create_job(session=session, actor=current_user, job_in=body))
+    return _job(service.create_job(session=session, job_in=body))
 
 
 @router.get(
@@ -69,15 +71,11 @@ def read_job(job_id: int, session: SessionDep) -> SchedulerJobPublic:
 )
 def update_job(
     job_id: int,
-    session: WriteSessionDep,
-    current_user: CurrentUser,
+    session: AuditedWriteSessionDep,
+    _current_user: CurrentUser,
     body: SchedulerJobUpdate,
 ) -> SchedulerJobPublic:
-    return _job(
-        service.update_job(
-            session=session, actor=current_user, job_id=job_id, job_in=body
-        )
-    )
+    return _job(service.update_job(session=session, job_id=job_id, job_in=body))
 
 
 @router.post(
@@ -86,13 +84,9 @@ def update_job(
     response_model=SchedulerJobPublic,
 )
 def enable_job(
-    job_id: int, session: WriteSessionDep, current_user: CurrentUser
+    job_id: int, session: AuditedWriteSessionDep, _current_user: CurrentUser
 ) -> SchedulerJobPublic:
-    return _job(
-        service.set_enabled(
-            session=session, actor=current_user, job_id=job_id, enabled=True
-        )
-    )
+    return _job(service.set_enabled(session=session, job_id=job_id, enabled=True))
 
 
 @router.post(
@@ -101,13 +95,9 @@ def enable_job(
     response_model=SchedulerJobPublic,
 )
 def disable_job(
-    job_id: int, session: WriteSessionDep, current_user: CurrentUser
+    job_id: int, session: AuditedWriteSessionDep, _current_user: CurrentUser
 ) -> SchedulerJobPublic:
-    return _job(
-        service.set_enabled(
-            session=session, actor=current_user, job_id=job_id, enabled=False
-        )
-    )
+    return _job(service.set_enabled(session=session, job_id=job_id, enabled=False))
 
 
 @router.delete(
@@ -115,9 +105,9 @@ def disable_job(
     dependencies=[Depends(permission_required("scheduler.jobs.manage"))],
 )
 def delete_job(
-    job_id: int, session: WriteSessionDep, current_user: CurrentUser
+    job_id: int, session: AuditedWriteSessionDep, _current_user: CurrentUser
 ) -> dict[str, str]:
-    service.delete_job(session=session, actor=current_user, job_id=job_id)
+    service.delete_job(session=session, job_id=job_id)
     return {"message": "Scheduled task deleted"}
 
 
@@ -127,9 +117,9 @@ def delete_job(
     response_model=SchedulerJobPublic,
 )
 def restore_job(
-    job_id: int, session: WriteSessionDep, current_user: CurrentUser
+    job_id: int, session: AuditedWriteSessionDep, _current_user: CurrentUser
 ) -> SchedulerJobPublic:
-    return _job(service.restore_job(session=session, actor=current_user, job_id=job_id))
+    return _job(service.restore_job(session=session, job_id=job_id))
 
 
 @router.post(
@@ -138,9 +128,11 @@ def restore_job(
     response_model=SchedulerRunPublic,
 )
 def run_now(
-    job_id: int, session: WriteSessionDep, current_user: CurrentUser
+    job_id: int, session: AuditedWriteSessionDep, current_user: CurrentUser
 ) -> SchedulerRunPublic:
-    return _run(service.run_now(session=session, actor=current_user, job_id=job_id))
+    return _run(
+        service.run_now(session=session, actor_id=current_user.id, job_id=job_id)
+    )
 
 
 @router.post(
@@ -150,14 +142,14 @@ def run_now(
 )
 def backfill(
     job_id: int,
-    session: WriteSessionDep,
+    session: AuditedWriteSessionDep,
     current_user: CurrentUser,
     body: SchedulerRunBackfill,
 ) -> SchedulerRunPublic:
     return _run(
         service.backfill(
             session=session,
-            actor=current_user,
+            actor_id=current_user.id,
             job_id=job_id,
             planned_at=body.planned_at,
         )

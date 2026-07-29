@@ -203,3 +203,21 @@ Require reviewed generated client and route-tree output to be a dedicated first 
 ## [2026-07-28 10:29:42] update | Request Unit of Work
 
 Documented function-scoped WriteSessionDep, explicit non-HTTP transaction owners, post-commit external effects, and cross-session test setup commits.
+
+## [2026-07-28 18:41:10] feature | Explicit audit actor and System Actor
+
+Documented listener-owned audit fields, Session.info-only actor binding, the
+unique inactive `system@example.com` System Actor, protected user/auth/IAM
+behavior, and the forward-only downgrade boundary after audit references.
+Recorded the exact eight audited tables and the scheduler rule that
+`SchedulerRun.requested_by` is durable business attribution while audit actor
+selection remains local to the worker session.
+
+## [2026-07-29] update | Support multiple protected System Actors
+
+Superseded the singleton System Actor contract: protected non-human users now
+use a private `system_actor_key`, constrained to be present only for System
+Actors and unique per key. The default `system` key remains the scheduler actor;
+an explicit provisioning command creates other script identities. Inventory
+imports may bind an active human or a pre-provisioned System Actor. Destructive
+backend tests and local API E2E now use `POSTGRES_DB=aiadmin_test`.

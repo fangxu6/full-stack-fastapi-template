@@ -49,7 +49,7 @@ Backend quality in this repo is mostly about preserving architectural direction:
 ## Minimum Validation Expectations
 
 - Preferred backend gate: `bash backend/scripts/lint.sh` from the repo root, which runs strict mypy, `ty check app`, Ruff, and Ruff format check.
-- Preferred backend test command from `backend/`: `bash scripts/test.sh` or a focused `uv run pytest ...` when the full suite is not appropriate.
+- Preferred backend test command from `backend/`: set `POSTGRES_DB=aiadmin_test`, then run `bash scripts/test.sh` or a focused `uv run pytest ...` when the full suite is not appropriate. `aiadmin_test` is the required isolated database for destructive backend tests and local API E2E; never point either workflow at the development database.
 - If a backend change affects error behavior, verify at least one path that exercises the unified error shape.
 - If auth, permission, or validation behavior changes, verify the relevant `401`, `403`, or `422` contract path.
 - If request/response models change, review frontend generated-client impact before closing the task.

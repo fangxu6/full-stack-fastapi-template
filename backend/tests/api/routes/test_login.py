@@ -6,7 +6,7 @@ from pwdlib.hashers.bcrypt import BcryptHasher
 from sqlmodel import Session
 
 from app.core.config import settings
-from app.core.security import get_password_hash, verify_password
+from app.core.security import create_access_token, get_password_hash, verify_password
 from app.crud import create_user
 from app.models import User
 from app.schemas.user import UserCreate
@@ -37,6 +37,35 @@ def test_get_access_token_incorrect_password(client: TestClient) -> None:
     payload = r.json()
     assert payload["detail"] == "Incorrect email or password"
     assert payload["request_id"]
+
+
+def test_system_actor_cannot_log_in_or_use_an_existing_token(
+    client: TestClient, db: Session
+) -> None:
+    from datetime import timedelta
+
+    from app.core.audit import ensure_system_actor
+
+    password = "system-actor-password"
+    system_actor = ensure_system_actor(session=db)
+    system_actor.hashed_password = get_password_hash(password)
+    db.add(system_actor)
+    db.commit()
+
+    login = client.post(
+        f"{settings.API_V1_STR}/login/access-token",
+        data={"username": system_actor.email, "password": password},
+    )
+    assert login.status_code == 400
+    assert login.json()["detail"] == "Incorrect email or password"
+
+    token = create_access_token(system_actor.id, expires_delta=timedelta(minutes=5))
+    token_response = client.post(
+        f"{settings.API_V1_STR}/login/test-token",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert token_response.status_code == 403
+    assert token_response.json()["detail"] == "Could not validate credentials"
 
 
 def test_use_access_token(
@@ -106,6 +135,29 @@ def test_recovery_password_user_not_exits(
     }
 
 
+def test_system_actor_password_recovery_is_non_enumerating_and_sends_no_email(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.core.audit import ensure_system_actor
+
+    system_actor = ensure_system_actor(session=db)
+    db.commit()
+    sent: list[dict[str, str]] = []
+    monkeypatch.setattr(
+        "app.services.auth.send_email", lambda **kwargs: sent.append(kwargs)
+    )
+
+    response = client.post(
+        f"{settings.API_V1_STR}/password-recovery/{system_actor.email}"
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "If that email is registered, we sent a password recovery link"
+    }
+    assert sent == []
+
+
 def test_reset_password(client: TestClient, db: Session) -> None:
     email = random_email()
     password = random_lower_string()
@@ -152,6 +204,33 @@ def test_reset_password_invalid_token(
     assert r.status_code == 400
     assert response["detail"] == "Invalid token"
     assert response["request_id"]
+
+
+def test_system_actor_password_reset_and_html_preview_are_unavailable(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
+    from app.core.audit import ensure_system_actor
+
+    system_actor = ensure_system_actor(session=db)
+    original_hash = system_actor.hashed_password
+    db.commit()
+    token = generate_password_reset_token(email=system_actor.email)
+
+    reset = client.post(
+        f"{settings.API_V1_STR}/reset-password/",
+        json={"new_password": "cannot-reset-system", "token": token},
+    )
+    html = client.post(
+        f"{settings.API_V1_STR}/password-recovery-html-content/{system_actor.email}",
+        headers=superuser_token_headers,
+    )
+
+    assert reset.status_code == 400
+    assert reset.json()["detail"] == "Invalid token"
+    assert html.status_code == 404
+    assert html.json()["detail"] == "The user with this username does not exist in the system."
+    db.refresh(system_actor)
+    assert system_actor.hashed_password == original_hash
 
 
 def test_use_access_token_invalid_token_returns_request_id(client: TestClient) -> None:

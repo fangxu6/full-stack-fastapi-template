@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 
 from app import crud
 from app.core.config import settings
-from app.core.security import verify_password
+from app.core.security import create_access_token, verify_password
 from app.models import User
 from app.schemas.user import UserCreate
 from tests.utils.user import create_random_user
@@ -451,6 +451,75 @@ def test_update_user_not_exists(
     )
     assert r.status_code == 404
     assert r.json()["detail"] == "The user with this id does not exist in the system"
+
+
+def test_system_actor_is_hidden_and_cannot_be_managed(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
+    from app.core.audit import ensure_system_actor
+
+    system_actor = ensure_system_actor(session=db)
+    db.commit()
+
+    users = client.get(
+        f"{settings.API_V1_STR}/users/", headers=superuser_token_headers
+    )
+    read = client.get(
+        f"{settings.API_V1_STR}/users/{system_actor.id}",
+        headers=superuser_token_headers,
+    )
+    update = client.patch(
+        f"{settings.API_V1_STR}/users/{system_actor.id}",
+        headers=superuser_token_headers,
+        json={"full_name": "must not persist"},
+    )
+    delete = client.delete(
+        f"{settings.API_V1_STR}/users/{system_actor.id}",
+        headers=superuser_token_headers,
+    )
+
+    assert users.status_code == 200
+    assert all(user["id"] != str(system_actor.id) for user in users.json()["data"])
+    assert users.json()["count"] == len(users.json()["data"])
+    assert all("is_system_actor" not in user for user in users.json()["data"])
+    for response in (read, update, delete):
+        assert response.status_code == 404
+        assert response.json()["detail"] == "User not found"
+    db.refresh(system_actor)
+    assert system_actor.full_name is None
+
+
+def test_system_actor_token_cannot_access_self_service_user_routes(
+    client: TestClient, db: Session
+) -> None:
+    from datetime import timedelta
+
+    from app.core.audit import ensure_system_actor
+
+    system_actor = ensure_system_actor(session=db)
+    db.commit()
+    token = create_access_token(system_actor.id, expires_delta=timedelta(minutes=5))
+    headers = {"Authorization": f"Bearer {token}"}
+
+    responses = (
+        client.patch(f"{settings.API_V1_STR}/users/me", headers=headers, json={}),
+        client.patch(
+            f"{settings.API_V1_STR}/users/me/password",
+            headers=headers,
+            json={"current_password": "irrelevant", "new_password": "also-irrelevant"},
+        ),
+        client.delete(f"{settings.API_V1_STR}/users/me", headers=headers),
+    )
+
+    for response in responses:
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Could not validate credentials"
+
+
+def test_user_openapi_does_not_expose_system_actor_marker(client: TestClient) -> None:
+    schema = client.get(f"{settings.API_V1_STR}/openapi.json").json()
+
+    assert "is_system_actor" not in schema["components"]["schemas"]["UserPublic"]["properties"]
 
 
 def test_update_user_email_exists(

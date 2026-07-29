@@ -18,7 +18,6 @@ from app.models.scheduler import (
     SchedulerRunStatus,
     SchedulerRunTrigger,
 )
-from app.models.user import User
 from app.modules.scheduler.contracts import ScheduledTask, ScheduledTaskConfig
 from app.modules.scheduler.cron import matches_cron, next_run_at
 from app.schemas.scheduler import SchedulerJobCreate, SchedulerJobUpdate
@@ -209,7 +208,6 @@ def list_jobs(
 def create_job(
     *,
     session: Session,
-    actor: User,
     job_in: SchedulerJobCreate,
     now: datetime | None = None,
 ) -> SchedulerJob:
@@ -229,10 +227,6 @@ def create_job(
         config=config,
         enabled=False,
         next_run_at=next_run_at(job_in.cron_expression, after=current),
-        created_at=current,
-        created_by=actor.id,
-        updated_at=current,
-        updated_by=actor.id,
     )
     session.add(job)
     session.flush()
@@ -243,7 +237,6 @@ def create_job(
 def update_job(
     *,
     session: Session,
-    actor: User,
     job_id: int,
     job_in: SchedulerJobUpdate,
     now: datetime | None = None,
@@ -268,8 +261,6 @@ def update_job(
     current = utc_now(now)
     job.next_run_at = next_run_at(cron_expression, after=current)
     job.configuration_alerted_at = None
-    job.updated_at = current
-    job.updated_by = actor.id
     session.add(job)
     session.flush()
     session.refresh(job)
@@ -335,7 +326,7 @@ def create_run(
 
 
 def run_now(
-    *, session: Session, actor: User, job_id: int, now: datetime | None = None
+    *, session: Session, actor_id: uuid.UUID, job_id: int, now: datetime | None = None
 ) -> SchedulerRun:
     current = utc_now(now)
     return create_run(
@@ -343,7 +334,7 @@ def run_now(
         job=get_job(session=session, job_id=job_id),
         trigger=SchedulerRunTrigger.MANUAL_NOW,
         planned_at=current,
-        requested_by=actor.id,
+        requested_by=actor_id,
         now=current,
     )
 
@@ -351,7 +342,7 @@ def run_now(
 def backfill(
     *,
     session: Session,
-    actor: User,
+    actor_id: uuid.UUID,
     job_id: int,
     planned_at: datetime,
     now: datetime | None = None,
@@ -381,7 +372,7 @@ def backfill(
         job=job,
         trigger=SchedulerRunTrigger.MANUAL_BACKFILL,
         planned_at=planned_at,
-        requested_by=actor.id,
+        requested_by=actor_id,
         now=current,
     )
 
@@ -389,7 +380,6 @@ def backfill(
 def set_enabled(
     *,
     session: Session,
-    actor: User,
     job_id: int,
     enabled: bool,
     now: datetime | None = None,
@@ -411,17 +401,13 @@ def set_enabled(
             run.lease_expires_at = None
             run.next_dispatch_at = None
             session.add(run)
-    job.updated_at = current
-    job.updated_by = actor.id
     session.add(job)
     session.flush()
     session.refresh(job)
     return job
 
 
-def delete_job(
-    *, session: Session, actor: User, job_id: int, now: datetime | None = None
-) -> None:
+def delete_job(*, session: Session, job_id: int, now: datetime | None = None) -> None:
     if _active_run(session=session, job_id=job_id) is not None:
         raise ConflictError(
             "Disable the scheduled task and wait for active runs before deletion"
@@ -430,22 +416,18 @@ def delete_job(
     current = utc_now(now)
     job.enabled = False
     job.deleted_at = current
-    job.updated_at = current
-    job.updated_by = actor.id
     session.add(job)
     session.flush()
 
 
 def restore_job(
-    *, session: Session, actor: User, job_id: int, now: datetime | None = None
+    *, session: Session, job_id: int, now: datetime | None = None
 ) -> SchedulerJob:
     job = get_job(session=session, job_id=job_id, include_deleted=True)
     current = utc_now(now)
     job.deleted_at = None
     job.enabled = False
     job.next_run_at = next_run_at(job.cron_expression, after=current)
-    job.updated_at = current
-    job.updated_by = actor.id
     session.add(job)
     session.flush()
     session.refresh(job)
@@ -489,7 +471,7 @@ def cleanup_runs(*, session: Session, now: datetime | None = None) -> int:
     return len(runs)
 
 
-def bootstrap_inventory_jobs(*, session: Session, actor: User) -> None:
+def bootstrap_inventory_jobs(*, session: Session) -> None:
     current = utc_now()
     added = False
     for bootstrap_key, name, class_path, cron_expression in INVENTORY_BOOTSTRAP_JOBS:
@@ -507,10 +489,6 @@ def bootstrap_inventory_jobs(*, session: Session, actor: User) -> None:
                 enabled=True,
                 next_run_at=next_run_at(cron_expression, after=current),
                 bootstrap_key=bootstrap_key,
-                created_at=current,
-                created_by=actor.id,
-                updated_at=current,
-                updated_by=actor.id,
             )
         )
         added = True

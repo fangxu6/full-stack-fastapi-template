@@ -1,3 +1,4 @@
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from typing import ClassVar
@@ -14,6 +15,7 @@ class ScheduledTaskConfig(BaseModel):
 @dataclass(frozen=True)
 class ScheduledTaskContext:
     run_id: int
+    actor_id: uuid.UUID
     trigger: SchedulerRunTrigger
     planned_at: datetime
     started_at: datetime

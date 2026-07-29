@@ -1,3 +1,4 @@
 {"file":".trellis/spec/backend/database-guidelines.md","reason":"检查审计字段、User 约束与迁移往返。"}
 {"file":".trellis/spec/backend/logging-guidelines.md","reason":"确保日志上下文未成为审计 actor 来源或泄漏身份。"}
-{"file":"docs/adr/0007-require-an-explicit-audit-actor.md","reason":"检查唯一 System Actor、ORM hook 与跨入口 actor 传播。"}
+{"file":"docs/adr/0007-require-an-explicit-audit-actor.md","reason":"检查多 System Actor key、ORM hook 与跨入口 actor 传播。"}
+{"checked_at":"2026-07-29","database":"aiadmin_test","result":"passed","evidence":"real upgrade, fresh downgrade/re-upgrade, audit-reference downgrade rejection, repeated/concurrent initialization, API E2E 110 passed, targeted 79 passed/2 skipped, full backend pytest 259 passed/2 skipped, ruff and ty passed"}

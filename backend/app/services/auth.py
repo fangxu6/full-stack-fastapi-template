@@ -23,7 +23,7 @@ from app.utils import (
 
 def login_access_token(*, session: Session, username: str, password: str) -> Token:
     user = crud.authenticate(session=session, email=username, password=password)
-    if not user:
+    if not user or user.is_system_actor:
         raise BadRequestError("Incorrect email or password")
     if not user.is_active:
         raise BadRequestError("Inactive user")
@@ -42,7 +42,7 @@ def recover_password(
 
     # Always return the same response to prevent email enumeration attacks
     # Only send email if user actually exists
-    if user:
+    if user and not user.is_system_actor:
         password_reset_token = generate_password_reset_token(email=email)
         email_data = generate_reset_password_email(
             email_to=user.email, email=email, token=password_reset_token
@@ -63,7 +63,7 @@ def reset_password(*, session: Session, body: NewPassword) -> Message:
     if not email:
         raise BadRequestError("Invalid token")
     user = crud.get_user_by_email(session=session, email=email)
-    if not user:
+    if not user or user.is_system_actor:
         # Don't reveal that the user doesn't exist - use same error as invalid token
         raise BadRequestError("Invalid token")
     if not user.is_active:
@@ -80,7 +80,7 @@ def reset_password(*, session: Session, body: NewPassword) -> Message:
 def recover_password_html_content(*, session: Session, email: str) -> HTMLResponse:
     user = crud.get_user_by_email(session=session, email=email)
 
-    if not user:
+    if not user or user.is_system_actor:
         raise UserNotFoundError(
             "The user with this username does not exist in the system."
         )

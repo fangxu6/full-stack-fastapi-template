@@ -13,13 +13,17 @@ def get_datetime_utc() -> datetime:
 
 
 class AuditFields(SQLModel):
+    # The audit listener replaces these actor placeholders before every flush.
     created_at: datetime = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
         nullable=False,
     )
     created_by: uuid.UUID = Field(
-        foreign_key="user.id", nullable=False, ondelete="RESTRICT"
+        default_factory=uuid.uuid4,
+        foreign_key="user.id",
+        nullable=False,
+        ondelete="RESTRICT",
     )
     updated_at: datetime = Field(
         default_factory=get_datetime_utc,
@@ -27,7 +31,10 @@ class AuditFields(SQLModel):
         nullable=False,
     )
     updated_by: uuid.UUID = Field(
-        foreign_key="user.id", nullable=False, ondelete="RESTRICT"
+        default_factory=uuid.uuid4,
+        foreign_key="user.id",
+        nullable=False,
+        ondelete="RESTRICT",
     )
     deleted_at: datetime | None = Field(
         default=None,

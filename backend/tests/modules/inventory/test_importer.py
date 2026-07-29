@@ -237,6 +237,62 @@ def test_import_rolls_back_batch_when_a_workbook_row_is_invalid(
     )
 
 
+def test_import_rejects_an_inactive_human_without_creating_a_batch(
+    db: Session, tmp_path: Path
+) -> None:
+    actor = User(
+        email="inactive-importer@example.com",
+        hashed_password="not-used",
+        is_active=False,
+    )
+    db.add(actor)
+    db.commit()
+    batch_count_before = db.exec(select(func.count()).select_from(InventoryImportBatch)).one()
+
+    with pytest.raises(BadRequestError, match="must be active"):
+        import_workbooks(
+            session=db,
+            actor_user_id=actor.id,
+            raw_workbook=tmp_path / "not-read-raw.xlsx",
+            finished_workbook=tmp_path / "not-read-finished.xlsx",
+        )
+
+    assert db.exec(select(func.count()).select_from(InventoryImportBatch)).one() == batch_count_before
+    db.delete(actor)
+    db.commit()
+
+
+def test_import_accepts_a_preprovisioned_system_actor(
+    db: Session, tmp_path: Path
+) -> None:
+    from app.core.audit import provision_system_actor
+
+    actor = provision_system_actor(
+        session=db,
+        actor_key="inventory-test-import",
+        email="inventory-test-import@system.invalid",
+    )
+    db.commit()
+    raw_workbook = tmp_path / "raw-system-actor.xlsx"
+    finished_workbook = tmp_path / "finished-system-actor.xlsx"
+    _write_raw_workbook(raw_workbook, 0)
+    Workbook().save(finished_workbook)
+
+    import_workbooks(
+        session=db,
+        actor_user_id=actor.id,
+        raw_workbook=raw_workbook,
+        finished_workbook=finished_workbook,
+    )
+
+    batch = db.exec(
+        select(InventoryImportBatch).order_by(InventoryImportBatch.imported_at.desc())
+    ).first()
+    assert batch is not None
+    assert batch.created_by == actor.id
+    assert batch.updated_by == actor.id
+
+
 def test_import_reconciliation_opening_is_traceable_and_balances_by_key(
     db: Session, tmp_path: Path
 ) -> None:

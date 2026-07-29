@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime
 
 import pytest
@@ -14,6 +15,7 @@ from app.modules.scheduler.contracts import (
 def test_inventory_daily_report_adapter_skips_after_grace_window() -> None:
     context = ScheduledTaskContext(
         run_id=1,
+        actor_id=uuid.uuid4(),
         trigger=SchedulerRunTrigger.SCHEDULED,
         planned_at=datetime(2026, 7, 26, 0, 0, tzinfo=UTC),
         started_at=datetime(2026, 7, 26, 0, 16, tzinfo=UTC),

@@ -254,7 +254,7 @@ def replace_user_roles(
     *, session: Session, user_id: uuid.UUID, role_ids: list[int]
 ) -> list[RoleSummary]:
     user = session.get(User, user_id)
-    if user is None:
+    if user is None or user.is_system_actor:
         raise NotFoundError("User does not exist")
     selected_role_ids = set(role_ids)
     existing_role_ids = repository.get_user_role_ids(session=session, user_id=user_id)

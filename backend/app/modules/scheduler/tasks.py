@@ -1,8 +1,10 @@
+import uuid
 from datetime import UTC, datetime, timedelta
 
 from pydantic import ValidationError
 from sqlmodel import Session, col, select
 
+from app.core.audit import bind_audit_actor, clear_audit_actor, require_system_actor
 from app.core.celery import celery_app
 from app.core.config import settings
 from app.core.db import engine
@@ -37,29 +39,34 @@ def _send_alert(
     category: str,
     summary: str,
     planned_at: datetime,
+    actor_id: uuid.UUID,
 ) -> None:
     now = utc_now()
     with Session(engine) as session:
-        job = session.get(SchedulerJob, job_id)
-        if job is None:
-            return
-        if kind == "OVERLAP":
-            alerted_at = job.overlap_alerted_at
-        elif kind == "CONFIGURATION":
-            alerted_at = job.configuration_alerted_at
-        else:
-            alerted_at = job.run_failure_alerted_at
-        if alerted_at is not None and now - alerted_at < ALERT_INTERVAL:
-            return
-        if kind == "OVERLAP":
-            job.overlap_alerted_at = now
-        elif kind == "CONFIGURATION":
-            job.configuration_alerted_at = now
-        else:
-            job.run_failure_alerted_at = now
-        session.add(job)
-        session.commit()
-        name = job.name
+        bind_audit_actor(session=session, actor_id=actor_id)
+        try:
+            job = session.get(SchedulerJob, job_id)
+            if job is None:
+                return
+            if kind == "OVERLAP":
+                alerted_at = job.overlap_alerted_at
+            elif kind == "CONFIGURATION":
+                alerted_at = job.configuration_alerted_at
+            else:
+                alerted_at = job.run_failure_alerted_at
+            if alerted_at is not None and now - alerted_at < ALERT_INTERVAL:
+                return
+            if kind == "OVERLAP":
+                job.overlap_alerted_at = now
+            elif kind == "CONFIGURATION":
+                job.configuration_alerted_at = now
+            else:
+                job.run_failure_alerted_at = now
+            session.add(job)
+            session.commit()
+            name = job.name
+        finally:
+            clear_audit_actor(session=session)
     recipients = scheduler_settings.SCHEDULED_TASK_ALERT_RECIPIENTS
     if not settings.emails_enabled or not recipients:
         log_event(event_name="scheduler.alert.unsent", severity="WARNING")
@@ -143,88 +150,93 @@ def scan_due_jobs() -> None:
     now = utc_now()
     alerts: list[tuple[int, str, str, str, datetime]] = []
     with Session(engine) as session:
-        jobs = list(
-            session.exec(
-                select(SchedulerJob)
-                .where(
-                    col(SchedulerJob.enabled).is_(True),
-                    col(SchedulerJob.deleted_at).is_(None),
-                    col(SchedulerJob.next_run_at) <= now,
-                )
-                .with_for_update(skip_locked=True)
-            ).all()
-        )
-        for job in jobs:
-            if job.id is None:
-                raise RuntimeError("scheduled task must be persisted")
-            if not scheduled_in_current_minute(job.next_run_at, now=now):
-                job.next_run_at = next_run_at(job.cron_expression, after=now)
+        actor_id = require_system_actor(session=session)
+        bind_audit_actor(session=session, actor_id=actor_id)
+        try:
+            jobs = list(
+                session.exec(
+                    select(SchedulerJob)
+                    .where(
+                        col(SchedulerJob.enabled).is_(True),
+                        col(SchedulerJob.deleted_at).is_(None),
+                        col(SchedulerJob.next_run_at) <= now,
+                    )
+                    .with_for_update(skip_locked=True)
+                ).all()
+            )
+            for job in jobs:
+                if job.id is None:
+                    raise RuntimeError("scheduled task must be persisted")
+                if not scheduled_in_current_minute(job.next_run_at, now=now):
+                    job.next_run_at = next_run_at(job.cron_expression, after=now)
+                    session.add(job)
+                    continue
+                planned_at = job.next_run_at
+                job.next_run_at = next_run_at(job.cron_expression, after=planned_at)
                 session.add(job)
-                continue
-            planned_at = job.next_run_at
-            job.next_run_at = next_run_at(job.cron_expression, after=planned_at)
-            session.add(job)
-            try:
-                validate_definition(
-                    class_path=job.class_path,
-                    cron_expression=job.cron_expression,
-                    config=job.config,
-                )
-                create_run(
-                    session=session,
-                    job=job,
-                    trigger=SchedulerRunTrigger.SCHEDULED,
-                    planned_at=planned_at,
-                    requested_by=None,
-                    now=now,
-                )
-            except ValueError:
-                create_run(
-                    session=session,
-                    job=job,
-                    trigger=SchedulerRunTrigger.SCHEDULED,
-                    planned_at=planned_at,
-                    requested_by=None,
-                    status=SchedulerRunStatus.FAILED,
-                    error_category="CONFIGURATION_INVALID",
-                    error_summary="Scheduled task configuration is invalid",
-                    require_no_active=False,
-                    now=now,
-                )
-                alerts.append(
-                    (
-                        job.id,
-                        "CONFIGURATION",
-                        "CONFIGURATION_INVALID",
-                        "Scheduled task configuration is invalid",
-                        planned_at,
+                try:
+                    validate_definition(
+                        class_path=job.class_path,
+                        cron_expression=job.cron_expression,
+                        config=job.config,
                     )
-                )
-                continue
-            except ConflictError:
-                create_run(
-                    session=session,
-                    job=job,
-                    trigger=SchedulerRunTrigger.SCHEDULED,
-                    planned_at=planned_at,
-                    requested_by=None,
-                    status=SchedulerRunStatus.SKIPPED,
-                    error_category="OVERLAPPING_ACTIVE_RUN",
-                    error_summary="Scheduled task has an active run",
-                    require_no_active=False,
-                    now=now,
-                )
-                alerts.append(
-                    (
-                        job.id,
-                        "OVERLAP",
-                        "OVERLAPPING_ACTIVE_RUN",
-                        "Scheduled task has an active run",
-                        planned_at,
+                    create_run(
+                        session=session,
+                        job=job,
+                        trigger=SchedulerRunTrigger.SCHEDULED,
+                        planned_at=planned_at,
+                        requested_by=None,
+                        now=now,
                     )
-                )
-                continue
-        session.commit()
+                except ValueError:
+                    create_run(
+                        session=session,
+                        job=job,
+                        trigger=SchedulerRunTrigger.SCHEDULED,
+                        planned_at=planned_at,
+                        requested_by=None,
+                        status=SchedulerRunStatus.FAILED,
+                        error_category="CONFIGURATION_INVALID",
+                        error_summary="Scheduled task configuration is invalid",
+                        require_no_active=False,
+                        now=now,
+                    )
+                    alerts.append(
+                        (
+                            job.id,
+                            "CONFIGURATION",
+                            "CONFIGURATION_INVALID",
+                            "Scheduled task configuration is invalid",
+                            planned_at,
+                        )
+                    )
+                    continue
+                except ConflictError:
+                    create_run(
+                        session=session,
+                        job=job,
+                        trigger=SchedulerRunTrigger.SCHEDULED,
+                        planned_at=planned_at,
+                        requested_by=None,
+                        status=SchedulerRunStatus.SKIPPED,
+                        error_category="OVERLAPPING_ACTIVE_RUN",
+                        error_summary="Scheduled task has an active run",
+                        require_no_active=False,
+                        now=now,
+                    )
+                    alerts.append(
+                        (
+                            job.id,
+                            "OVERLAP",
+                            "OVERLAPPING_ACTIVE_RUN",
+                            "Scheduled task has an active run",
+                            planned_at,
+                        )
+                    )
+                    continue
+            session.commit()
+        finally:
+            clear_audit_actor(session=session)
     dispatch_queued_runs(now=now)
     for job_id, kind, category, summary, planned_at in alerts:
         _send_alert(
@@ -233,6 +245,7 @@ def scan_due_jobs() -> None:
             category=category,
             summary=summary,
             planned_at=planned_at,
+            actor_id=actor_id,
         )
 
 
@@ -265,6 +278,7 @@ def execute_run(run_id: int) -> None:
         trigger = run.trigger
         planned_at = run.planned_at
         job_id = run.job_id
+        actor_id = run.requested_by or require_system_actor(session=session)
     status: SchedulerRunStatus
     category: str | None
     summary: str | None
@@ -283,6 +297,7 @@ def execute_run(run_id: int) -> None:
             task.run(
                 context=ScheduledTaskContext(
                     run_id=run_id,
+                    actor_id=actor_id,
                     trigger=trigger,
                     planned_at=planned_at,
                     started_at=now,
@@ -303,22 +318,26 @@ def execute_run(run_id: int) -> None:
                 "Scheduled task execution failed",
             )
     with Session(engine) as session:
+        bind_audit_actor(session=session, actor_id=actor_id)
         run = session.get(SchedulerRun, run_id)
-        if run is None:
-            return
-        run.status = status
-        run.error_category = category
-        run.error_summary = summary
-        run.finished_at = utc_now()
-        run.lease_expires_at = None
-        run.next_dispatch_at = None
-        session.add(run)
-        job = session.get(SchedulerJob, job_id)
-        if job is not None and status is SchedulerRunStatus.SUCCEEDED:
-            job.run_failure_alerted_at = None
-            job.overlap_alerted_at = None
-            session.add(job)
-        session.commit()
+        try:
+            if run is None:
+                return
+            run.status = status
+            run.error_category = category
+            run.error_summary = summary
+            run.finished_at = utc_now()
+            run.lease_expires_at = None
+            run.next_dispatch_at = None
+            session.add(run)
+            job = session.get(SchedulerJob, job_id)
+            if job is not None and status is SchedulerRunStatus.SUCCEEDED:
+                job.run_failure_alerted_at = None
+                job.overlap_alerted_at = None
+                session.add(job)
+            session.commit()
+        finally:
+            clear_audit_actor(session=session)
     if status is SchedulerRunStatus.FAILED:
         _send_alert(
             job_id=job_id,
@@ -326,6 +345,7 @@ def execute_run(run_id: int) -> None:
             category=category or "EXECUTION_FAILED",
             summary=summary or "Scheduled task execution failed",
             planned_at=planned_at,
+            actor_id=actor_id,
         )
 
 

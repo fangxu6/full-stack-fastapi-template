@@ -22,7 +22,6 @@ from app.models.inventory import (
     ProcessingUnit,
     ReceivingUnit,
 )
-from app.models.user import User
 from app.schemas.inventory import (
     InventoryBalancePublic,
     InventoryBalancesPublic,
@@ -45,10 +44,6 @@ LEGACY_PLACEHOLDERS = {"未填写品号", "未填写含毛量", "未分缸"}
 
 def _normalized_name(name: str) -> str:
     return " ".join(name.split())
-
-
-def _audit(current_user: User) -> dict[str, object]:
-    return {"created_by": current_user.id, "updated_by": current_user.id}
 
 
 def _list_units(
@@ -120,14 +115,13 @@ def list_receiving_units(
 def _create_unit(
     *,
     session: Session,
-    current_user: User,
     unit_in: MasterUnitCreate,
     model: type[ProcessingUnit] | type[ReceivingUnit],
 ) -> UnitModel:
     name = _normalized_name(unit_in.name)
     if not name:
         raise BadRequestError("Unit name cannot be blank")
-    unit = model(name=name, normalized_name=name, **_audit(current_user))  # ty:ignore[invalid-argument-type]
+    unit = model(name=name, normalized_name=name)
     session.add(unit)
     try:
         session.flush()
@@ -138,22 +132,20 @@ def _create_unit(
 
 
 def create_processing_unit(
-    *, session: Session, current_user: User, unit_in: MasterUnitCreate
+    *, session: Session, unit_in: MasterUnitCreate
 ) -> ProcessingUnit:
     return _create_unit(
         session=session,
-        current_user=current_user,
         unit_in=unit_in,
         model=ProcessingUnit,
     )  # ty:ignore[invalid-return-type]
 
 
 def create_receiving_unit(
-    *, session: Session, current_user: User, unit_in: MasterUnitCreate
+    *, session: Session, unit_in: MasterUnitCreate
 ) -> ReceivingUnit:
     return _create_unit(
         session=session,
-        current_user=current_user,
         unit_in=unit_in,
         model=ReceivingUnit,
     )  # ty:ignore[invalid-return-type]
@@ -162,7 +154,6 @@ def create_receiving_unit(
 def _update_unit(
     *,
     session: Session,
-    current_user: User,
     unit_id: uuid.UUID,
     unit_in: MasterUnitUpdate,
     model: type[ProcessingUnit] | type[ReceivingUnit],
@@ -178,8 +169,6 @@ def _update_unit(
         unit.normalized_name = name
     if unit_in.is_active is not None:
         unit.is_active = unit_in.is_active
-    unit.updated_at = get_datetime_utc()
-    unit.updated_by = current_user.id
     session.add(unit)
     try:
         session.flush()
@@ -192,13 +181,11 @@ def _update_unit(
 def update_processing_unit(
     *,
     session: Session,
-    current_user: User,
     unit_id: uuid.UUID,
     unit_in: MasterUnitUpdate,
 ) -> ProcessingUnit:
     return _update_unit(
         session=session,
-        current_user=current_user,
         unit_id=unit_id,
         unit_in=unit_in,
         model=ProcessingUnit,
@@ -208,13 +195,11 @@ def update_processing_unit(
 def update_receiving_unit(
     *,
     session: Session,
-    current_user: User,
     unit_id: uuid.UUID,
     unit_in: MasterUnitUpdate,
 ) -> ReceivingUnit:
     return _update_unit(
         session=session,
-        current_user=current_user,
         unit_id=unit_id,
         unit_in=unit_in,
         model=ReceivingUnit,
@@ -287,7 +272,6 @@ def _validate_line_for_type(document_type: InventoryDocumentType, line: object) 
 def _add_lines_and_ledgers(
     *,
     session: Session,
-    current_user: User,
     document: InventoryDocument,
     document_in: InventoryDocumentCreate,
 ) -> None:
@@ -298,7 +282,6 @@ def _add_lines_and_ledgers(
             document_id=document.id,
             line_no=line_no,
             **line_in.model_dump(),
-            **_audit(current_user),
         )
         session.add(line)
         session.flush()
@@ -316,7 +299,6 @@ def _add_lines_and_ledgers(
                 dye_lot_no=line.dye_lot_no,
                 rolls_delta=direction * line.quantity_rolls,
                 meters_delta=direction * (line.quantity_meters or Decimal("0")),
-                **_audit(current_user),  # ty:ignore[invalid-argument-type]
             )
         )
 
@@ -325,7 +307,6 @@ def _apply_document_values(
     *,
     document: InventoryDocument,
     document_in: InventoryDocumentCreate,
-    current_user: User,
 ) -> None:
     number = document_in.document_number.strip()
     if not number:
@@ -335,12 +316,10 @@ def _apply_document_values(
     document.receiving_unit_id = document_in.receiving_unit_id
     document.document_number = number
     document.remarks = document_in.remarks
-    document.updated_at = get_datetime_utc()
-    document.updated_by = current_user.id
 
 
 def create_document(
-    *, session: Session, current_user: User, document_in: InventoryDocumentCreate
+    *, session: Session, document_in: InventoryDocumentCreate
 ) -> InventoryDocumentPublic:
     try:
         _require_active_units(session=session, document_in=document_in)
@@ -352,13 +331,11 @@ def create_document(
             receiving_unit_id=document_in.receiving_unit_id,
             document_number=document_in.document_number.strip(),
             remarks=document_in.remarks,
-            **_audit(current_user),  # ty:ignore[invalid-argument-type]
         )
         session.add(document)
         session.flush()
         _add_lines_and_ledgers(
             session=session,
-            current_user=current_user,
             document=document,
             document_in=document_in,
         )
@@ -436,7 +413,6 @@ def list_documents(
 def update_document(
     *,
     session: Session,
-    current_user: User,
     document_id: uuid.UUID,
     document_in: InventoryDocumentCreate,
 ) -> InventoryDocumentPublic:
@@ -453,13 +429,10 @@ def update_document(
     try:
         _require_active_units(session=session, document_in=document_in)
         _replace_document_lines(session=session, document=document)
-        _apply_document_values(
-            document=document, document_in=document_in, current_user=current_user
-        )
+        _apply_document_values(document=document, document_in=document_in)
         session.add(document)
         _add_lines_and_ledgers(
             session=session,
-            current_user=current_user,
             document=document,
             document_in=document_in,
         )
@@ -478,9 +451,7 @@ def update_document(
     return _document_public(session=session, document=document)
 
 
-def delete_document(
-    *, session: Session, current_user: User, document_id: uuid.UUID
-) -> None:
+def delete_document(*, session: Session, document_id: uuid.UUID) -> None:
     document = session.get(InventoryDocument, document_id)
     if not document:
         raise NotFoundError("Inventory document not found")
@@ -490,33 +461,23 @@ def delete_document(
         return
     now = get_datetime_utc()
     document.deleted_at = now
-    document.updated_at = now
-    document.updated_by = current_user.id
     session.add(document)
-    _set_document_ledger_deleted(
-        session=session, document=document, deleted_at=now, current_user=current_user
-    )
+    _set_document_ledger_deleted(session=session, document=document, deleted_at=now)
     session.flush()
 
 
-def restore_document(
-    *, session: Session, current_user: User, document_id: uuid.UUID
-) -> None:
+def restore_document(*, session: Session, document_id: uuid.UUID) -> None:
     document = session.get(InventoryDocument, document_id)
     if not document:
         raise NotFoundError("Inventory document not found")
     if document.is_legacy:
         raise BadRequestError("Legacy inventory documents cannot be restored")
     try:
-        now = get_datetime_utc()
         document.deleted_at = None
-        document.updated_at = now
-        document.updated_by = current_user.id
         _set_document_ledger_deleted(
             session=session,
             document=document,
             deleted_at=None,
-            current_user=current_user,
         )
         _reject_negative_balances(
             session=session, processing_unit_id=document.processing_unit_id
@@ -556,7 +517,6 @@ def _set_document_ledger_deleted(
     session: Session,
     document: InventoryDocument,
     deleted_at: datetime | None,
-    current_user: User,
 ) -> None:
     line_ids = session.exec(
         select(InventoryDocumentLine.id).where(
@@ -570,11 +530,8 @@ def _set_document_ledger_deleted(
             InventoryLedgerEntry.document_line_id.in_(line_ids)  # ty:ignore[unresolved-attribute]
         )
     ).all()
-    now = get_datetime_utc()
     for ledger in ledgers:
         ledger.deleted_at = deleted_at
-        ledger.updated_at = now
-        ledger.updated_by = current_user.id
         session.add(ledger)
 
 

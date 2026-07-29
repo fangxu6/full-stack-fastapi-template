@@ -2,8 +2,9 @@ import pytest
 from sqlmodel import Session
 
 from app import crud
+from app.core.audit import ensure_system_actor
 from app.core.config import settings
-from app.core.exceptions import ConflictError, PermissionDeniedError
+from app.core.exceptions import ConflictError, NotFoundError, PermissionDeniedError
 from app.models import User
 from app.modules.iam import repository, service
 from app.modules.iam.constants import PLATFORM_ADMINISTRATOR
@@ -103,6 +104,22 @@ def test_replace_user_roles_rejects_new_inactive_role(db: Session) -> None:
         service.replace_user_roles(session=db, user_id=user.id, role_ids=[role.id])
 
     assert repository.get_user_role_ids(session=db, user_id=user.id) == set()
+
+
+def test_replace_user_roles_rejects_the_system_actor_before_mutating_roles(
+    db: Session,
+) -> None:
+    system_actor = ensure_system_actor(session=db)
+    platform_role = repository.get_role_by_code(session=db, code=PLATFORM_ADMINISTRATOR)
+    assert platform_role is not None
+    assert platform_role.id is not None
+
+    with pytest.raises(NotFoundError):
+        service.replace_user_roles(
+            session=db, user_id=system_actor.id, role_ids=[platform_role.id]
+        )
+
+    assert repository.get_user_role_ids(session=db, user_id=system_actor.id) == set()
 
 
 def test_cannot_remove_last_active_platform_administrator(db: Session) -> None:

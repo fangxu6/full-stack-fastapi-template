@@ -5,8 +5,9 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
-from sqlmodel import Session, delete
+from sqlmodel import Session, delete, select
 
+from app.core.audit import bind_audit_actor
 from app.core.config import settings
 from app.core.db import engine, init_db
 from app.main import app
@@ -69,6 +70,10 @@ def db() -> Generator[Session]:
     upgrade_test_database()
     with Session(engine) as session:
         init_db(session)
+        first_superuser = session.exec(
+            select(User).where(User.email == settings.FIRST_SUPERUSER)
+        ).one()
+        bind_audit_actor(session=session, actor_id=first_superuser.id)
         yield session
         for model in (
             SchedulerRun,

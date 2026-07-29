@@ -40,6 +40,8 @@ def get_current_user(session: SessionDep, token: TokenDep, request: Request) -> 
     user = session.get(User, token_data.sub)
     if not user:
         raise UserNotFoundError()
+    if user.is_system_actor:
+        raise AuthenticationError()
     if not user.is_active:
         raise BadRequestError("Inactive user")
     request.state.actor_kind = "authenticated"

@@ -1,6 +1,7 @@
 from sqlmodel import Session, create_engine, select
 
 from app import crud
+from app.core.audit import bind_audit_actor, clear_audit_actor, ensure_system_actor
 from app.core.config import settings
 from app.core.observability import log_event
 from app.models import User
@@ -29,6 +30,7 @@ def init_db(session: Session) -> None:
     # This works because the models are already imported and registered from app.models
     # SQLModel.metadata.create_all(engine)
 
+    system_actor = ensure_system_actor(session=session)
     user = session.exec(
         select(User).where(User.email == settings.FIRST_SUPERUSER)
     ).first()
@@ -43,7 +45,8 @@ def init_db(session: Session) -> None:
         session.flush()
     try:
         iam_service.ensure_bootstrap_state(session=session, first_superuser=user)
-        bootstrap_inventory_jobs(session=session, actor=user)
+        bind_audit_actor(session=session, actor_id=system_actor.id)
+        bootstrap_inventory_jobs(session=session)
         session.commit()
     except Exception as error:
         session.rollback()
@@ -53,3 +56,5 @@ def init_db(session: Session) -> None:
             dependency="iam_bootstrap",
         )
         raise IamBootstrapInitializationError from error
+    finally:
+        clear_audit_actor(session=session)

@@ -180,6 +180,87 @@ celery_app.tasks["scheduler.execute_run"].delay(run.id)
 Claim and persist the dispatch lease before broker send, then let the durable
 record become eligible again only after the defined retry boundary.
 
+## Scenario: Scheduler Audit Actor Propagation
+
+### 1. Scope / Trigger
+
+- Trigger: scheduler code scans, bootstraps, executes, finalizes, or throttles
+  an alert for an audited `SchedulerJob`.
+- This scenario complements the database audit-actor contract. It does not add
+  audit fields to `SchedulerRun`, daily reports, or deliveries.
+
+### 2. Signatures
+
+```python
+ScheduledTaskContext(
+    run_id: int,
+    actor_id: uuid.UUID,
+    trigger: SchedulerRunTrigger,
+    planned_at: datetime,
+    started_at: datetime,
+)
+execute_run(run_id: int) -> None
+```
+
+- Celery receives only `run_id`. `actor_id` exists only in the in-process task
+  context after the run is reloaded from PostgreSQL.
+
+### 3. Contracts
+
+- A scheduled scan, bootstrap, and alert-throttling path resolves and binds the
+  default private System Actor key `system` in its local session before mutating
+  `SchedulerJob`.
+- Manual `MANUAL_NOW` and `MANUAL_BACKFILL` rows persist the initiating human
+  in `requested_by`. `execute_run()` uses that durable UUID for task-owned and
+  final `SchedulerJob` mutations, including retry/reclaim execution.
+- A scheduled `SchedulerRun` keeps `requested_by=NULL`; the default System
+  Actor is audit context, not public or business run attribution.
+- Clear the bound actor when a local session's scoped audit work ends. Keep the
+  existing commit/rollback and dispatch-leasing owners unchanged.
+
+### 4. Validation and Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| Manual run has a persisted requester | Bind that UUID for audited worker mutations. |
+| Scheduled run has no requester | Resolve default System Actor key `system` and bind it locally. |
+| Default System Actor absent during scheduler mutation | Fail before an audited flush; do not fabricate a UUID. |
+| Broker retry/reclaim | Reload `requested_by`; retain the original human actor. |
+| Daily report/delivery task | Retain technical timestamp-only behavior; do not bind an actor. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: `execute_run(run_id)` reloads its row, derives the actor, then builds a
+  `ScheduledTaskContext` without placing actor data on Celery.
+- Base: a scheduled run has no human requester but a successful finalization
+  correctly audits its job as the default System Actor.
+- Bad: `execute_run(run_id, actor_id)` makes a retry depend on broker payload
+  and permits attribution tampering.
+
+### 6. Tests Required
+
+- Assert manual run, retry, and reclaim retain the original `requested_by` for
+  final audited job mutations.
+- Assert scheduled scanning, bootstrap, and alert-throttling mutations use the
+  default System Actor key `system` while `SchedulerRun.requested_by` remains
+  `NULL`.
+- Assert daily-report and delivery tests retain no actor binding.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+execute_run.delay(run.id, current_user.id)
+```
+
+#### Correct
+
+```python
+execute_run.delay(run.id)
+# Worker reloads run.requested_by or resolves the System Actor locally.
+```
+
 ## Scenario: Daily Inventory Email Reports
 
 ### 1. Scope / Trigger

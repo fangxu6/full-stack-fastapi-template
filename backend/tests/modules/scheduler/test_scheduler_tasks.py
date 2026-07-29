@@ -4,7 +4,9 @@ from unittest.mock import patch
 import pytest
 from sqlmodel import Session, select
 
+from app.core.audit import bind_audit_actor
 from app.core.config import settings
+from app.models import User
 from app.models.scheduler import (
     SchedulerJob,
     SchedulerRun,
@@ -47,9 +49,9 @@ class ValueErrorTask(ScheduledTask):
 
 def create_job(*, session: Session, now: datetime) -> SchedulerJob:
     actor = create_random_user(session)
+    bind_audit_actor(session=session, actor_id=actor.id)
     job = service.create_job(
         session=session,
-        actor=actor,
         job_in=SchedulerJobCreate(
             name="Scheduler task test",
             class_path=INVENTORY_RETRY_CLASS,
@@ -85,6 +87,13 @@ def test_scan_creates_only_current_minute_run(
     assert [run.status for run in runs] == [SchedulerRunStatus.QUEUED]
     assert runs[0].id is not None
     delay.assert_called_once_with(runs[0].id)
+    system_actor = db.exec(
+        select(User).where(User.system_actor_key == "system")
+    ).one()
+    db.expire_all()
+    persisted_job = db.get(SchedulerJob, job.id)
+    assert persisted_job is not None
+    assert persisted_job.updated_by == system_actor.id
 
 
 def test_scan_skips_missed_time_and_records_overlap(
@@ -196,6 +205,74 @@ def test_execute_run_marks_frozen_config_failure_as_configuration_invalid(
     assert persisted.error_category == "CONFIGURATION_INVALID"
 
 
+def test_manual_execution_updates_the_job_as_the_requesting_actor(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    now = datetime(2026, 7, 26, 0, 0, tzinfo=UTC)
+    job = create_job(session=db, now=now)
+    job.run_failure_alerted_at = now
+    db.add(job)
+    run = service.run_now(session=db, actor_id=job.created_by, job_id=job.id or 0, now=now)
+    assert run.id is not None
+    db.commit()
+    monkeypatch.setattr(tasks, "resolve_task_class", lambda _: SuccessfulTask)
+
+    tasks.execute_run(run.id)
+
+    db.expire_all()
+    persisted_job = db.get(SchedulerJob, job.id)
+    assert persisted_job is not None
+    assert persisted_job.updated_by == run.requested_by
+
+
+def test_lease_reclaim_updates_the_job_as_the_original_requesting_actor(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    now = datetime(2026, 7, 26, 0, 0, tzinfo=UTC)
+    job = create_job(session=db, now=now)
+    job.run_failure_alerted_at = now
+    run = service.run_now(session=db, actor_id=job.created_by, job_id=job.id or 0, now=now)
+    run.status = SchedulerRunStatus.RUNNING
+    run.lease_expires_at = now - timedelta(seconds=1)
+    db.add_all((job, run))
+    db.commit()
+    assert run.id is not None
+    monkeypatch.setattr(tasks, "utc_now", lambda: now)
+    monkeypatch.setattr(tasks, "resolve_task_class", lambda _: SuccessfulTask)
+
+    tasks.execute_run(run.id)
+
+    db.expire_all()
+    persisted_job = db.get(SchedulerJob, job.id)
+    persisted_run = db.get(SchedulerRun, run.id)
+    assert persisted_job is not None
+    assert persisted_run is not None
+    assert persisted_job.updated_by == run.requested_by
+    assert persisted_run.attempt_count == 1
+
+
+def test_scheduler_alert_updates_the_job_as_the_system_actor(db: Session) -> None:
+    now = datetime(2026, 7, 26, 0, 0, tzinfo=UTC)
+    job = create_job(session=db, now=now)
+    system_actor = db.exec(
+        select(User).where(User.system_actor_key == "system")
+    ).one()
+
+    tasks._send_alert(
+        job_id=job.id or 0,
+        kind="FAILURE",
+        category="EXECUTION_FAILED",
+        summary="Scheduled task execution failed",
+        planned_at=now,
+        actor_id=system_actor.id,
+    )
+
+    db.expire_all()
+    persisted_job = db.get(SchedulerJob, job.id)
+    assert persisted_job is not None
+    assert persisted_job.updated_by == system_actor.id
+
+
 def test_dispatch_retries_broker_failure_on_the_next_scan_minute(
     db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -232,6 +309,7 @@ def test_dispatch_claims_no_more_than_the_fixed_batch_limit(
 ) -> None:
     now = datetime(2026, 7, 26, 1, 0, tzinfo=UTC)
     actor = create_random_user(db)
+    bind_audit_actor(session=db, actor_id=actor.id)
     jobs = [
         SchedulerJob(
             name=f"Dispatch limit {index}",
@@ -240,10 +318,6 @@ def test_dispatch_claims_no_more_than_the_fixed_batch_limit(
             config={},
             enabled=False,
             next_run_at=now,
-            created_at=now,
-            created_by=actor.id,
-            updated_at=now,
-            updated_by=actor.id,
         )
         for index in range(tasks.DISPATCH_BATCH_SIZE + 1)
     ]
@@ -296,6 +370,7 @@ def test_alert_is_rate_limited_and_cleanup_removes_old_runs(
     monkeypatch.setattr(
         scheduler_settings, "SCHEDULED_TASK_ALERT_RECIPIENTS", ["ops@example.com"]
     )
+    assert job.created_by is not None
 
     with patch("app.modules.scheduler.tasks.send_email") as send_email:
         tasks._send_alert(
@@ -304,6 +379,7 @@ def test_alert_is_rate_limited_and_cleanup_removes_old_runs(
             category="EXECUTION_FAILED",
             summary="Scheduled task execution failed",
             planned_at=now,
+            actor_id=job.created_by,
         )
         tasks._send_alert(
             job_id=job.id or 0,
@@ -311,6 +387,7 @@ def test_alert_is_rate_limited_and_cleanup_removes_old_runs(
             category="EXECUTION_FAILED",
             summary="Scheduled task execution failed",
             planned_at=now,
+            actor_id=job.created_by,
         )
 
     assert send_email.call_count == 1

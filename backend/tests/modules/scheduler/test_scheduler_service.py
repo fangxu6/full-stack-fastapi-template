@@ -6,7 +6,7 @@ import pytest
 from pydantic import BaseModel, SecretStr
 from sqlmodel import Session, select
 
-from app.core.config import settings
+from app.core.audit import bind_audit_actor
 from app.models.scheduler import SchedulerJob
 from app.modules.scheduler import service
 from app.modules.scheduler.contracts import ScheduledTask, ScheduledTaskConfig
@@ -92,10 +92,10 @@ def test_definition_rejects_nested_container_and_union_secret_schema(
 
 def test_create_job_defaults_disabled_and_freezes_config(db: Session) -> None:
     actor = create_random_user(db)
+    bind_audit_actor(session=db, actor_id=actor.id)
 
     job = service.create_job(
         session=db,
-        actor=actor,
         job_in=SchedulerJobCreate(
             name="Retry report delivery",
             class_path=INVENTORY_RETRY_CLASS,
@@ -106,7 +106,8 @@ def test_create_job_defaults_disabled_and_freezes_config(db: Session) -> None:
 
     assert job.id is not None
     assert not job.enabled
-    run = service.run_now(session=db, actor=actor, job_id=job.id)
+    assert job.created_by == actor.id
+    run = service.run_now(session=db, actor_id=actor.id, job_id=job.id)
     assert run.config == {}
     assert run.class_path == INVENTORY_RETRY_CLASS
 
@@ -115,9 +116,9 @@ def test_conflicting_run_creation_does_not_rollback_prior_batch_run(
     db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     actor = create_random_user(db)
+    bind_audit_actor(session=db, actor_id=actor.id)
     first_job = service.create_job(
         session=db,
-        actor=actor,
         job_in=SchedulerJobCreate(
             name="First task",
             class_path=INVENTORY_RETRY_CLASS,
@@ -127,7 +128,6 @@ def test_conflicting_run_creation_does_not_rollback_prior_batch_run(
     )
     second_job = service.create_job(
         session=db,
-        actor=actor,
         job_in=SchedulerJobCreate(
             name="Second task",
             class_path=INVENTORY_RETRY_CLASS,
@@ -180,10 +180,8 @@ def test_inventory_bootstrap_is_idempotent_and_keeps_edits(db: Session) -> None:
     db.add(retry_job)
     db.commit()
 
-    from app import crud
-
-    user = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
-    assert user is not None
-    service.bootstrap_inventory_jobs(session=db, actor=user)
+    assert retry_job.created_by is not None
+    bind_audit_actor(session=db, actor_id=retry_job.created_by)
+    service.bootstrap_inventory_jobs(session=db)
     db.refresh(retry_job)
     assert retry_job.cron_expression == "0 9 * * *"

@@ -4,7 +4,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import CurrentUser, SessionDep, WriteSessionDep
+from app.api.deps import AuditedWriteSessionDep, CurrentUser, SessionDep
 from app.models.inventory import InventoryDocumentType, InventoryLedgerKind
 from app.modules.iam.dependencies import permission_required
 from app.modules.inventory import service
@@ -53,11 +53,12 @@ def read_processing_units(
     response_model=MasterUnitPublic,
 )
 def create_processing_unit(
-    *, session: WriteSessionDep, current_user: CurrentUser, unit_in: MasterUnitCreate
+    *,
+    session: AuditedWriteSessionDep,
+    _current_user: CurrentUser,
+    unit_in: MasterUnitCreate,
 ) -> Any:
-    return service.create_processing_unit(
-        session=session, current_user=current_user, unit_in=unit_in
-    )
+    return service.create_processing_unit(session=session, unit_in=unit_in)
 
 
 @router.put(
@@ -67,14 +68,13 @@ def create_processing_unit(
 )
 def update_processing_unit(
     *,
-    session: WriteSessionDep,
-    current_user: CurrentUser,
+    session: AuditedWriteSessionDep,
+    _current_user: CurrentUser,
     unit_id: uuid.UUID,
     unit_in: MasterUnitUpdate,
 ) -> Any:
     return service.update_processing_unit(
         session=session,
-        current_user=current_user,
         unit_id=unit_id,
         unit_in=unit_in,
     )
@@ -109,11 +109,12 @@ def read_receiving_units(
     response_model=MasterUnitPublic,
 )
 def create_receiving_unit(
-    *, session: WriteSessionDep, current_user: CurrentUser, unit_in: MasterUnitCreate
+    *,
+    session: AuditedWriteSessionDep,
+    _current_user: CurrentUser,
+    unit_in: MasterUnitCreate,
 ) -> Any:
-    return service.create_receiving_unit(
-        session=session, current_user=current_user, unit_in=unit_in
-    )
+    return service.create_receiving_unit(session=session, unit_in=unit_in)
 
 
 @router.put(
@@ -123,14 +124,13 @@ def create_receiving_unit(
 )
 def update_receiving_unit(
     *,
-    session: WriteSessionDep,
-    current_user: CurrentUser,
+    session: AuditedWriteSessionDep,
+    _current_user: CurrentUser,
     unit_id: uuid.UUID,
     unit_in: MasterUnitUpdate,
 ) -> Any:
     return service.update_receiving_unit(
         session=session,
-        current_user=current_user,
         unit_id=unit_id,
         unit_in=unit_in,
     )
@@ -143,13 +143,11 @@ def update_receiving_unit(
 )
 def create_inventory_document(
     *,
-    session: WriteSessionDep,
-    current_user: CurrentUser,
+    session: AuditedWriteSessionDep,
+    _current_user: CurrentUser,
     document_in: InventoryDocumentCreate,
 ) -> Any:
-    return service.create_document(
-        session=session, current_user=current_user, document_in=document_in
-    )
+    return service.create_document(session=session, document_in=document_in)
 
 
 @router.get(
@@ -204,14 +202,13 @@ def read_inventory_document(
 )
 def update_inventory_document(
     *,
-    session: WriteSessionDep,
-    current_user: CurrentUser,
+    session: AuditedWriteSessionDep,
+    _current_user: CurrentUser,
     document_id: uuid.UUID,
     document_in: InventoryDocumentCreate,
 ) -> Any:
     return service.update_document(
         session=session,
-        current_user=current_user,
         document_id=document_id,
         document_in=document_in,
     )
@@ -222,11 +219,9 @@ def update_inventory_document(
     dependencies=[Depends(permission_required("inventory.documents.manage"))],
 )
 def delete_inventory_document(
-    document_id: uuid.UUID, session: WriteSessionDep, current_user: CurrentUser
+    document_id: uuid.UUID, session: AuditedWriteSessionDep, _current_user: CurrentUser
 ) -> dict[str, str]:
-    service.delete_document(
-        session=session, current_user=current_user, document_id=document_id
-    )
+    service.delete_document(session=session, document_id=document_id)
     return {"message": "Inventory document deleted"}
 
 
@@ -235,11 +230,9 @@ def delete_inventory_document(
     dependencies=[Depends(permission_required("inventory.documents.manage"))],
 )
 def restore_inventory_document(
-    document_id: uuid.UUID, session: WriteSessionDep, current_user: CurrentUser
+    document_id: uuid.UUID, session: AuditedWriteSessionDep, _current_user: CurrentUser
 ) -> dict[str, str]:
-    service.restore_document(
-        session=session, current_user=current_user, document_id=document_id
-    )
+    service.restore_document(session=session, document_id=document_id)
     return {"message": "Inventory document restored"}
 
 

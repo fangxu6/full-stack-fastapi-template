@@ -95,13 +95,18 @@ def test_all_http_write_handlers_depend_on_write_session() -> None:
                 yield route
 
     write_routes = [route for route in api_routes(api_router) if route.methods & write_methods]
+
+    def depends_on_write_session(dependency: Any) -> bool:
+        if dependency.call is database.get_write_db:
+            return True
+        return any(
+            depends_on_write_session(child) for child in dependency.dependencies
+        )
+
     missing_write_session = [
         route.path
         for route in write_routes
-        if not any(
-            dependency.call is database.get_write_db
-            for dependency in route.dependant.dependencies
-        )
+        if not any(depends_on_write_session(dependency) for dependency in route.dependant.dependencies)
     ]
 
     assert len(write_routes) == 38
