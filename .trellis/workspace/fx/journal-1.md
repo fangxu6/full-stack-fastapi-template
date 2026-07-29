@@ -575,3 +575,36 @@ Configured the direct Celery worker NDJSON sink, suppressed terminal events afte
 ### Next Steps
 
 - None - task complete
+
+
+## Session 18: Harden Celery observability boundary
+
+**Date**: 2026-07-29
+**Task**: Harden Celery observability boundary
+**Branch**: `master`
+
+### Summary
+
+Closed the task identity facade bypass by making Celery task identity context-only, added direct-injection and eager failure-then-success lifecycle regressions, updated the logging contract, and verified the isolated backend suite.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6d51135` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

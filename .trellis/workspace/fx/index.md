@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 17
+- **Total Sessions**: 18
 - **Last Active**: 2026-07-29
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~577 | Active |
+| `journal-1.md` | ~610 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 18 | 2026-07-29 | Harden Celery observability boundary | `6d51135` | `master` |
 | 17 | 2026-07-29 | Secure Celery task lifecycle observability | `b897839` | `master` |
 | 16 | 2026-07-29 | Complete explicit audit actor | `67540f1` | `master` |
 | 15 | 2026-07-28 | 请求级 Unit of Work | `9f69027` | `master` |
