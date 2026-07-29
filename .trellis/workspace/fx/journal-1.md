@@ -542,3 +542,36 @@ Implemented key-based multiple System Actors, importer validation, audit lifecyc
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: Secure Celery task lifecycle observability
+
+**Date**: 2026-07-29
+**Task**: Secure Celery task lifecycle observability
+**Branch**: `master`
+
+### Summary
+
+Configured the direct Celery worker NDJSON sink, suppressed terminal events after identity rejection, added regression coverage, and passed the full backend quality gate.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b897839` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
