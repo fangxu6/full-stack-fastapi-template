@@ -157,6 +157,23 @@ def test_log_event_rejects_unknown_fields_before_serialization(
     assert capsys.readouterr().out == ""
 
 
+@pytest.mark.parametrize("field_name", ["task_id", "task_name"])
+def test_log_event_rejects_direct_task_identity_before_serialization(
+    capsys: CaptureFixture[str], field_name: str
+) -> None:
+    configure_observability()
+    untyped_log_event = cast(Callable[..., None], log_event)
+
+    with pytest.raises(TypeError, match=f"unexpected keyword argument '{field_name}'"):
+        untyped_log_event(
+            event_name="task.started",
+            severity="INFO",
+            **{field_name: "caller-controlled-task-identity"},
+        )
+
+    assert capsys.readouterr().out == ""
+
+
 def test_log_event_swallows_sink_failures() -> None:
     logger = MagicMock()
     logger.critical.side_effect = OSError("stdout unavailable")

@@ -36,8 +36,10 @@ context to every event. HTTP requests bind `request_id` and the low-cardinality
 `actor_kind` (`anonymous` or `authenticated`); Celery tasks bind only a
 canonical, lowercase, hyphenated UUID `task_id` supplied by the caller and a
 registered `task_name` belonging to the single application Celery instance.
-These fields must never expand into user, role, permission, token, task
-argument, or business-resource identity.
+Task identity reaches a lifecycle event only through `task_prerun`-validated
+contextvars; `log_event()` does not accept direct `task_id` or `task_name`
+arguments. These fields must never expand into user, role, permission, token,
+task argument, or business-resource identity.
 
 ---
 
@@ -261,8 +263,6 @@ def log_event(
     status_code: int | None = None,
     actor_kind: str | None = None,
     authorization_result: str | None = None,
-    task_id: str | None = None,
-    task_name: str | None = None,
 ) -> None: ...
 ```
 
@@ -305,9 +305,10 @@ def log_event(
   safe fields. Do not add `**kwargs`, mapping expansion, or a second generic
   event builder. Unknown fields are rejected at the Python call boundary and
   must be fixed during typing, tests, or review before deployment; they never
-  reach the Structlog renderer. Best-effort handling applies only to
-  serialization or stdout-write failures, which must not change a request,
-  timeout, retry, or startup failure path.
+  reach the Structlog renderer. `task_id` and `task_name` are intentionally
+  absent from this facade and can be attached only by validated task context.
+  Best-effort handling applies only to serialization or stdout-write failures,
+  which must not change a request, timeout, retry, or startup failure path.
 - Do not bridge arbitrary standard-library records into the collector: their
   message values are not within this event schema. Disable Uvicorn's access
   logger in the production command and suppress its server/error loggers in
@@ -326,6 +327,7 @@ def log_event(
 | A Celery task exits | The `task_postrun` signal reads only allowlisted `state` plus the already-bound safe task context. It maps only `SUCCESS` to `task.completed` and `FAILURE` to `task.failed`, both at `INFO`, and only when prerun accepted and bound the task identity; `RETRY`, `REJECTED`, `IGNORED`, unknown states, and rejected identities emit no terminal event. It clears task context in `finally` for every exit path. |
 | Celery passes signal payload extensions | The receiver may accept an opaque signal keyword mapping to satisfy Celery dispatch, but must delete it without reading, forwarding, or serializing args, kwargs, return values, exceptions, tracebacks, or headers. |
 | CORS preflight short-circuits the inner application | The outer request-correlation middleware adds `X-Request-ID` and emits the sampled/safe `OPTIONS` outcome event; it must not bypass correlation. |
+| A caller supplies `task_id` or `task_name` to `log_event()` | Treat it as a programming error: the closed signature rejects it before serialization. Task identity can enter a lifecycle event only through validated `task_prerun` context. |
 | A caller supplies an unknown/forbidden `log_event()` keyword | Treat it as a programming error: the closed signature rejects it before serialization. Fix the caller; do not add `**kwargs` to silently filter it. |
 | Event contains a dependency/source name not in the registry | Treat as code-contract failure in unit tests/review; do not ship an ad hoc source. |
 | Structlog renderer or stdout write fails | Swallow the telemetry failure; preserve response/startup control flow. |
@@ -358,6 +360,10 @@ def log_event(
   reach the renderer. Supported call sites must pass only reviewed fields and
   must not derive them from tokens, cookies, email addresses, UUIDs, queries,
   bodies or raw exceptions.
+- Unit test direct `task_id` and `task_name` facade arguments are rejected
+  before serialization. Use a real eager failure followed by a success task to
+  prove lifecycle identities remain context-only, failure text is excluded,
+  and task context is cleared between executions.
 - Unit test stable sampling and every mandatory unsampled event class.
 - Integration test an allowed CORS preflight returns `X-Request-ID` and, with
   deterministic sampling, emits an allowlisted `http.request.completed` event

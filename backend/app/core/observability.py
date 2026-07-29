@@ -156,8 +156,6 @@ def log_event(
     status_code: int | None = None,
     actor_kind: str | None = None,
     authorization_result: Literal["denied"] | None = None,
-    task_id: str | None = None,
-    task_name: str | None = None,
 ) -> None:
     if dependency is not None and dependency not in DEPENDENCIES:
         return
@@ -172,8 +170,6 @@ def log_event(
         "status_code": status_code,
         "actor_kind": actor_kind,
         "authorization_result": authorization_result,
-        "task_id": task_id,
-        "task_name": task_name,
     }
     try:
         getattr(_LOGGER, severity.lower())(

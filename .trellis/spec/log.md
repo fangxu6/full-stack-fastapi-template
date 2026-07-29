@@ -229,3 +229,7 @@ backend tests and local API E2E now use `POSTGRES_DB=aiadmin_test`.
 ## [2026-07-29 15:23:01] update | Celery worker observability
 
 Configured the direct worker import path for NDJSON and suppressed terminal task events unless prerun accepted the identity.
+
+## [2026-07-29 17:15:06] update | Harden Celery task identity facade
+
+Task lifecycle identity is context-only; log_event rejects direct task_id and task_name inputs, with eager failure-then-success regression coverage.

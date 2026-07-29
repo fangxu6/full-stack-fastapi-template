@@ -155,6 +155,73 @@ def test_eager_task_with_rejected_task_id_emits_no_lifecycle_events(
     assert capsys.readouterr().out == ""
 
 
+def test_eager_failure_then_success_emits_isolated_lifecycle_events(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    failure_task_name = "runtime.observability_failure"
+    failure_task_id = "12345678-1234-4234-8234-123456789abc"
+    success_task_id = "22345678-1234-4234-8234-123456789abc"
+
+    @celery_app.task(name=failure_task_name)
+    def fail_for_observability_regression() -> None:
+        raise RuntimeError("private task failure")
+
+    configure_observability()
+    clear_task_context()
+    successful_task = celery_app.tasks["runtime.ping"]
+    previous = celery_app.conf.task_always_eager
+    celery_app.conf.task_always_eager = True
+    try:
+        failed_result = fail_for_observability_regression.apply_async(
+            task_id=failure_task_id
+        )
+        successful_result = successful_task.apply_async(
+            args=("safe-success",), task_id=success_task_id
+        )
+    finally:
+        celery_app.conf.task_always_eager = previous
+
+    assert failed_result.failed()
+    assert successful_result.get(timeout=1) == "safe-success"
+    assert structlog.contextvars.get_contextvars() == {}
+
+    output = capsys.readouterr().out
+    payloads = [json.loads(line) for line in output.splitlines() if line.strip()]
+    assert [payload["event_name"] for payload in payloads] == [
+        "task.started",
+        "task.failed",
+        "task.started",
+        "task.completed",
+    ]
+    assert [
+        (payload["task_id"], payload["task_name"]) for payload in payloads
+    ] == [
+        (failure_task_id, failure_task_name),
+        (failure_task_id, failure_task_name),
+        (success_task_id, "runtime.ping"),
+        (success_task_id, "runtime.ping"),
+    ]
+    assert all(
+        payload["schema_version"] == 1 and payload["severity"] == "INFO"
+        for payload in payloads
+    )
+    assert all(
+        set(payload)
+        == {
+            "environment",
+            "event_name",
+            "schema_version",
+            "severity",
+            "task_id",
+            "task_name",
+            "timestamp",
+        }
+        for payload in payloads
+    )
+    assert "private task failure" not in output
+    assert "safe-success" not in output
+
+
 def test_task_lifecycle_logs_safe_success_and_clears_context(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
