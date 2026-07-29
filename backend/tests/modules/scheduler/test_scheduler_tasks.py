@@ -5,8 +5,7 @@ import pytest
 from sqlmodel import Session, select
 
 from app.core.audit import bind_audit_actor
-from app.core.config import settings
-from app.models import User
+from app.models import EmailOutbox, User
 from app.models.scheduler import (
     SchedulerJob,
     SchedulerRun,
@@ -87,9 +86,7 @@ def test_scan_creates_only_current_minute_run(
     assert [run.status for run in runs] == [SchedulerRunStatus.QUEUED]
     assert runs[0].id is not None
     delay.assert_called_once_with(runs[0].id)
-    system_actor = db.exec(
-        select(User).where(User.system_actor_key == "system")
-    ).one()
+    system_actor = db.exec(select(User).where(User.system_actor_key == "system")).one()
     db.expire_all()
     persisted_job = db.get(SchedulerJob, job.id)
     assert persisted_job is not None
@@ -212,7 +209,9 @@ def test_manual_execution_updates_the_job_as_the_requesting_actor(
     job = create_job(session=db, now=now)
     job.run_failure_alerted_at = now
     db.add(job)
-    run = service.run_now(session=db, actor_id=job.created_by, job_id=job.id or 0, now=now)
+    run = service.run_now(
+        session=db, actor_id=job.created_by, job_id=job.id or 0, now=now
+    )
     assert run.id is not None
     db.commit()
     monkeypatch.setattr(tasks, "resolve_task_class", lambda _: SuccessfulTask)
@@ -231,7 +230,9 @@ def test_lease_reclaim_updates_the_job_as_the_original_requesting_actor(
     now = datetime(2026, 7, 26, 0, 0, tzinfo=UTC)
     job = create_job(session=db, now=now)
     job.run_failure_alerted_at = now
-    run = service.run_now(session=db, actor_id=job.created_by, job_id=job.id or 0, now=now)
+    run = service.run_now(
+        session=db, actor_id=job.created_by, job_id=job.id or 0, now=now
+    )
     run.status = SchedulerRunStatus.RUNNING
     run.lease_expires_at = now - timedelta(seconds=1)
     db.add_all((job, run))
@@ -254,9 +255,7 @@ def test_lease_reclaim_updates_the_job_as_the_original_requesting_actor(
 def test_scheduler_alert_updates_the_job_as_the_system_actor(db: Session) -> None:
     now = datetime(2026, 7, 26, 0, 0, tzinfo=UTC)
     job = create_job(session=db, now=now)
-    system_actor = db.exec(
-        select(User).where(User.system_actor_key == "system")
-    ).one()
+    system_actor = db.exec(select(User).where(User.system_actor_key == "system")).one()
 
     tasks._send_alert(
         job_id=job.id or 0,
@@ -342,7 +341,9 @@ def test_dispatch_claims_no_more_than_the_fixed_batch_limit(
     db.commit()
     monkeypatch.setattr(tasks, "utc_now", lambda: now)
 
-    with patch.object(tasks.celery_app.tasks["scheduler.execute_run"], "delay") as delay:
+    with patch.object(
+        tasks.celery_app.tasks["scheduler.execute_run"], "delay"
+    ) as delay:
         tasks.dispatch_queued_runs()
 
     assert tasks.DISPATCH_BATCH_SIZE == 100
@@ -365,32 +366,36 @@ def test_alert_is_rate_limited_and_cleanup_removes_old_runs(
     )
     assert old_run.id is not None
     db.commit()
-    monkeypatch.setattr(settings, "SMTP_HOST", "smtp.example.com")
-    monkeypatch.setattr(settings, "EMAILS_FROM_EMAIL", "sender@example.com")
     monkeypatch.setattr(
         scheduler_settings, "SCHEDULED_TASK_ALERT_RECIPIENTS", ["ops@example.com"]
     )
     assert job.created_by is not None
 
-    with patch("app.modules.scheduler.tasks.send_email") as send_email:
-        tasks._send_alert(
-            job_id=job.id or 0,
-            kind="FAILURE",
-            category="EXECUTION_FAILED",
-            summary="Scheduled task execution failed",
-            planned_at=now,
-            actor_id=job.created_by,
-        )
-        tasks._send_alert(
-            job_id=job.id or 0,
-            kind="FAILURE",
-            category="EXECUTION_FAILED",
-            summary="Scheduled task execution failed",
-            planned_at=now,
-            actor_id=job.created_by,
-        )
+    tasks._send_alert(
+        job_id=job.id or 0,
+        kind="FAILURE",
+        category="EXECUTION_FAILED",
+        summary="Scheduled task execution failed",
+        planned_at=now,
+        actor_id=job.created_by,
+    )
+    tasks._send_alert(
+        job_id=job.id or 0,
+        kind="FAILURE",
+        category="EXECUTION_FAILED",
+        summary="Scheduled task execution failed",
+        planned_at=now,
+        actor_id=job.created_by,
+    )
 
-    assert send_email.call_count == 1
+    assert (
+        len(
+            db.exec(
+                select(EmailOutbox).where(EmailOutbox.recipient == "ops@example.com")
+            ).all()
+        )
+        == 1
+    )
     assert service.cleanup_runs(session=db, now=now) == 1
     db.commit()
     assert db.get(SchedulerRun, old_run.id) is None

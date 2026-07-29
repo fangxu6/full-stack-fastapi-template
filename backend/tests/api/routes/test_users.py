@@ -1,5 +1,4 @@
 import uuid
-from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
@@ -7,7 +6,7 @@ from sqlmodel import Session, select
 from app import crud
 from app.core.config import settings
 from app.core.security import create_access_token, verify_password
-from app.models import User
+from app.models import EmailOutbox, EmailOutboxKind, User
 from app.schemas.user import UserCreate
 from tests.utils.user import create_random_user
 from tests.utils.utils import random_email, random_lower_string
@@ -42,37 +41,23 @@ def test_get_users_normal_user_me(
 def test_create_user_new_email(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
-    events: list[str] = []
-    original_commit = Session.commit
+    username = random_email()
+    response = client.post(
+        f"{settings.API_V1_STR}/users/",
+        headers=superuser_token_headers,
+        json={"email": username, "password": random_lower_string()},
+    )
 
-    def record_commit(session: Session) -> None:
-        events.append("commit")
-        original_commit(session)
-
-    def send_email_after_commit(**_: str) -> None:
-        events.append("email")
-        assert events == ["commit", "email"]
-
-    with (
-        patch.object(Session, "commit", new=record_commit),
-        patch("app.services.user.send_email", new=send_email_after_commit),
-        patch("app.core.config.settings.SMTP_HOST", "smtp.example.com"),
-        patch("app.core.config.settings.SMTP_USER", "admin@example.com"),
-    ):
-        username = random_email()
-        password = random_lower_string()
-        data = {"email": username, "password": password}
-        r = client.post(
-            f"{settings.API_V1_STR}/users/",
-            headers=superuser_token_headers,
-            json=data,
-        )
-        assert 200 <= r.status_code < 300
-        created_user = r.json()
-        user = crud.get_user_by_email(session=db, email=username)
-        assert user
-        assert user.email == created_user["email"]
-    assert events == ["commit", "email"]
+    assert response.status_code == 200
+    db.expire_all()
+    user = crud.get_user_by_email(session=db, email=username)
+    outbox = db.exec(select(EmailOutbox).where(EmailOutbox.recipient == username)).one()
+    assert user is not None
+    assert user.email == response.json()["email"]
+    assert outbox.kind is EmailOutboxKind.ACCOUNT_SET_PASSWORD
+    assert outbox.user_id == user.id
+    assert outbox.subject is None
+    assert outbox.html_content is None
 
 
 def test_create_user_commits_once_at_request_boundary(
@@ -96,6 +81,24 @@ def test_create_user_commits_once_at_request_boundary(
 
     assert response.status_code == 200
     assert commit_count == 1
+
+
+def test_create_inactive_user_does_not_queue_activation_email(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    email = random_email()
+
+    response = client.post(
+        f"{settings.API_V1_STR}/users/",
+        headers=superuser_token_headers,
+        json={"email": email, "password": random_lower_string(), "is_active": False},
+    )
+
+    assert response.status_code == 200
+    assert (
+        db.exec(select(EmailOutbox).where(EmailOutbox.recipient == email)).first()
+        is None
+    )
 
 
 def test_get_existing_user_as_superuser(
@@ -461,9 +464,7 @@ def test_system_actor_is_hidden_and_cannot_be_managed(
     system_actor = ensure_system_actor(session=db)
     db.commit()
 
-    users = client.get(
-        f"{settings.API_V1_STR}/users/", headers=superuser_token_headers
-    )
+    users = client.get(f"{settings.API_V1_STR}/users/", headers=superuser_token_headers)
     read = client.get(
         f"{settings.API_V1_STR}/users/{system_actor.id}",
         headers=superuser_token_headers,
@@ -519,7 +520,10 @@ def test_system_actor_token_cannot_access_self_service_user_routes(
 def test_user_openapi_does_not_expose_system_actor_marker(client: TestClient) -> None:
     schema = client.get(f"{settings.API_V1_STR}/openapi.json").json()
 
-    assert "is_system_actor" not in schema["components"]["schemas"]["UserPublic"]["properties"]
+    assert (
+        "is_system_actor"
+        not in schema["components"]["schemas"]["UserPublic"]["properties"]
+    )
 
 
 def test_update_user_email_exists(

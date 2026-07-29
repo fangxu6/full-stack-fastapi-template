@@ -1,11 +1,11 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app import services
-from app.api.deps import CurrentUser, WriteSessionDep
+from app.api.deps import CurrentUser, SystemAuditedWriteSessionDep, WriteSessionDep
 from app.modules.iam.dependencies import permission_required
 from app.schemas.security import Message, NewPassword, Token
 from app.schemas.user import UserPublic
@@ -34,15 +34,11 @@ def test_token(session: WriteSessionDep, current_user: CurrentUser) -> Any:
 
 
 @router.post("/password-recovery/{email}")
-def recover_password(
-    email: str, background_tasks: BackgroundTasks, session: WriteSessionDep
-) -> Message:
+def recover_password(email: str, session: SystemAuditedWriteSessionDep) -> Message:
     """
     Password Recovery
     """
-    return services.auth.recover_password(
-        session=session, email=email, background_tasks=background_tasks
-    )
+    return services.auth.recover_password(session=session, email=email)
 
 
 @router.post("/reset-password/")

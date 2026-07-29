@@ -3,7 +3,6 @@ from typing import Annotated, Any
 from pydantic import BeforeValidator, EmailStr, Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
-from app.core.config import settings
 from app.core.env import get_env_file
 
 
@@ -33,15 +32,3 @@ class SchedulerSettings(BaseSettings):
 
 
 scheduler_settings = SchedulerSettings()
-
-
-def validate_scheduler_runtime_settings() -> None:
-    if settings.ENVIRONMENT == "local":
-        return
-    if (
-        not settings.emails_enabled
-        or not scheduler_settings.SCHEDULED_TASK_ALERT_RECIPIENTS
-    ):
-        raise ValueError(
-            "scheduled task Worker and Beat require SMTP and SCHEDULED_TASK_ALERT_RECIPIENTS outside local"
-        )

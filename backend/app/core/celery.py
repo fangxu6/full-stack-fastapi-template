@@ -14,10 +14,8 @@ from app.core.observability import (
     normalize_task_id,
     normalize_task_name,
 )
-from app.modules.scheduler.config import validate_scheduler_runtime_settings
 
 configure_observability()
-validate_scheduler_runtime_settings()
 
 celery_app: Any = Celery(
     "app",
@@ -39,6 +37,10 @@ celery_app.conf.update(
         "runtime-daily-test-email": {
             "task": "runtime.send_test_email",
             "schedule": crontab(hour=9, minute=0),
+        },
+        "email-outbox-scan-due": {
+            "task": "email_outbox.scan_due",
+            "schedule": crontab(minute="*"),
         },
         "scheduler-scan-due-jobs": {
             "task": "scheduler.scan_due_jobs",

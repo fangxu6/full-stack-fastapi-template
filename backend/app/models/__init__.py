@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel
 
+from .email import EmailOutbox, EmailOutboxKind, EmailOutboxStatus
 from .iam import IamPermission, IamRole, IamRolePermission, IamUserRole
 from .inventory import (
     InventoryDailyReport,
@@ -18,6 +19,9 @@ from .user import User
 
 __all__ = [
     "SQLModel",
+    "EmailOutbox",
+    "EmailOutboxKind",
+    "EmailOutboxStatus",
     "InventoryDocument",
     "InventoryDocumentLine",
     "InventoryDailyReport",

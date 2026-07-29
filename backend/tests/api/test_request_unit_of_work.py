@@ -5,11 +5,12 @@ import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.api.dependencies import auth, database
 from app.api.main import api_router
 from app.core.config import settings
+from app.models import EmailOutbox, EmailOutboxKind
 
 
 class TrackingSession:
@@ -94,48 +95,54 @@ def test_all_http_write_handlers_depend_on_write_session() -> None:
             elif isinstance(route, APIRoute):
                 yield route
 
-    write_routes = [route for route in api_routes(api_router) if route.methods & write_methods]
+    write_routes = [
+        route for route in api_routes(api_router) if route.methods & write_methods
+    ]
 
     def depends_on_write_session(dependency: Any) -> bool:
         if dependency.call is database.get_write_db:
             return True
-        return any(
-            depends_on_write_session(child) for child in dependency.dependencies
-        )
+        return any(depends_on_write_session(child) for child in dependency.dependencies)
 
     missing_write_session = [
         route.path
         for route in write_routes
-        if not any(depends_on_write_session(dependency) for dependency in route.dependant.dependencies)
+        if not any(
+            depends_on_write_session(dependency)
+            for dependency in route.dependant.dependencies
+        )
     ]
 
     assert len(write_routes) == 38
     assert missing_write_session == []
 
 
-def test_test_email_sends_after_request_commit(
+def test_test_email_queues_outbox_at_request_commit(
     client: TestClient,
     superuser_token_headers: dict[str, str],
+    db: Session,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    events: list[str] = []
     original_commit = Session.commit
+    commit_count = 0
 
     def record_commit(session: Session) -> None:
-        events.append("commit")
+        nonlocal commit_count
+        commit_count += 1
         original_commit(session)
 
-    def send_email_after_commit(**_: str) -> None:
-        events.append("email")
-        assert events == ["commit", "email"]
-
     monkeypatch.setattr(Session, "commit", record_commit)
-    monkeypatch.setattr("app.api.routes.utils.send_email", send_email_after_commit)
 
     response = client.post(
         f"{settings.API_V1_STR}/utils/test-email/?email_to=test@example.com",
         headers=superuser_token_headers,
     )
 
-    assert response.status_code == 201
-    assert events == ["commit", "email"]
+    assert response.status_code == 202
+    assert response.json() == {"message": "Test email queued"}
+    assert commit_count == 1
+    db.expire_all()
+    outbox = db.exec(
+        select(EmailOutbox).where(EmailOutbox.recipient == "test@example.com")
+    ).one()
+    assert outbox.kind is EmailOutboxKind.RENDERED

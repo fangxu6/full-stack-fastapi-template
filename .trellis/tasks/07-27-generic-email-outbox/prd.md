@@ -11,6 +11,8 @@
 - Celery 已使用默认单队列、JSON 参数、late ACK 与 visibility timeout；Worker 可只接收数值 ID 并打开自己的数据库 Session。
 - scheduler 告警已经有 one-hour throttle 和配置收件人，但目前在 task 内同步发送邮件。
 - P0 会提供 HTTP 原子提交；P1 会提供 System Actor 和异步 actor 传播；P2 会提供安全任务生命周期日志。
+- 管理端 `POST /users/` 继续接收并哈希 `password`，保持既有 API 和直接登录行为；邀请邮件不再包含密码，而是使用现有 `/reset-password` 链接协议。
+- `InventoryDailyReportDelivery` 已验证短事务领取、事务外 SMTP、独立结果落库的形状；通用 outbox 复用该形状，但不抽取共享基类或改变日报状态机。
 
 ## Requirements
 
@@ -23,6 +25,8 @@
 7. scheduler alert 在锁定 Job、应用 throttle 和更新 throttle 时间的同一事务中为每个配置收件人插入 `RENDERED` outbox；无收件人时不插入，但仍推进 throttle 并每小时记录一次 `scheduler.alert.unsent`。
 8. Beat 每分钟扫描 due outbox；HTTP 不直接 `.delay()`。每日 09:00 测试邮件改为创建 System Actor 的 rendered outbox；测试邮件 API 返回 `202` 和 `Test email queued`。
 9. SMTP 缺失不阻止合法 outbox 记录创建；worker 将其记为 `SMTP_NOT_CONFIGURED` 并按正常策略重试。首期不提供管理 API/UI、清理或内容 purge。
+10. 状态固定为 `PENDING`、`LEASED`、`RETRY_WAIT`、`DELIVERED`、`FAILED`；失败类别固定为 `SMTP_NOT_CONFIGURED`、`SMTP_DELIVERY_FAILED`、`DELIVERY_LEASE_EXPIRED`、`RECIPIENT_INVALID` 和 `MAX_ATTEMPTS_EXCEEDED`。终态行不再重新领取。
+11. 首次人工创建投递的领取和结果保留创建者作为 audit actor；System Actor 创建的行、全部重试、租约恢复和终态补偿使用 System Actor。worker 仅在内存中保留 recipient、HTML 和短期 JWT，绝不写入日志或数据库。
 
 ## Acceptance Criteria
 
@@ -32,6 +36,7 @@
 - [ ] 欢迎和恢复邮件不保存明文密码/JWT；恢复接口保留枚举安全；测试邮件 API 返回 `202`。
 - [ ] scheduler throttle 与 alert outbox 行同一事务；库存日报继续使用自己的 delivery 表且不复用 `email_outbox`。
 - [ ] 所有 outbox 业务状态可从数据库追踪，日志仅含 P2 允许的任务字段和 SMTP dependency 事件。
+- [ ] 管理端用户创建保留 `password` 请求/哈希兼容性，但 outbox 和欢迎模板均不含明文密码；public signup 和 disabled-user enable 不生成邀请。
 
 ## Out Of Scope
 
@@ -39,6 +44,7 @@
 - 不增加邮件管理 API、前端页面、站内通知、告警平台、批量邮件或内容保留清理任务。
 - 不保证 exactly-once SMTP；接受 worker 故障时的可见重复邮件。
 - 不新增 Celery 队列、task route、全局 retry 或同步 fallback 发送。
+- 不改变 public signup、既有 reset-password 消费契约或库存日报状态机。
 
 ## Dependencies
 

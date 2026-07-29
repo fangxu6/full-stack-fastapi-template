@@ -1,14 +1,11 @@
-from unittest.mock import patch
-
-import pytest
 from fastapi.testclient import TestClient
 from pwdlib.hashers.bcrypt import BcryptHasher
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.crud import create_user
-from app.models import User
+from app.models import EmailOutbox, EmailOutboxKind, User
 from app.schemas.user import UserCreate
 from app.utils import generate_password_reset_token
 from tests.utils.user import user_authentication_headers
@@ -83,41 +80,32 @@ def test_use_access_token(
 def test_recovery_password(
     client: TestClient, normal_user_token_headers: dict[str, str]
 ) -> None:
-    with patch("app.services.auth.send_email"):
-        email = "test@example.com"
-        r = client.post(
-            f"{settings.API_V1_STR}/password-recovery/{email}",
-            headers=normal_user_token_headers,
-        )
-        assert r.status_code == 200
-        assert r.json() == {
-            "message": "If that email is registered, we sent a password recovery link"
-        }
+    email = "test@example.com"
+    r = client.post(
+        f"{settings.API_V1_STR}/password-recovery/{email}",
+        headers=normal_user_token_headers,
+    )
+    assert r.status_code == 200
+    assert r.json() == {
+        "message": "If that email is registered, we sent a password recovery link"
+    }
 
 
-def test_recovery_password_sends_email_after_request_commit(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
+def test_recovery_password_queues_an_outbox_row(
+    client: TestClient, db: Session
 ) -> None:
-    events: list[str] = []
-    original_commit = Session.commit
-
-    def record_commit(session: Session) -> None:
-        events.append("commit")
-        original_commit(session)
-
-    def send_email_after_commit(**_: str) -> None:
-        events.append("email")
-        assert events == ["commit", "email"]
-
-    monkeypatch.setattr(Session, "commit", record_commit)
-    monkeypatch.setattr("app.services.auth.send_email", send_email_after_commit)
-
     response = client.post(
         f"{settings.API_V1_STR}/password-recovery/{settings.FIRST_SUPERUSER}"
     )
 
     assert response.status_code == 200
-    assert events == ["commit", "email"]
+    db.expire_all()
+    outbox = db.exec(
+        select(EmailOutbox).where(EmailOutbox.recipient == settings.FIRST_SUPERUSER)
+    ).one()
+    assert outbox.kind is EmailOutboxKind.PASSWORD_RECOVERY
+    assert outbox.subject is None
+    assert outbox.html_content is None
 
 
 def test_recovery_password_user_not_exits(
@@ -135,18 +123,13 @@ def test_recovery_password_user_not_exits(
     }
 
 
-def test_system_actor_password_recovery_is_non_enumerating_and_sends_no_email(
-    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+def test_system_actor_password_recovery_is_non_enumerating_and_queues_nothing(
+    client: TestClient, db: Session
 ) -> None:
     from app.core.audit import ensure_system_actor
 
     system_actor = ensure_system_actor(session=db)
     db.commit()
-    sent: list[dict[str, str]] = []
-    monkeypatch.setattr(
-        "app.services.auth.send_email", lambda **kwargs: sent.append(kwargs)
-    )
-
     response = client.post(
         f"{settings.API_V1_STR}/password-recovery/{system_actor.email}"
     )
@@ -155,7 +138,12 @@ def test_system_actor_password_recovery_is_non_enumerating_and_sends_no_email(
     assert response.json() == {
         "message": "If that email is registered, we sent a password recovery link"
     }
-    assert sent == []
+    assert (
+        db.exec(
+            select(EmailOutbox).where(EmailOutbox.recipient == system_actor.email)
+        ).first()
+        is None
+    )
 
 
 def test_reset_password(client: TestClient, db: Session) -> None:
@@ -228,7 +216,10 @@ def test_system_actor_password_reset_and_html_preview_are_unavailable(
     assert reset.status_code == 400
     assert reset.json()["detail"] == "Invalid token"
     assert html.status_code == 404
-    assert html.json()["detail"] == "The user with this username does not exist in the system."
+    assert (
+        html.json()["detail"]
+        == "The user with this username does not exist in the system."
+    )
     db.refresh(system_actor)
     assert system_actor.hashed_password == original_hash
 

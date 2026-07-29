@@ -3,7 +3,7 @@
   "name": "generic-email-outbox",
   "title": "通用邮件发件箱",
   "description": "为欢迎、恢复、测试和调度告警邮件建立持久化单收件人 outbox、Celery 投递和有限重试；库存日报保持领域专用实现。",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": "backend durable generic email outbox and Celery SMTP delivery",
   "package": "backend",

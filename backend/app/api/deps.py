@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends
 from sqlmodel import Session
 
-from app.core.audit import bind_audit_actor
+from app.core.audit import bind_audit_actor, require_system_actor
 
 from .dependencies import (
     CurrentUser,
@@ -24,8 +24,16 @@ def get_audited_write_session(
     return session
 
 
+def get_system_audited_write_session(session: WriteSessionDep) -> Session:
+    bind_audit_actor(session=session, actor_id=require_system_actor(session=session))
+    return session
+
+
 AuditedWriteSessionDep = Annotated[
     Session, Depends(get_audited_write_session, scope="function")
+]
+SystemAuditedWriteSessionDep = Annotated[
+    Session, Depends(get_system_audited_write_session, scope="function")
 ]
 
 __all__ = [
@@ -33,6 +41,7 @@ __all__ = [
     "SessionDep",
     "WriteSessionDep",
     "AuditedWriteSessionDep",
+    "SystemAuditedWriteSessionDep",
     "TokenDep",
     "get_current_active_superuser",
     "get_current_user",

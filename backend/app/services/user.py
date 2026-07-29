@@ -1,10 +1,8 @@
 import uuid
 
-from fastapi import BackgroundTasks
 from sqlmodel import Session, col, func, select
 
 from app import crud
-from app.core.config import settings
 from app.core.exceptions import (
     BadRequestError,
     ConflictError,
@@ -23,7 +21,7 @@ from app.schemas.user import (
     UserUpdate,
     UserUpdateMe,
 )
-from app.utils import generate_new_account_email, send_email
+from app.services.email_outbox import queue_account_set_password_email
 
 
 def read_users(*, session: Session, skip: int = 0, limit: int = 100) -> UsersPublic:
@@ -58,9 +56,7 @@ def user_public(*, session: Session, user: User) -> UserPublic:
     )
 
 
-def create_user(
-    *, session: Session, user_in: UserCreate, background_tasks: BackgroundTasks
-) -> User:
+def create_user(*, session: Session, user_in: UserCreate) -> User:
     user = crud.get_user_by_email(session=session, email=user_in.email)
     if user:
         raise BadRequestError("The user with this email already exists in the system.")
@@ -72,16 +68,8 @@ def create_user(
         )
     session.flush()
     session.refresh(user)
-    if settings.emails_enabled and user_in.email:
-        email_data = generate_new_account_email(
-            email_to=user_in.email, username=user_in.email, password=user_in.password
-        )
-        background_tasks.add_task(
-            send_email,
-            email_to=user_in.email,
-            subject=email_data.subject,
-            html_content=email_data.html_content,
-        )
+    if user.is_active:
+        queue_account_set_password_email(session=session, user=user)
     return user
 
 

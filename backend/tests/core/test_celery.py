@@ -9,11 +9,13 @@ from unittest.mock import patch
 import pytest
 import structlog
 from celery.signals import task_postrun, task_prerun  # type: ignore[import-untyped]
+from sqlmodel import Session, select
 
 from app.core.celery import celery_app
 from app.core.config import settings
 from app.core.observability import clear_task_context, configure_observability
 from app.core.tasks import runtime_ping, send_scheduled_test_email
+from app.models import EmailOutbox, EmailOutboxKind
 from app.utils import EmailData
 
 
@@ -40,7 +42,7 @@ def _runtime_environment(tmp_path: Path) -> dict[str, str]:
 
 
 @pytest.mark.parametrize("command", ["worker", "beat"])
-def test_celery_cli_refuses_missing_alert_runtime_settings(
+def test_celery_cli_allows_missing_smtp_and_alert_recipients(
     tmp_path: Path, command: str
 ) -> None:
     environment = _runtime_environment(tmp_path)
@@ -63,8 +65,7 @@ def test_celery_cli_refuses_missing_alert_runtime_settings(
         timeout=10,
     )
 
-    assert completed.returncode != 0
-    assert "require SMTP" in completed.stderr
+    assert completed.returncode == 0, completed.stderr
 
 
 def test_fastapi_import_does_not_require_alert_runtime_settings(tmp_path: Path) -> None:
@@ -193,9 +194,7 @@ def test_eager_failure_then_success_emits_isolated_lifecycle_events(
         "task.started",
         "task.completed",
     ]
-    assert [
-        (payload["task_id"], payload["task_name"]) for payload in payloads
-    ] == [
+    assert [(payload["task_id"], payload["task_name"]) for payload in payloads] == [
         (failure_task_id, failure_task_name),
         (failure_task_id, failure_task_name),
         (success_task_id, "runtime.ping"),
@@ -380,28 +379,34 @@ def test_scheduler_beat_tasks_are_registered() -> None:
     assert celery_app.conf.beat_schedule["runtime-daily-test-email"]["task"] == (
         "runtime.send_test_email"
     )
+    assert celery_app.conf.beat_schedule["email-outbox-scan-due"]["task"] == (
+        "email_outbox.scan_due"
+    )
     assert settings.CELERY_VISIBILITY_TIMEOUT_SECONDS == 3600
     assert "inventory.daily_report.deliver" in celery_app.tasks
     assert "scheduler.scan_due_jobs" in celery_app.tasks
     assert "scheduler.execute_run" in celery_app.tasks
     assert "scheduler.cleanup_runs" in celery_app.tasks
     assert "runtime.send_test_email" in celery_app.tasks
+    assert "email_outbox.scan_due" in celery_app.tasks
+    assert "email_outbox.deliver" in celery_app.tasks
 
 
-def test_scheduled_test_email_uses_the_configured_recipient() -> None:
+def test_scheduled_test_email_queues_the_configured_recipient(db: Session) -> None:
     email_data = EmailData(html_content="<p>test</p>", subject="Test email")
     with (
         patch(
             "app.core.tasks.generate_test_email", return_value=email_data
         ) as generate,
-        patch("app.core.tasks.send_email") as send,
     ):
         send_scheduled_test_email()
 
     recipient = str(settings.EMAIL_TEST_USER)
     generate.assert_called_once_with(email_to=recipient)
-    send.assert_called_once_with(
-        email_to=recipient,
-        subject=email_data.subject,
-        html_content=email_data.html_content,
-    )
+    db.expire_all()
+    outbox = db.exec(
+        select(EmailOutbox).where(EmailOutbox.recipient == recipient)
+    ).one()
+    assert outbox.kind is EmailOutboxKind.RENDERED
+    assert outbox.subject == email_data.subject
+    assert outbox.html_content == email_data.html_content

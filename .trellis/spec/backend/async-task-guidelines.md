@@ -99,9 +99,11 @@ transition in PostgreSQL.
 
 ### 3. Contracts
 
-- Outside `local`, importing the Celery app validates SMTP plus alert
-  recipients before creating the app. Worker and Beat therefore exit nonzero
-  on missing configuration; FastAPI startup must not import this module.
+- Celery import does not require SMTP or scheduler alert recipients. Durable
+  email producers must create an outbox row even when SMTP is absent; delivery
+  records `SMTP_NOT_CONFIGURED` and retries later. An empty scheduler recipient
+  list produces no outbox rows, but still advances the alert throttle and logs
+  `scheduler.alert.unsent`.
 - Scheduler task configuration rejects credential-like keys and any Pydantic
   JSON Schema node with `format: password`, including nested models,
   containers, unions, and `$defs`. Validate before saving job config, frozen
@@ -124,8 +126,7 @@ transition in PostgreSQL.
 
 | Condition | Required behavior |
 | --- | --- |
-| `staging` or `production` Celery import lacks SMTP or recipients | Worker/Beat process exits nonzero before consuming messages. |
-| HTTP app starts without scheduler email settings | Startup remains available; runtime validation is not imported. |
+| Celery import lacks SMTP or scheduler recipients | Worker/Beat remains available; the outbox delivery records a retryable SMTP failure, and scheduler alert throttling still completes. |
 | Submitted config has `credential`, `authorization`, `access_key`, password-schema field, or equivalent | Return the unified 422 error before any job/run JSONB write. |
 | Queued run has an active dispatch lease | Do not send it again until the lease expires. |
 | One broker send fails in a claimed batch | Keep other sends independent and retry that run on the next scan minute. |
@@ -146,7 +147,7 @@ transition in PostgreSQL.
 ### 6. Tests Required
 
 - Cover real environment and dotenv CSV sources, duplicate/invalid recipient
-  rejection, and Worker/Beat CLI failure with FastAPI import isolation.
+  rejection, and Worker/Beat import without SMTP or recipients.
 - Cover nested/container/union secret schema and credential-key rejection at
   service and API boundaries, including no persisted job on 422.
 - Cover dispatch lease, broker-send retry timing, 100-row cap, active-run
@@ -339,3 +340,91 @@ deliver_inventory_daily_report.delay(delivery_id)
 
 The task reloads and locks a frozen delivery record, then updates its durable
 attempt state after SMTP returns.
+
+## Scenario: Generic Email Outbox
+
+### 1. Scope / Trigger
+
+- Trigger: an HTTP route, runtime task, or scheduler alert needs non-report
+  email delivery. Inventory daily reports retain their dedicated delivery
+  tables and are not migrated into this model.
+
+### 2. Signatures
+
+- Table: `email_outbox`, with `BIGINT GENERATED ALWAYS AS IDENTITY` id and
+  audit fields.
+- Tasks: `email_outbox.scan_due()` every minute and
+  `email_outbox.deliver(outbox_id: int)`.
+- Kinds: `RENDERED`, `ACCOUNT_SET_PASSWORD`, `PASSWORD_RECOVERY`; states:
+  `PENDING`, `LEASED`, `RETRY_WAIT`, `DELIVERED`, `FAILED`.
+- Producers: `queue_rendered_email(...)`,
+  `queue_account_set_password_email(...)`, and
+  `queue_password_recovery_email(...)`.
+
+### 3. Contracts
+
+- One row owns one scalar recipient. `RENDERED` stores a subject and HTML
+  snapshot with no User reference. Link kinds store a User reference with no
+  subject, HTML, initial password, or reset JWT.
+- HTTP writes the outbox row in its request Unit of Work and never calls SMTP
+  or Celery directly. The test-email route returns `202` with
+  `Test email queued`.
+- The scanner recovers expired leases, commits due IDs, then publishes each
+  numeric ID. A worker claims in one transaction, calls SMTP outside it, then
+  records the result in a new transaction only if its lease is still current.
+- Retries are every 15 minutes with at most eight attempts. SMTP acceptance
+  before worker loss can duplicate email but must not silently lose delivery.
+- Link delivery re-reads the User and requires active, non-System status plus
+  an unchanged email. Otherwise it records terminal `RECIPIENT_INVALID`.
+- The initial human creator remains the audit actor for the first claim/result;
+  retries, lease recovery, System-created rows, and terminal compensation use
+  the System Actor.
+
+### 4. Validation And Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| SMTP is unavailable | Keep the row and move it to `RETRY_WAIT` with `SMTP_NOT_CONFIGURED`. |
+| SMTP send raises | Keep the row and move it to `RETRY_WAIT` with `SMTP_DELIVERY_FAILED`. |
+| Delivery lease expires | System Actor moves it to `RETRY_WAIT`, or terminal `FAILED` on attempt eight. |
+| Link User is missing, inactive, System, or has a different email | Mark `FAILED/RECIPIENT_INVALID`; do not send. |
+| Row is `DELIVERED` or `FAILED` | Do not claim or send it again. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: an active managed user creation writes an
+  `ACCOUNT_SET_PASSWORD` row in the same commit; the worker creates a fresh
+  reset-password token only in memory.
+- Base: a scheduler alert locks and updates its throttle while creating one
+  `RENDERED` row per configured recipient in that same transaction.
+- Bad: placing a password or JWT in an outbox row, calling `send_email()` from
+  an HTTP route, or passing HTML/User objects to Celery.
+
+### 6. Tests Required
+
+- Cover the migration round trip and database shape constraints.
+- Cover one-time success, missing SMTP, provider failure, lease recovery,
+  eight-attempt termination, and invalid link recipients.
+- Cover active managed-user, password-recovery, test-email `202`, and scheduler
+  producer boundaries; assert HTTP only persists rows.
+
+### 7. Wrong Vs Correct
+
+#### Wrong
+
+```python
+send_email(email_to=email, subject=subject, html_content=html)
+```
+
+This loses durable delivery progress if the request or scheduler process dies.
+
+#### Correct
+
+```python
+queue_rendered_email(
+    session=session, recipient=email, subject=subject, html_content=html
+)
+```
+
+The request transaction persists the delivery intent before the minute scanner
+hands only its numeric ID to Celery.

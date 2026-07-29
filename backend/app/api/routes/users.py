@@ -1,10 +1,11 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, Depends
 
 from app import services
 from app.api.deps import (
+    AuditedWriteSessionDep,
     CurrentUser,
     SessionDep,
     WriteSessionDep,
@@ -43,16 +44,13 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
 )
 def create_user(
     *,
-    background_tasks: BackgroundTasks,
-    session: WriteSessionDep,
+    session: AuditedWriteSessionDep,
     user_in: UserCreate,
 ) -> Any:
     """
     Create new user.
     """
-    user = services.user.create_user(
-        session=session, user_in=user_in, background_tasks=background_tasks
-    )
+    user = services.user.create_user(session=session, user_in=user_in)
     return services.user.user_public(session=session, user=user)
 
 

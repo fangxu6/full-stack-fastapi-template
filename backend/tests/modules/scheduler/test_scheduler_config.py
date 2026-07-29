@@ -5,8 +5,6 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from app.core.config import settings
-from app.modules.scheduler import config
 from app.modules.scheduler.config import SchedulerSettings
 
 
@@ -70,25 +68,5 @@ def test_alert_recipients_reject_invalid_values(recipients: str) -> None:
         make_scheduler_settings(SCHEDULED_TASK_ALERT_RECIPIENTS=recipients)
 
 
-def test_runtime_settings_allow_local_without_smtp(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
-    monkeypatch.setattr(
-        config.scheduler_settings, "SCHEDULED_TASK_ALERT_RECIPIENTS", []
-    )
-
-    config.validate_scheduler_runtime_settings()
-
-
-def test_runtime_settings_require_smtp_and_recipients_outside_local(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(settings, "ENVIRONMENT", "staging")
-    monkeypatch.setattr(settings, "SMTP_HOST", None)
-    monkeypatch.setattr(
-        config.scheduler_settings, "SCHEDULED_TASK_ALERT_RECIPIENTS", []
-    )
-
-    with pytest.raises(ValueError, match="require SMTP"):
-        config.validate_scheduler_runtime_settings()
+def test_alert_recipients_are_optional() -> None:
+    assert make_scheduler_settings().SCHEDULED_TASK_ALERT_RECIPIENTS == []

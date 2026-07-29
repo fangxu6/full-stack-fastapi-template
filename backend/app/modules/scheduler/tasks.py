@@ -26,7 +26,7 @@ from app.modules.scheduler.service import (
     utc_now,
     validate_definition,
 )
-from app.utils import send_email
+from app.services.email_outbox import queue_rendered_email
 
 ALERT_INTERVAL = timedelta(hours=1)
 DISPATCH_BATCH_SIZE = 100
@@ -42,10 +42,14 @@ def _send_alert(
     actor_id: uuid.UUID,
 ) -> None:
     now = utc_now()
+    recipients = scheduler_settings.SCHEDULED_TASK_ALERT_RECIPIENTS
+    emit_unsent = False
     with Session(engine) as session:
         bind_audit_actor(session=session, actor_id=actor_id)
         try:
-            job = session.get(SchedulerJob, job_id)
+            job = session.exec(
+                select(SchedulerJob).where(SchedulerJob.id == job_id).with_for_update()
+            ).one_or_none()
             if job is None:
                 return
             if kind == "OVERLAP":
@@ -63,26 +67,28 @@ def _send_alert(
             else:
                 job.run_failure_alerted_at = now
             session.add(job)
+            if recipients:
+                subject = f"{settings.PROJECT_NAME} - Scheduled task alert"
+                content = (
+                    f"<p>Task: {job.name} (#{job_id})</p>"
+                    f"<p>Category: {category}</p>"
+                    f"<p>Planned at: {planned_at}</p>"
+                    f"<p>Summary: {summary}</p>"
+                )
+                for recipient in recipients:
+                    queue_rendered_email(
+                        session=session,
+                        recipient=str(recipient),
+                        subject=subject,
+                        html_content=content,
+                    )
+            else:
+                emit_unsent = True
             session.commit()
-            name = job.name
         finally:
             clear_audit_actor(session=session)
-    recipients = scheduler_settings.SCHEDULED_TASK_ALERT_RECIPIENTS
-    if not settings.emails_enabled or not recipients:
+    if emit_unsent:
         log_event(event_name="scheduler.alert.unsent", severity="WARNING")
-        return
-    subject = f"{settings.PROJECT_NAME} - Scheduled task alert"
-    content = (
-        f"<p>Task: {name} (#{job_id})</p>"
-        f"<p>Category: {category}</p>"
-        f"<p>Planned at: {planned_at}</p>"
-        f"<p>Summary: {summary}</p>"
-    )
-    for recipient in recipients:
-        try:
-            send_email(email_to=str(recipient), subject=subject, html_content=content)
-        except Exception:
-            log_event(event_name="scheduler.alert.unsent", severity="WARNING")
 
 
 def _dispatch_now(now: datetime | None = None) -> datetime:
