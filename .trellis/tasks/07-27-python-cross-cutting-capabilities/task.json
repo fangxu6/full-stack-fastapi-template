@@ -22,7 +22,8 @@
     "07-27-request-unit-of-work",
     "07-27-explicit-audit-actor",
     "07-27-safe-celery-observability",
-    "07-27-generic-email-outbox"
+    "07-27-generic-email-outbox",
+    "07-29-harden-celery-observability"
   ],
   "parent": null,
   "relatedFiles": [],
