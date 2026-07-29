@@ -509,3 +509,36 @@ Removed the retired inventory AI BFF, sidecar workspace, Compose and configurati
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: Complete explicit audit actor
+
+**Date**: 2026-07-29
+**Task**: Complete explicit audit actor
+**Branch**: `master`
+
+### Summary
+
+Implemented key-based multiple System Actors, importer validation, audit lifecycle and scheduler attribution coverage; verified PostgreSQL migration rollback guards on aiadmin_test.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `67540f1` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
