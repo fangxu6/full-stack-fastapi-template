@@ -7,10 +7,10 @@
 ## Current State
 
 - AI 库存查询及 sidecar 已在 `5f17e10` 中删除，本任务不再重复实施。
-- 调度运行的投递租约、配置校验和每日库存日报已存在，日报仍保持领域专用投递记录。
-- `AuditFields` 已用于新业务表，但 HTTP actor 传播和 System Actor 约束尚未完成。
-- HTTP 路由、CRUD 和服务中仍存在直接 `session.commit()`；SMTP 测试邮件、欢迎邮件和密码恢复邮件仍未统一进入持久化发件箱。
-- Celery 已使用 PostgreSQL 记录业务状态，但任务观测上下文需要收敛为安全的任务标识。
+- 调度运行的投递租约、配置校验和每日库存日报保留领域专用投递记录；通用邮件已进入独立的持久化 outbox。
+- HTTP 请求级 Unit of Work、显式审计 actor 与受保护 System Actor 约束已由子任务完成。
+- 欢迎邮件、密码恢复邮件、测试邮件和调度告警邮件已统一进入通用 outbox；worker 领取、投递、重试和结果落库均已覆盖。
+- Celery 生命周期观测已收敛为允许的任务标识与安全结果类别。
 
 ## Requirements
 
@@ -33,13 +33,20 @@
 
 ## Acceptance Criteria
 
-- [ ] HTTP `POST/PUT/PATCH/DELETE` 写路径在 endpoint 成功后提交，在 endpoint 或服务异常后回滚；服务层不再调用 `commit()`/`rollback()`。
-- [ ] HTTP 写入和异步写入均能验证 actor；System Actor 只能由受控内部流程使用，不能通过普通用户管理接口操作。
-- [ ] 欢迎、恢复、测试和调度告警邮件先形成持久化 outbox 记录，再由 Celery worker 投递；SMTP 失败可安全重试，已成功收件人不重复发送。
-- [ ] 任务日志不包含任务参数、密钥、token、邮件内容或用户标识，仅包含允许的任务标识和失败类别。
-- [ ] Alembic 升级/降级、现有登录/用户/调度/库存 API 以及 Celery eager 测试通过；生成的 OpenAPI 客户端如有变化按仓库流程同步。
-- [ ] 四个子任务按上述顺序完成各自验收；父任务完成跨模块回归、迁移往返和最终集成审查。
-- [ ] 任务仍为 `planning`，未执行 `task.py start`；实现前须由用户审核并确认计划。
+- [x] HTTP `POST/PUT/PATCH/DELETE` 写路径在 endpoint 成功后提交，在 endpoint 或服务异常后回滚；服务层不再调用 `commit()`/`rollback()`。
+- [x] HTTP 写入和异步写入均能验证 actor；System Actor 只能由受控内部流程使用，不能通过普通用户管理接口操作。
+- [x] 欢迎、恢复、测试和调度告警邮件先形成持久化 outbox 记录，再由 Celery worker 投递；SMTP 失败可安全重试，已成功收件人不重复发送。
+- [x] 任务日志不包含任务参数、密钥、token、邮件内容或用户标识，仅包含允许的任务标识和失败类别。
+- [x] Alembic 升级/降级、现有登录/用户/调度/库存 API 以及 Celery eager 测试通过；生成的 OpenAPI 客户端如有变化按仓库流程同步。
+- [x] 五个子任务按既定顺序完成各自验收；父任务完成跨模块回归、迁移往返和最终集成审查。
+- [x] 计划已审核，并于 2026-07-30 获用户确认后进入 `in_progress`，用于完成父任务集成验收与归档。
+
+## Completion Evidence
+
+- 子任务 `07-27-request-unit-of-work`、`07-27-explicit-audit-actor`、`07-27-safe-celery-observability`、`07-27-generic-email-outbox` 和 `07-29-harden-celery-observability` 均已归档为 `completed`。
+- 全量后端质量门禁：`POSTGRES_DB=aiadmin_pytest; uv run pytest -q` 通过（`277 passed, 2 skipped`）；`bash scripts/lint.sh` 与 `git diff --check` 通过。
+- 隔离数据库 `aiadmin_pytest` 已执行迁移往返：`b5c6d7e8f9a0 -> a8b4c2d6e9f0 -> f2a8c7d1e6b4 -> b5c6d7e8f9a0`。
+- 隔离 API E2E 数据库已验证健康检查、超级用户登录、用户创建及回滚、密码恢复与测试邮件入队、outbox actor/payload 约束，以及 System Actor 不可登录、不可管理且无角色。
 
 ## Out Of Scope
 

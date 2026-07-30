@@ -3,7 +3,7 @@
   "name": "python-cross-cutting-capabilities",
   "title": "Python 横切能力改造",
   "description": "在已完成 AI 库存查询删除和调度运行时修复的基础上，废止服务层事务边界，引入请求级 Unit of Work、显式审计 Actor、通用邮件发件箱与安全的 Celery 任务观测上下文；仅在评审通过后实施。",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
