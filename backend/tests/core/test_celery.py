@@ -16,6 +16,7 @@ from app.core.config import settings
 from app.core.observability import clear_task_context, configure_observability
 from app.core.tasks import runtime_ping, send_scheduled_test_email
 from app.models import EmailOutbox, EmailOutboxKind
+from app.services import email_outbox
 from app.utils import EmailData
 
 
@@ -393,6 +394,17 @@ def test_scheduler_beat_tasks_are_registered() -> None:
 
 
 def test_scheduled_test_email_queues_the_configured_recipient(db: Session) -> None:
+    recipient = str(settings.EMAIL_TEST_USER)
+    existing_outbox = email_outbox.queue_rendered_email(
+        session=db,
+        recipient=recipient,
+        subject="Earlier email",
+        html_content="<p>Earlier email</p>",
+    )
+    db.commit()
+    existing_outbox_id = existing_outbox.id
+    assert existing_outbox_id is not None
+
     email_data = EmailData(html_content="<p>test</p>", subject="Test email")
     with (
         patch(
@@ -401,12 +413,17 @@ def test_scheduled_test_email_queues_the_configured_recipient(db: Session) -> No
     ):
         send_scheduled_test_email()
 
-    recipient = str(settings.EMAIL_TEST_USER)
     generate.assert_called_once_with(email_to=recipient)
     db.expire_all()
-    outbox = db.exec(
-        select(EmailOutbox).where(EmailOutbox.recipient == recipient)
-    ).one()
+    new_outboxes = [
+        outbox
+        for outbox in db.exec(
+            select(EmailOutbox).where(EmailOutbox.recipient == recipient)
+        ).all()
+        if outbox.id != existing_outbox_id
+    ]
+    assert len(new_outboxes) == 1
+    outbox = new_outboxes[0]
     assert outbox.kind is EmailOutboxKind.RENDERED
     assert outbox.subject == email_data.subject
     assert outbox.html_content == email_data.html_content
