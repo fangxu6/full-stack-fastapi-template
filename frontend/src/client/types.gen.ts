@@ -270,6 +270,8 @@ export type SchedulerJobPublic = {
     created_by: string;
     updated_at: string;
     updated_by: string;
+    can_run_now: boolean;
+    can_backfill: boolean;
 };
 
 export type SchedulerJobsPublic = {

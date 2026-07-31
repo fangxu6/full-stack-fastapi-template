@@ -1328,10 +1328,18 @@ export const SchedulerJobPublicSchema = {
             type: 'string',
             format: 'uuid',
             title: 'Updated By'
+        },
+        can_run_now: {
+            type: 'boolean',
+            title: 'Can Run Now'
+        },
+        can_backfill: {
+            type: 'boolean',
+            title: 'Can Backfill'
         }
     },
     type: 'object',
-    required: ['id', 'name', 'class_path', 'cron_expression', 'config', 'enabled', 'next_run_at', 'deleted_at', 'created_at', 'created_by', 'updated_at', 'updated_by'],
+    required: ['id', 'name', 'class_path', 'cron_expression', 'config', 'enabled', 'next_run_at', 'deleted_at', 'created_at', 'created_by', 'updated_at', 'updated_by', 'can_run_now', 'can_backfill'],
     title: 'SchedulerJobPublic'
 } as const;
 
