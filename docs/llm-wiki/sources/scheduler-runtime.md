@@ -1,7 +1,7 @@
 ---
 title: Scheduler Runtime Source
 created: 2026-07-27
-updated: 2026-07-27
+updated: 2026-07-31
 type: source
 tags:
   - llm-wiki
@@ -10,7 +10,7 @@ tags:
   - celery
   - postgres
 status: active
-source_count: 3
+source_count: 4
 ---
 
 # Scheduler Runtime Source
@@ -19,7 +19,9 @@ source_count: 3
 
 - Path: `.trellis/spec/backend/async-task-guidelines.md`
   Role: Executable scheduler dispatch, configuration, and verification contract.
-- Path: `.trellis/tasks/07-26-scheduler-review-findings/`
+- Path: `.trellis/tasks/archive/2026-07/07-26-scheduled-task-management/`
+  Role: Completed parent task requirements, final acceptance record, and deferred scope.
+- Path: `.trellis/tasks/archive/2026-07/07-26-scheduler-review-findings/`
   Role: Reviewed implementation decision, migration plan, E2E cases, and evidence.
 - Paths: `backend/app/modules/scheduler/`, `backend/app/core/celery.py`, and
   `backend/app/alembic/versions/d7e2a5c9f8b1_add_scheduler_run_dispatch_lease.py`
@@ -29,9 +31,10 @@ source_count: 3
 
 - PostgreSQL is the source of truth for scheduler definitions and runs; Celery
   carries only a numeric run ID and preserves at-least-once execution.
-- Outside `local`, importing `app.core.celery:celery_app` validates scheduler
-  SMTP and alert-recipient settings. FastAPI startup must not import that
-  runtime boundary.
+- Importing `app.core.celery:celery_app` does not require SMTP or scheduler
+  alert recipients. Empty recipients create no outbox rows, still advance the
+  alert throttle, and emit `scheduler.alert.unsent`; populated recipients
+  create durable outbox rows, whose separate delivery flow handles SMTP retry.
 - Scheduler config rejects credential-like JSON keys and Pydantic JSON Schema
   nodes with `format: password`, including nested models, containers, unions,
   and `$defs`, before a job or frozen run snapshot is persisted or exposed.
@@ -55,6 +58,9 @@ source_count: 3
 - Never scan and enqueue every queued run each minute. Use the persisted
   dispatch lease and batch cap so worker backlog or broker outage cannot form a
   duplicate-message storm.
+- Do not block Worker or Beat startup on scheduler SMTP/recipient configuration.
+  Preserve the scheduler state transition and hand delivery failures to the
+  durable outbox boundary instead.
 - Keep `next_dispatch_at` out of public scheduler API schemas and generated
   frontend types; it is dispatch bookkeeping, not a user-facing run state.
 - Treat `datetime-local` inputs as Shanghai UTC+8 wall-clock values and submit

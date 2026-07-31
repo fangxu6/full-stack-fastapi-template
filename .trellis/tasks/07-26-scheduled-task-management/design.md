@@ -137,10 +137,10 @@ flowchart LR
 
 - 新增独立 `scheduler` settings，使用逗号分隔的 `SCHEDULED_TASK_ALERT_RECIPIENTS`，解析为
   去重 `EmailStr` 列表。它不写入核心 `Settings`，避免影响 HTTP API 启动。
-- `celery.py` 在仅 Worker/Beat 会加载的路径调用调度运行时校验：非 `local` 要求
-  `settings.emails_enabled` 和非空收件人，否则进程启动失败；`local` 允许缺失并输出安全日志。
-- 告警直接使用现有 `send_email`。投递失败不改变原运行终态；记录既有 SMTP 安全日志，避免
-  递归产生告警。邮件只包含任务名称/ID、类别、计划和安全摘要。
+- Celery 导入不校验 SMTP 或告警收件人；Worker、Beat 与 HTTP API 在缺少这些运行时配置时均可
+  启动。空收件人列表不创建告警 outbox 行，而是记录 `scheduler.alert.unsent` 并保持限频状态。
+- 告警以每位收件人一条 `RENDERED` outbox 行持久化。outbox 的独立投递流程处理 SMTP 缺失、
+  provider 故障与重试，不改变原运行终态；邮件只包含任务名称/ID、类别、计划和安全摘要。
 - 每项告警类型对应 `scheduler_job` 中的一个时间戳。少于一小时不投递；成功清理失败和重叠
   时间戳，有效 API 保存清理配置错误时间戳；不发送恢复邮件。
 
@@ -180,7 +180,7 @@ flowchart LR
 - `init_db` 在 IAM bootstrap 成功后调用 scheduler bootstrap，传入刚解析的真实
   `FIRST_SUPERUSER`。bootstrap 用 `bootstrap_key` 仅插入缺失的两条库存定义，绝不覆盖已有行。
 - 部署顺序维持现有模式：`alembic upgrade head`，再运行 `python app/initial_data.py`，最后启动
-  HTTP、Worker 和 Beat。无需新增 PM2 进程；现有 Worker/Beat 加载 scheduler tasks 即执行配置
-  前校验。
+  HTTP、Worker 和 Beat。无需新增 PM2 进程；告警收件人或 SMTP 缺失不阻塞这些进程，耐久
+  outbox 行由独立投递流程重试。
 - 回滚前必须停止 Worker/Beat，避免旧代码读取新表；降级会删除调度数据，因此仅在明确接受
   丢失新任务配置和运行历史时执行。

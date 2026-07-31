@@ -25,8 +25,8 @@
 | E2E-009 | 手工立即运行 | 停用但有效定义 | `POST /run-now` | 200，queued run | `trigger=MANUAL_NOW`、`requested_by` 为请求用户、上海当前参考时点 | 不需要 enabled；活动 run 时 409。 |
 | E2E-010 | 单时点补发 | 有 Cron 定义 | `POST /backfill`，过去且命中 Cron 的 +08:00 时间 | 200，queued run | `trigger=MANUAL_BACKFILL`、冻结所选时点和请求人 | 未来、无时区、未命中或超过 90 天为 422。 |
 | E2E-011 | 运行历史 | 多种 run 终态 | `GET /jobs/{id}/runs` 分页 | 200，`{data,count}` | 仅安全字段和快照 | 他人 job/软删 job 404；无 read 403。 |
-| E2E-012 | 告警限频 | SMTP mock、失败/重叠/配置失效定义 | 连续触发同类别，再触发成功或有效更新 | 原操作正常完成 | 每任务每类别一小时一封；成功清运行/重叠限频，有效更新清配置限频 | SMTP 失败不改写 run 状态；手工 409 不发邮件。 |
-| E2E-013 | Runtime config | staging/production 样例环境 | 启动 Worker/Beat | 缺收件人或 SMTP 时失败退出 | HTTP API 不受该 validator 影响 | local 可以启动并记录安全日志。 |
+| E2E-012 | 告警限频 | 收件人、SMTP mock、失败/重叠/配置失效定义 | 连续触发同类别，再触发成功或有效更新 | 原操作正常完成 | 每任务每类别每小时创建一组耐久 outbox 行；成功清运行/重叠限频，有效更新清配置限频 | SMTP 失败不改写 run 状态；手工 409 不发邮件。 |
+| E2E-013 | Runtime config | staging/production 样例环境，缺收件人或 SMTP | 启动 Worker/Beat | 进程可启动 | HTTP API 同样可用；空收件人只记录 `scheduler.alert.unsent` 并推进限频 | 不得因告警投递配置阻塞 Celery 导入或启动。 |
 | E2E-014 | Inventory bootstrap | 干净升级数据库、已初始化管理员 | 运行 `initial_data.py` 两次 | 均成功 | 只创建两条 bootstrap-key 任务且启用，不覆盖人工编辑 | 固定 inventory create/retry Beat 条目不存在。 |
 | E2E-015 | Inventory timing | 每日创建 job 在 08:00 queued，实际执行 08:16 上海 | 执行 run | run 为 `SKIPPED` | 不创建库存日报；投递任务注册保持 | 08:01 运行仍复用原逻辑创建日报。 |
 | E2E-016 | Retention | 90 天前终态与活动 run | 运行 cleanup task | 清理完成 | 仅删除过期终态 run，definition 保留 | 活动、90 天内或无 `finished_at` 的 run 不删除。 |
@@ -55,4 +55,4 @@ bun run build
 ```
 
 执行需要 Worker/Beat 的用例时使用隔离 Redis 和测试 SMTP。记录任何端口、SMTP 或数据库
-环境阻塞到 `implement.md` 的验证记录，不能为通过测试而放宽生产启动校验。
+环境阻塞到 `implement.md` 的验证记录；SMTP 缺失的耐久投递行为由通用 outbox 契约验证。

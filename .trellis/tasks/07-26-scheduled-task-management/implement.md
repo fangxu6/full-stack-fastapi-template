@@ -33,8 +33,8 @@
 4. **Runtime and inventory integration**
    - 扩展 `backend/app/core/celery.py` 的 include，保留每日测试邮件，加入每分钟扫描和每日
      cleanup；删除库存创建/retry 固定 Beat 条目。
-   - `celery.py` 调用 scheduler runtime configuration validator：staging/production 缺少 SMTP
-     或收件人时拒绝 Worker/Beat；local 仅记录安全日志。
+   - 保持 `celery.py` 对 SMTP 和告警收件人配置无启动前依赖；调度告警通过通用
+     `email_outbox` 持久化，空收件人记录 `scheduler.alert.unsent`，SMTP 不可用由 outbox 重试。
    - 增加 `backend/app/modules/inventory/scheduled_tasks.py` 两个适配类；保留
      `inventory.daily_report.deliver` 注册，移除不再需要的 create/retry Celery 注册。
    - 创建日报适配类用实际运行开始时间调用既有窗口函数；08:15 后将 scheduler run 记为
@@ -120,7 +120,7 @@ bun run build
 | 类路径在部署后失效 | 同步验证、运行记录失败、限频邮件、保持启用便于代码修复后恢复 | 修复代码或有效保存配置；不自动停用。 |
 | Worker 崩溃导致重复 | run lease + late ack + 业务幂等；只重领同一 run | 停止 Worker，检查 run 历史和业务幂等结果。 |
 | 扫描/定义迁移重复日报 | 删除等价 static Beat，bootstrap key 只插入一次，日报原有 unit/date 唯一约束仍在 | 先停止 Beat/Worker，再回退；降级会删除 scheduler 数据。 |
-| 告警配置遗漏 | Worker/Beat 非 local 启动前失败，HTTP 保持可用 | 补齐 SMTP 和环境变量后重启进程。 |
+| 告警收件人为空或 SMTP 不可用 | Worker/Beat 保持可用；空收件人记录安全日志，已有 outbox 行按其投递策略重试 | 补齐配置后等待下一次告警或 outbox 重试。 |
 | 软删除定义误操作 | 仅软删，运行历史保留 90 天，可恢复为停用 | 恢复后检查配置并显式启用。 |
 
 ## Files with highest change risk

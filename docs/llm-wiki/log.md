@@ -51,3 +51,12 @@ Append new records at the end. Do not rewrite historical entries except for obvi
   input contracts.
 - Updated [[docs/llm-wiki/index|index]] so scheduler runtime guidance is
   discoverable during future backend and frontend work.
+
+## [2026-07-31] ingest | Scheduler alert delivery boundary
+
+- Corrected [[docs/llm-wiki/sources/scheduler-runtime|Scheduler runtime source]]
+  from the archived scheduler task, current async-task code-spec, and runtime
+  code: SMTP or alert-recipient configuration no longer blocks Celery startup.
+- Recorded that scheduler alerts persist per-recipient outbox rows; empty
+  recipients log `scheduler.alert.unsent`, and SMTP delivery/retry belongs to
+  the generic outbox boundary.
