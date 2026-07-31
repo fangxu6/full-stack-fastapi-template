@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 21
+- **Total Sessions**: 22
 - **Last Active**: 2026-07-31
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~714 | Active |
+| `journal-1.md` | ~747 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 22 | 2026-07-31 | Fix retired scheduler task capabilities | `b1a97e7` | `master` |
 | 21 | 2026-07-31 | Scheduler manual operation capabilities | `7ce0731`, `7488356` | `master` |
 | 20 | 2026-07-31 | Reconcile scheduled task completion | `c8175af`, `75ea147`, `8a3abbf`, `cbb7fbf` | `master` |
 | 19 | 2026-07-30 | Close Python cross-cutting capabilities parent task | `301baa2`, `2f2b25c` | `master` |

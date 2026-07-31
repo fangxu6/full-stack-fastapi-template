@@ -712,3 +712,36 @@ Added default-allow static task capabilities, disabled misleading daily-report b
 ### Next Steps
 
 - None - task complete
+
+
+## Session 22: Fix retired scheduler task capabilities
+
+**Date**: 2026-07-31
+**Task**: Fix retired scheduler task capabilities
+**Branch**: `master`
+
+### Summary
+
+Handled unresolvable scheduled-task classes without breaking job management and restored positive Shanghai backfill browser coverage.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b1a97e7` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
