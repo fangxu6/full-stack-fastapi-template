@@ -678,3 +678,37 @@ Reconciled the completed scheduler parent task with final durable outbox alert b
 ### Next Steps
 
 - None - task complete
+
+
+## Session 21: Scheduler manual operation capabilities
+
+**Date**: 2026-07-31
+**Task**: Scheduler manual operation capabilities
+**Branch**: `master`
+
+### Summary
+
+Added default-allow static task capabilities, disabled misleading daily-report backfill, exposed read-only job capability fields, regenerated the frontend client, and verified service/API/browser flows against aiadmin_test.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7ce0731` | (see git log) |
+| `7488356` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
