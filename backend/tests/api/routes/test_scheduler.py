@@ -1,8 +1,10 @@
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from app.models.scheduler import SchedulerJob
+from app.models.scheduler import SchedulerJob, SchedulerRun
 
 INVENTORY_RETRY_CLASS = (
     "app.modules.inventory.scheduled_tasks.InventoryDailyReportRetryTask"
@@ -28,7 +30,10 @@ def test_scheduler_rejects_credential_config_before_creating_a_job(
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"] == "scheduled task configuration cannot contain credentials"
+    assert (
+        response.json()["detail"]
+        == "scheduled task configuration cannot contain credentials"
+    )
     assert list(db.exec(select(SchedulerJob.id)).all()) == before
 
 
@@ -70,6 +75,8 @@ def test_scheduler_job_management_flow(
     assert created.status_code == 200
     job = created.json()
     assert not job["enabled"]
+    assert job["can_run_now"]
+    assert not job["can_backfill"]
 
     schema = client.get(
         "/api/v1/scheduler/task-schema",
@@ -129,3 +136,34 @@ def test_scheduler_job_management_flow(
     )
     assert restored.status_code == 200
     assert not restored.json()["enabled"]
+
+
+def test_scheduler_rejects_unsupported_backfill_without_creating_a_run(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    created = client.post(
+        "/api/v1/scheduler/jobs",
+        headers=superuser_token_headers,
+        json={
+            "name": "Daily report retry",
+            "class_path": INVENTORY_RETRY_CLASS,
+            "cron_expression": "* * * * *",
+            "config": {},
+        },
+    )
+    assert created.status_code == 200
+    job_id = created.json()["id"]
+    before = list(db.exec(select(SchedulerRun.id)).all())
+
+    response = client.post(
+        f"/api/v1/scheduler/jobs/{job_id}/backfill",
+        headers=superuser_token_headers,
+        json={"planned_at": (datetime.now(UTC) - timedelta(minutes=1)).isoformat()},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "scheduled task does not support backfill"
+    assert response.json()["request_id"]
+    assert list(db.exec(select(SchedulerRun.id)).all()) == before

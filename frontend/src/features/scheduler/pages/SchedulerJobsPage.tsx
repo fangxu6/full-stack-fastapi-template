@@ -269,26 +269,30 @@ export function SchedulerJobsPage() {
                   type="text"
                 />
               </Tooltip>
-              <Tooltip title="立即执行">
-                <Button
-                  aria-label="立即执行"
-                  icon={<Play size={16} />}
-                  loading={actionMutation.isPending}
-                  onClick={() => actionMutation.mutate({ kind: "run", job })}
-                  type="text"
-                />
-              </Tooltip>
-              <Tooltip title="补发任务">
-                <Button
-                  aria-label="补发任务"
-                  icon={<CalendarClock size={16} />}
-                  onClick={() => {
-                    setBackfillJob(job)
-                    setBackfillTime("")
-                  }}
-                  type="text"
-                />
-              </Tooltip>
+              {job.can_run_now ? (
+                <Tooltip title="立即执行">
+                  <Button
+                    aria-label="立即执行"
+                    icon={<Play size={16} />}
+                    loading={actionMutation.isPending}
+                    onClick={() => actionMutation.mutate({ kind: "run", job })}
+                    type="text"
+                  />
+                </Tooltip>
+              ) : null}
+              {job.can_backfill ? (
+                <Tooltip title="补发任务">
+                  <Button
+                    aria-label="补发任务"
+                    icon={<CalendarClock size={16} />}
+                    onClick={() => {
+                      setBackfillJob(job)
+                      setBackfillTime("")
+                    }}
+                    type="text"
+                  />
+                </Tooltip>
+              ) : null}
               <Popconfirm
                 description="删除后保留历史记录，可恢复为停用状态。"
                 onConfirm={() => actionMutation.mutate({ kind: "delete", job })}

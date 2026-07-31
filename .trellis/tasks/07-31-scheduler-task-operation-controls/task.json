@@ -3,7 +3,7 @@
   "name": "scheduler-task-operation-controls",
   "title": "定时任务实现类操作限制",
   "description": "D-001：逐实现类限制立即运行和历史补发",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

@@ -181,6 +181,96 @@ celery_app.tasks["scheduler.execute_run"].delay(run.id)
 Claim and persist the dispatch lease before broker send, then let the durable
 record become eligible again only after the defined retry boundary.
 
+## Scenario: Scheduler Manual Operation Capabilities
+
+### 1. Scope / Trigger
+
+- Trigger: a `ScheduledTask` implementation needs to disable an unsupported
+  human `MANUAL_NOW` or `MANUAL_BACKFILL` action without adding a database
+  configuration or a new permission.
+
+### 2. Signatures
+
+```python
+class ScheduledTask:
+    allow_run_now: ClassVar[bool] = True
+    allow_backfill: ClassVar[bool] = True
+
+task_capabilities(*, class_path: str) -> tuple[bool, bool]
+```
+
+- Read-only job response fields: `can_run_now: bool` and `can_backfill: bool`.
+- Enforced endpoints: `POST /scheduler/jobs/{job_id}/run-now` and
+  `POST /scheduler/jobs/{job_id}/backfill`.
+
+### 3. Contracts
+
+- Both static values default to `True` so existing and newly deployed task
+  classes retain the internal-system default of allowing manual operations.
+- A task class sets only an unsupported operation to `False`; the value is
+  Python implementation metadata, never job/run JSON, database state, or
+  client input.
+- `run_now()` and `backfill()` read the class path from the job before calling
+  `create_run()`. The router exposes the same derived values through every
+  `SchedulerJobPublic` response, and the frontend uses them only to hide
+  unavailable buttons.
+- Inventory daily-report creation and retry both set `allow_backfill = False`:
+  neither replays `ScheduledTaskContext.planned_at`, so a historical run would
+  not have the requested business meaning.
+
+### 4. Validation And Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| `allow_run_now` or `allow_backfill` is `True` | Preserve existing run creation, snapshot, requester, active-run conflict, and dispatch-lease behavior. |
+| Matching static value is `False` | Raise `SchedulerValidationError` with 422 `detail + request_id` before `create_run()`; do not persist a run or publish Celery work. |
+| Browser receives `can_* = false` | Do not render that operation's existing button; this is only a usability hint, not authorization. |
+| Capability values are absent from config JSON | Inherit the two `True` base-class defaults. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a daily-report job reports `can_backfill=false`, hides the backfill
+  icon, and returns a unified 422 if a permitted administrator calls the
+  endpoint directly.
+- Base: a task class that does not override either value continues to support
+  both manual operations.
+- Bad: adding a `config["allow_backfill"]` switch, trusting the hidden button
+  as enforcement, or creating a queued run before deciding the operation is
+  unsupported.
+
+### 6. Tests Required
+
+- Unit-test inherited `True` defaults and explicit `False` overrides through
+  the service helper.
+- Test each rejected service/API path with a Cron-valid historical time and
+  assert no `SchedulerRun` row, audit mutation, or direct dispatch occurs.
+- Assert API job payloads carry both `can_*` fields, regenerate the generated
+  client, and use a browser test to verify the unavailable action is absent.
+
+### 7. Wrong Vs Correct
+
+#### Wrong
+
+```python
+if job.config.get("allow_backfill"):
+    create_run(...)
+```
+
+The database JSON can change a safety-relevant capability and a rejected
+operation is discovered too late.
+
+#### Correct
+
+```python
+_, can_backfill = task_capabilities(class_path=job.class_path)
+if not can_backfill:
+    raise SchedulerValidationError("scheduled task does not support backfill")
+return create_run(...)
+```
+
+The static implementation contract is checked before any persistent run or
+broker side effect exists.
+
 ## Scenario: Scheduler Audit Actor Propagation
 
 ### 1. Scope / Trigger

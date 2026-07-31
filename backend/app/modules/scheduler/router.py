@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import AuditedWriteSessionDep, CurrentUser, SessionDep
+from app.models.scheduler import SchedulerJob
 from app.modules.iam.dependencies import permission_required
 from app.modules.scheduler import service
 from app.schemas.scheduler import (
@@ -17,8 +18,15 @@ from app.schemas.scheduler import (
 router = APIRouter(prefix="/scheduler", tags=["scheduler"])
 
 
-def _job(job: object) -> SchedulerJobPublic:
-    return SchedulerJobPublic.model_validate(job, from_attributes=True)
+def _job(job: SchedulerJob) -> SchedulerJobPublic:
+    can_run_now, can_backfill = service.task_capabilities(class_path=job.class_path)
+    return SchedulerJobPublic.model_validate(
+        {
+            **job.model_dump(),
+            "can_run_now": can_run_now,
+            "can_backfill": can_backfill,
+        }
+    )
 
 
 def _run(run: object) -> SchedulerRunPublic:

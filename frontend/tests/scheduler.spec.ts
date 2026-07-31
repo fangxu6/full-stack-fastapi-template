@@ -11,7 +11,7 @@ async function authenticatedHeaders(page: Page) {
   return { Authorization: `Bearer ${token}` }
 }
 
-test("Scheduler backfill uses Shanghai local wall-clock time for its maximum", async ({
+test("Scheduler hides backfill for tasks that cannot replay a historical time", async ({
   page,
 }) => {
   await page.clock.install({ time: new Date("2026-07-26T00:30:00.000Z") })
@@ -35,23 +35,6 @@ test("Scheduler backfill uses Shanghai local wall-clock time for its maximum", a
   await page.goto("/scheduler/jobs")
   const row = page.getByRole("row").filter({ hasText: name })
   await expect(row).toBeVisible()
-  await row.getByRole("button", { name: "补发任务" }).click()
-  const dialog = page.getByRole("dialog", { name: "补发任务" })
-  const input = dialog.locator('input[type="datetime-local"]')
-  await expect(input).toHaveAttribute("max", "2026-07-26T08:30")
-  await input.fill("2026-07-26T08:29")
-
-  const response = page.waitForResponse(
-    (candidate) =>
-      candidate.request().method() === "POST" &&
-      /\/api\/v1\/scheduler\/jobs\/\d+\/backfill$/.test(
-        new URL(candidate.url()).pathname,
-      ),
-  )
-  await dialog.getByRole("button", { name: "OK", exact: true }).click()
-  const request = await response
-  expect(request.ok(), await request.text()).toBeTruthy()
-  expect(request.request().postDataJSON()).toEqual({
-    planned_at: "2026-07-26T00:29:00.000Z",
-  })
+  await expect(row.getByRole("button", { name: "立即执行" })).toBeVisible()
+  await expect(row.getByRole("button", { name: "补发任务" })).toHaveCount(0)
 })

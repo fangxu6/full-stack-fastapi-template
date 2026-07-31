@@ -17,6 +17,7 @@ from app.modules.scheduler.contracts import (
 
 class InventoryDailyReportCreateTask(ScheduledTask):
     config_model = ScheduledTaskConfig
+    allow_backfill = False
 
     def run(
         self, *, context: ScheduledTaskContext, config: ScheduledTaskConfig
@@ -38,6 +39,7 @@ class InventoryDailyReportCreateTask(ScheduledTask):
 
 class InventoryDailyReportRetryTask(ScheduledTask):
     config_model = ScheduledTaskConfig
+    allow_backfill = False
 
     def run(
         self, *, context: ScheduledTaskContext, config: ScheduledTaskConfig

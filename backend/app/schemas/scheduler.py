@@ -45,6 +45,8 @@ class SchedulerJobPublic(SQLModel):
     created_by: uuid.UUID
     updated_at: datetime
     updated_by: uuid.UUID
+    can_run_now: bool
+    can_backfill: bool
 
 
 class SchedulerJobsPublic(SQLModel):

@@ -1,5 +1,6 @@
 """Scheduler service tests."""
 
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -7,7 +8,7 @@ from pydantic import BaseModel, SecretStr
 from sqlmodel import Session, select
 
 from app.core.audit import bind_audit_actor
-from app.models.scheduler import SchedulerJob
+from app.models.scheduler import SchedulerJob, SchedulerRun
 from app.modules.scheduler import service
 from app.modules.scheduler.contracts import ScheduledTask, ScheduledTaskConfig
 from app.schemas.scheduler import SchedulerJobCreate
@@ -69,6 +70,32 @@ class SecretSchemaTask(ScheduledTask):
         del context, config
 
 
+class DefaultManualOperationsTask(ScheduledTask):
+    config_model = ScheduledTaskConfig
+
+    def run(self, *, context: object, config: ScheduledTaskConfig) -> None:
+        del context, config
+
+
+class ManualOperationsDisabledTask(ScheduledTask):
+    config_model = ScheduledTaskConfig
+    allow_run_now = False
+    allow_backfill = False
+
+    def run(self, *, context: object, config: ScheduledTaskConfig) -> None:
+        del context, config
+
+
+def test_task_capabilities_default_to_allowed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        service, "resolve_task_class", lambda _: DefaultManualOperationsTask
+    )
+
+    assert service.task_capabilities(class_path=INVENTORY_RETRY_CLASS) == (True, True)
+
+
 def test_definition_rejects_nested_container_and_union_secret_schema(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -110,6 +137,44 @@ def test_create_job_defaults_disabled_and_freezes_config(db: Session) -> None:
     run = service.run_now(session=db, actor_id=actor.id, job_id=job.id)
     assert run.config == {}
     assert run.class_path == INVENTORY_RETRY_CLASS
+
+
+def test_manual_operations_are_rejected_before_creating_a_run(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    now = datetime(2026, 7, 31, 0, 0, tzinfo=UTC)
+    actor = create_random_user(db)
+    bind_audit_actor(session=db, actor_id=actor.id)
+    job = service.create_job(
+        session=db,
+        job_in=SchedulerJobCreate(
+            name="Disabled manual operations",
+            class_path=INVENTORY_RETRY_CLASS,
+            cron_expression="* * * * *",
+            config={},
+        ),
+        now=now,
+    )
+    assert job.id is not None
+    monkeypatch.setattr(
+        service, "resolve_task_class", lambda _: ManualOperationsDisabledTask
+    )
+
+    with pytest.raises(service.SchedulerValidationError, match="immediate"):
+        service.run_now(session=db, actor_id=actor.id, job_id=job.id)
+
+    with pytest.raises(service.SchedulerValidationError, match="backfill"):
+        service.backfill(
+            session=db,
+            actor_id=actor.id,
+            job_id=job.id,
+            planned_at=now - timedelta(minutes=1),
+            now=now,
+        )
+
+    assert (
+        db.exec(select(SchedulerRun).where(SchedulerRun.job_id == job.id)).all() == []
+    )
 
 
 def test_conflicting_run_creation_does_not_rollback_prior_batch_run(

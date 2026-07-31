@@ -148,6 +148,11 @@ def resolve_task_class(class_path: str) -> type[ScheduledTask]:
     return target
 
 
+def task_capabilities(*, class_path: str) -> tuple[bool, bool]:
+    task_class = resolve_task_class(class_path)
+    return task_class.allow_run_now, task_class.allow_backfill
+
+
 def validate_definition(
     *, class_path: str, cron_expression: str, config: dict[str, object]
 ) -> dict[str, object]:
@@ -329,9 +334,15 @@ def run_now(
     *, session: Session, actor_id: uuid.UUID, job_id: int, now: datetime | None = None
 ) -> SchedulerRun:
     current = utc_now(now)
+    job = get_job(session=session, job_id=job_id)
+    can_run_now, _ = task_capabilities(class_path=job.class_path)
+    if not can_run_now:
+        raise SchedulerValidationError(
+            "scheduled task does not support immediate execution"
+        )
     return create_run(
         session=session,
-        job=get_job(session=session, job_id=job_id),
+        job=job,
         trigger=SchedulerRunTrigger.MANUAL_NOW,
         planned_at=current,
         requested_by=actor_id,
@@ -367,6 +378,9 @@ def backfill(
         raise SchedulerValidationError(
             "backfill time must match the task cron expression"
         )
+    _, can_backfill = task_capabilities(class_path=job.class_path)
+    if not can_backfill:
+        raise SchedulerValidationError("scheduled task does not support backfill")
     return create_run(
         session=session,
         job=job,

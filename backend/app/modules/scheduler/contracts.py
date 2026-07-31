@@ -30,6 +30,8 @@ class ScheduledTaskSkipped(Exception):
 
 class ScheduledTask:
     config_model: ClassVar[type[ScheduledTaskConfig]]
+    allow_run_now: ClassVar[bool] = True
+    allow_backfill: ClassVar[bool] = True
 
     def run(
         self, *, context: ScheduledTaskContext, config: ScheduledTaskConfig
