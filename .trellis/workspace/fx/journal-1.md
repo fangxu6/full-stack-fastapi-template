@@ -642,3 +642,39 @@ Isolated the scheduled email outbox regression, confirmed the full backend gate,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 20: Reconcile scheduled task completion
+
+**Date**: 2026-07-31
+**Task**: Reconcile scheduled task completion
+**Branch**: `master`
+
+### Summary
+
+Reconciled the completed scheduler parent task with final durable outbox alert behavior, archived it, and corrected the scheduler runtime wiki source.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c8175af` | (see git log) |
+| `75ea147` | (see git log) |
+| `8a3abbf` | (see git log) |
+| `cbb7fbf` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
