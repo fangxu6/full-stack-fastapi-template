@@ -224,6 +224,7 @@ task_capabilities(*, class_path: str) -> tuple[bool, bool]
 | --- | --- |
 | `allow_run_now` or `allow_backfill` is `True` | Preserve existing run creation, snapshot, requester, active-run conflict, and dispatch-lease behavior. |
 | Matching static value is `False` | Raise `SchedulerValidationError` with 422 `detail + request_id` before `create_run()`; do not persist a run or publish Celery work. |
+| A saved job class path no longer resolves | Return `can_run_now=false` and `can_backfill=false` in job responses so the definition remains manageable; manual operations raise `SchedulerValidationError` 422 before `create_run()`. |
 | Browser receives `can_* = false` | Do not render that operation's existing button; this is only a usability hint, not authorization. |
 | Capability values are absent from config JSON | Inherit the two `True` base-class defaults. |
 
@@ -242,6 +243,9 @@ task_capabilities(*, class_path: str) -> tuple[bool, bool]
 
 - Unit-test inherited `True` defaults and explicit `False` overrides through
   the service helper.
+- Seed a previously valid job with an unresolvable class path; list/detail must
+  remain `200` with both capabilities false, while manual run/backfill returns
+  unified 422 and creates no run.
 - Test each rejected service/API path with a Cron-valid historical time and
   assert no `SchedulerRun` row, audit mutation, or direct dispatch occurs.
 - Assert API job payloads carry both `can_*` fields, regenerate the generated

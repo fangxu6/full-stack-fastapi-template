@@ -19,7 +19,10 @@ router = APIRouter(prefix="/scheduler", tags=["scheduler"])
 
 
 def _job(job: SchedulerJob) -> SchedulerJobPublic:
-    can_run_now, can_backfill = service.task_capabilities(class_path=job.class_path)
+    try:
+        can_run_now, can_backfill = service.task_capabilities(class_path=job.class_path)
+    except service.SchedulerValidationError:
+        can_run_now, can_backfill = False, False
     return SchedulerJobPublic.model_validate(
         {
             **job.model_dump(),

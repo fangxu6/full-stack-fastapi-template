@@ -149,7 +149,10 @@ def resolve_task_class(class_path: str) -> type[ScheduledTask]:
 
 
 def task_capabilities(*, class_path: str) -> tuple[bool, bool]:
-    task_class = resolve_task_class(class_path)
+    try:
+        task_class = resolve_task_class(class_path)
+    except ValueError as error:
+        raise SchedulerValidationError(str(error)) from error
     return task_class.allow_run_now, task_class.allow_backfill
 
 

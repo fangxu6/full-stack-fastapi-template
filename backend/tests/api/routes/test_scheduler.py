@@ -167,3 +167,61 @@ def test_scheduler_rejects_unsupported_backfill_without_creating_a_run(
     assert response.json()["detail"] == "scheduled task does not support backfill"
     assert response.json()["request_id"]
     assert list(db.exec(select(SchedulerRun.id)).all()) == before
+
+
+def test_scheduler_keeps_invalid_task_definitions_manageable(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    created = client.post(
+        "/api/v1/scheduler/jobs",
+        headers=superuser_token_headers,
+        json={
+            "name": "Retired task definition",
+            "class_path": INVENTORY_RETRY_CLASS,
+            "cron_expression": "* * * * *",
+            "config": {},
+        },
+    )
+    assert created.status_code == 200
+    job_id = created.json()["id"]
+    job = db.get(SchedulerJob, job_id)
+    assert job is not None
+    job.class_path = "app.modules.inventory.scheduled_tasks.RetiredTask"
+    db.add(job)
+    db.commit()
+    before = list(db.exec(select(SchedulerRun.id)).all())
+
+    listed = client.get("/api/v1/scheduler/jobs", headers=superuser_token_headers)
+    assert listed.status_code == 200
+    listed_job = next(item for item in listed.json()["data"] if item["id"] == job_id)
+    assert not listed_job["can_run_now"]
+    assert not listed_job["can_backfill"]
+
+    detail = client.get(
+        f"/api/v1/scheduler/jobs/{job_id}", headers=superuser_token_headers
+    )
+    assert detail.status_code == 200
+    assert not detail.json()["can_run_now"]
+    assert not detail.json()["can_backfill"]
+
+    run_now = client.post(
+        f"/api/v1/scheduler/jobs/{job_id}/run-now",
+        headers=superuser_token_headers,
+    )
+    assert run_now.status_code == 422
+    assert run_now.json()["detail"] == "scheduled task class must inherit ScheduledTask"
+    assert run_now.json()["request_id"]
+
+    backfill = client.post(
+        f"/api/v1/scheduler/jobs/{job_id}/backfill",
+        headers=superuser_token_headers,
+        json={"planned_at": (datetime.now(UTC) - timedelta(minutes=1)).isoformat()},
+    )
+    assert backfill.status_code == 422
+    assert (
+        backfill.json()["detail"] == "scheduled task class must inherit ScheduledTask"
+    )
+    assert backfill.json()["request_id"]
+    assert list(db.exec(select(SchedulerRun.id)).all()) == before
