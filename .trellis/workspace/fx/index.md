@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 22
-- **Last Active**: 2026-07-31
+- **Total Sessions**: 23
+- **Last Active**: 2026-08-01
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~747 | Active |
+| `journal-1.md` | ~781 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 23 | 2026-08-01 | Implement scheduler Cron next-run preview | `3820d9b`, `cf718aa` | `master` |
 | 22 | 2026-07-31 | Fix retired scheduler task capabilities | `b1a97e7` | `master` |
 | 21 | 2026-07-31 | Scheduler manual operation capabilities | `7ce0731`, `7488356` | `master` |
 | 20 | 2026-07-31 | Reconcile scheduled task completion | `c8175af`, `75ea147`, `8a3abbf`, `cbb7fbf` | `master` |

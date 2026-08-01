@@ -745,3 +745,37 @@ Handled unresolvable scheduled-task classes without breaking job management and 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 23: Implement scheduler Cron next-run preview
+
+**Date**: 2026-08-01
+**Task**: Implement scheduler Cron next-run preview
+**Branch**: `master`
+
+### Summary
+
+Added a read-only, five-point Shanghai Cron preview API with regenerated client support, editor debounce and inline errors, contract documentation, and backend/browser coverage.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3820d9b` | (see git log) |
+| `cf718aa` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
