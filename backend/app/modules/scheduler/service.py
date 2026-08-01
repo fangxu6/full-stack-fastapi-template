@@ -48,6 +48,7 @@ SENSITIVE_KEY_COMPOUNDS = frozenset(
     {"api_key", "access_key", "private_key", "connection_string"}
 )
 LEASE_DURATION = timedelta(seconds=settings.CELERY_VISIBILITY_TIMEOUT_SECONDS)
+CRON_PREVIEW_COUNT = 5
 INVENTORY_BOOTSTRAP_JOBS = (
     (
         "inventory.daily_report.create",
@@ -78,6 +79,21 @@ def utc_now(value: datetime | None = None) -> datetime:
     if current.tzinfo is None:
         raise ValueError("scheduled task timestamps must be timezone-aware")
     return current.astimezone(UTC)
+
+
+def preview_cron(
+    *, cron_expression: str, now: datetime | None = None
+) -> tuple[datetime, list[datetime]]:
+    base_at = utc_now(now)
+    cursor = base_at
+    next_run_ats: list[datetime] = []
+    try:
+        for _ in range(CRON_PREVIEW_COUNT):
+            cursor = next_run_at(cron_expression, after=cursor)
+            next_run_ats.append(cursor)
+    except ValueError as error:
+        raise SchedulerValidationError(str(error)) from error
+    return base_at, next_run_ats
 
 
 def _job_id(job: SchedulerJob) -> int:

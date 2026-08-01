@@ -11,6 +11,7 @@ from app.core.audit import bind_audit_actor
 from app.models.scheduler import SchedulerJob, SchedulerRun
 from app.modules.scheduler import service
 from app.modules.scheduler.contracts import ScheduledTask, ScheduledTaskConfig
+from app.modules.scheduler.cron import matches_cron
 from app.schemas.scheduler import SchedulerJobCreate
 from tests.utils.user import create_random_user
 
@@ -94,6 +95,56 @@ def test_task_capabilities_default_to_allowed(
     )
 
     assert service.task_capabilities(class_path=INVENTORY_RETRY_CLASS) == (True, True)
+
+
+def test_preview_cron_returns_five_future_shanghai_schedule_times() -> None:
+    now = datetime(2026, 7, 26, 0, 0, tzinfo=UTC)
+
+    base_at, next_run_ats = service.preview_cron(cron_expression="0 8 * * *", now=now)
+
+    assert base_at == now
+    assert next_run_ats == [
+        datetime(2026, 7, 27, 0, 0, tzinfo=UTC),
+        datetime(2026, 7, 28, 0, 0, tzinfo=UTC),
+        datetime(2026, 7, 29, 0, 0, tzinfo=UTC),
+        datetime(2026, 7, 30, 0, 0, tzinfo=UTC),
+        datetime(2026, 7, 31, 0, 0, tzinfo=UTC),
+    ]
+
+
+def test_preview_cron_iterates_across_month_boundaries() -> None:
+    _, next_run_ats = service.preview_cron(
+        cron_expression="0 8 1 * *",
+        now=datetime(2026, 1, 31, 0, 0, tzinfo=UTC),
+    )
+
+    assert next_run_ats == [
+        datetime(2026, 2, 1, 0, 0, tzinfo=UTC),
+        datetime(2026, 3, 1, 0, 0, tzinfo=UTC),
+        datetime(2026, 4, 1, 0, 0, tzinfo=UTC),
+        datetime(2026, 5, 1, 0, 0, tzinfo=UTC),
+        datetime(2026, 6, 1, 0, 0, tzinfo=UTC),
+    ]
+
+
+def test_preview_cron_preserves_day_and_weekday_and_semantics() -> None:
+    base_at, next_run_ats = service.preview_cron(
+        cron_expression="0 8 1 * 1",
+        now=datetime(2026, 5, 31, 0, 0, tzinfo=UTC),
+    )
+
+    assert next_run_ats[0] == datetime(2026, 6, 1, 0, 0, tzinfo=UTC)
+    assert len(next_run_ats) == service.CRON_PREVIEW_COUNT
+    assert next_run_ats == sorted(next_run_ats)
+    assert all(planned_at > base_at for planned_at in next_run_ats)
+    assert all(matches_cron("0 8 1 * 1", at=planned_at) for planned_at in next_run_ats)
+
+
+def test_preview_cron_rejects_invalid_expression() -> None:
+    with pytest.raises(service.SchedulerValidationError, match="exactly five"):
+        service.preview_cron(
+            cron_expression="0 8 * *", now=datetime(2026, 7, 26, tzinfo=UTC)
+        )
 
 
 def test_definition_rejects_nested_container_and_union_secret_schema(

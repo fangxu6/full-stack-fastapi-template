@@ -12,9 +12,11 @@ import {
   Drawer,
   Form,
   Input,
+  List,
   Modal,
   Popconfirm,
   Space,
+  Spin,
   Switch,
   Table,
   Tag,
@@ -30,9 +32,10 @@ import {
   RotateCcw,
   Trash2,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import {
+  ApiError,
   IamService,
   type SchedulerJobPublic,
   type SchedulerRunPublic,
@@ -62,7 +65,33 @@ const statusColors: Record<SchedulerRunPublic["status"], string> = {
 }
 
 function formatTime(value: string | null) {
-  return value ? new Date(value).toLocaleString("zh-CN") : "-"
+  return value
+    ? new Date(value).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })
+    : "-"
+}
+
+function useDebouncedValue(value: string, delayMs: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedValue(value), delayMs)
+    return () => window.clearTimeout(timeout)
+  }, [delayMs, value])
+
+  return debouncedValue
+}
+
+function getCronPreviewErrorMessage(error: unknown) {
+  if (
+    error instanceof ApiError &&
+    typeof error.body === "object" &&
+    error.body &&
+    "detail" in error.body &&
+    typeof error.body.detail === "string"
+  ) {
+    return error.body.detail
+  }
+  return "Cron 预览失败，请检查表达式。"
 }
 
 function parseConfig(value: string): Record<string, unknown> {
@@ -114,10 +143,29 @@ export function SchedulerJobsPage() {
     placeholderData: keepPreviousData,
   })
   const classPath = Form.useWatch("classPath", form)
+  const cronExpression = Form.useWatch("cronExpression", form) ?? ""
+  const debouncedCronExpression = useDebouncedValue(cronExpression, 300)
+  const normalizedCronExpression = cronExpression.trim()
+  const normalizedDebouncedCronExpression = debouncedCronExpression.trim()
+  const isCronPreviewDebouncing =
+    normalizedCronExpression !== normalizedDebouncedCronExpression
   const schemaQuery = useQuery({
     queryKey: ["scheduler", "schema", classPath],
     queryFn: () => SchedulerService.readTaskSchema({ classPath }),
     enabled: editorOpen && Boolean(classPath),
+    retry: false,
+  })
+  const cronPreviewQuery = useQuery({
+    queryKey: ["scheduler", "cron-preview", normalizedDebouncedCronExpression],
+    queryFn: () =>
+      SchedulerService.previewCron({
+        cronExpression: normalizedDebouncedCronExpression,
+      }),
+    enabled:
+      editorOpen &&
+      !isCronPreviewDebouncing &&
+      Boolean(normalizedDebouncedCronExpression),
+    refetchOnMount: "always",
     retry: false,
   })
   const historyQuery = useQuery({
@@ -423,6 +471,41 @@ export function SchedulerJobsPage() {
           >
             <Input placeholder="0 8 * * *" />
           </Form.Item>
+          {normalizedCronExpression ? (
+            <Form.Item label="后续执行时点（Asia/Shanghai）">
+              {isCronPreviewDebouncing || cronPreviewQuery.isFetching ? (
+                <Space className="text-sm text-muted-foreground">
+                  <Spin size="small" />
+                  <span>正在计算...</span>
+                </Space>
+              ) : null}
+              {!isCronPreviewDebouncing && cronPreviewQuery.isError ? (
+                <Alert
+                  message={getCronPreviewErrorMessage(cronPreviewQuery.error)}
+                  showIcon
+                  type="error"
+                />
+              ) : null}
+              {!isCronPreviewDebouncing &&
+              !cronPreviewQuery.isFetching &&
+              cronPreviewQuery.data ? (
+                <div className="text-sm">
+                  <p className="mb-2 text-muted-foreground">
+                    基准时间：{formatTime(cronPreviewQuery.data.base_at)}
+                  </p>
+                  <List
+                    dataSource={cronPreviewQuery.data.next_run_ats}
+                    renderItem={(plannedAt, index) => (
+                      <List.Item>
+                        {index + 1}. {formatTime(plannedAt)}
+                      </List.Item>
+                    )}
+                    size="small"
+                  />
+                </div>
+              ) : null}
+            </Form.Item>
+          ) : null}
           <Form.Item
             label="JSON 配置"
             name="configText"

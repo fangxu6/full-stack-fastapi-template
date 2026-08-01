@@ -11,6 +11,76 @@ INVENTORY_RETRY_CLASS = (
 )
 
 
+def test_scheduler_previews_cron_without_side_effects(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    now = datetime(2026, 7, 26, 0, 0, tzinfo=UTC)
+    monkeypatch.setattr("app.modules.scheduler.service.get_datetime_utc", lambda: now)
+    before_job_ids = list(db.exec(select(SchedulerJob.id)).all())
+    before_run_ids = list(db.exec(select(SchedulerRun.id)).all())
+
+    response = client.get(
+        "/api/v1/scheduler/cron-preview",
+        headers=superuser_token_headers,
+        params={"cron_expression": "0 8 * * *"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "base_at": "2026-07-26T00:00:00Z",
+        "timezone": "Asia/Shanghai",
+        "next_run_ats": [
+            "2026-07-27T00:00:00Z",
+            "2026-07-28T00:00:00Z",
+            "2026-07-29T00:00:00Z",
+            "2026-07-30T00:00:00Z",
+            "2026-07-31T00:00:00Z",
+        ],
+    }
+    assert list(db.exec(select(SchedulerJob.id)).all()) == before_job_ids
+    assert list(db.exec(select(SchedulerRun.id)).all()) == before_run_ids
+
+
+def test_scheduler_preview_rejects_invalid_cron_without_side_effects(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    before_job_ids = list(db.exec(select(SchedulerJob.id)).all())
+    before_run_ids = list(db.exec(select(SchedulerRun.id)).all())
+
+    response = client.get(
+        "/api/v1/scheduler/cron-preview",
+        headers=superuser_token_headers,
+        params={"cron_expression": "0 8 * *"},
+    )
+
+    assert response.status_code == 422
+    assert (
+        response.json()["detail"] == "cron expression must contain exactly five fields"
+    )
+    assert response.json()["request_id"]
+    assert list(db.exec(select(SchedulerJob.id)).all()) == before_job_ids
+    assert list(db.exec(select(SchedulerRun.id)).all()) == before_run_ids
+
+
+def test_scheduler_preview_requires_read_permission(
+    client: TestClient, normal_user_token_headers: dict[str, str]
+) -> None:
+    response = client.get(
+        "/api/v1/scheduler/cron-preview",
+        headers=normal_user_token_headers,
+        params={"cron_expression": "0 8 * * *"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "The user does not have the required permission"
+    assert response.json()["request_id"]
+
+
 def test_scheduler_rejects_credential_config_before_creating_a_job(
     client: TestClient,
     db: Session,

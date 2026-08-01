@@ -275,6 +275,111 @@ return create_run(...)
 The static implementation contract is checked before any persistent run or
 broker side effect exists.
 
+## Scenario: Scheduler Cron Next-Run Preview
+
+### 1. Scope / Trigger
+
+- Trigger: the scheduler management UI needs to explain a submitted Cron
+  expression before the definition is saved, without changing scheduler state.
+- This is Cron interpretation only. It is not a `SchedulerJob` lookup,
+  `SchedulerRun` creation path, task-class capability check, or Celery action.
+
+### 2. Signatures
+
+```python
+preview_cron(*, cron_expression: str, now: datetime | None = None) -> tuple[
+    datetime, list[datetime]
+]
+```
+
+- Endpoint: `GET /scheduler/cron-preview?cron_expression=<expression>`.
+- Permission: `scheduler.jobs.read`.
+- Public response: `SchedulerCronPreviewPublic` with `base_at: datetime`,
+  `timezone: Literal["Asia/Shanghai"]`, and `next_run_ats: list[datetime]`
+  constrained by `Field(min_length=5, max_length=5)`.
+
+### 3. Contracts
+
+- Accept only the submitted `cron_expression`; do not accept a job ID, task
+  class, config, caller-selected base time, or count.
+- Capture one server UTC base time, then call the existing
+  `next_run_at(expression, after=cursor)` helper five times, advancing the
+  cursor after every result. Preserve Celery five-field parsing, Shanghai
+  timezone conversion, and day/week AND behavior.
+- Return exactly five ascending, timezone-aware UTC timestamps that are
+  strictly later than `base_at`, plus the literal timezone marker
+  `Asia/Shanghai` for client rendering.
+- The router has no scheduler `Session` dependency and the service does not
+  read or mutate jobs/runs, bind audit actors, publish Celery work, or expose
+  dispatch-lease fields.
+- The frontend generates this request after a 300ms page-local debounce of an
+  editor Cron value. It hides stale results while input changes and renders
+  current failures inline; it never treats preview data as saved `next_run_at`
+  or authorization.
+- Regenerate `frontend/src/client/**` through `scripts/generate-client.sh`
+  after adding the OpenAPI response schema.
+
+### 4. Validation And Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| Caller has `scheduler.jobs.read` and submits a valid five-field Cron | Return 200 with one server-derived base and exactly five future values; write and publish nothing. |
+| Caller lacks `scheduler.jobs.read` | Return unified 403 `detail + request_id`; do not infer authorization from page visibility. |
+| Cron is empty, not five fields, or rejected by Celery | Convert it to unified 422 `detail + request_id` before any scheduler side effect. |
+| Editor value changes during debounce or query | Hide the prior expression's result/error until the current value resolves. |
+| Editor receives a current invalid-Cron response | Render the error inline without a global toast and without blocking the existing save flow. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: an administrator types `0 8 * * *`; the server bases the response on
+  its current UTC clock and the page displays five Shanghai 08:00 times without
+  saving the form.
+- Base: a saved job's editor opens with its existing Cron, but the preview is
+  still calculated from the editor value rather than reusing stored
+  `next_run_at`.
+- Bad: querying a `job_id` and returning scheduler internals, adding a
+  `count=1000` switch, letting the browser parse Cron, or creating a run while
+  rendering a preview.
+
+### 6. Tests Required
+
+- Unit-test five iterations against a fixed server clock, strict-after-base
+  behavior, Shanghai conversion, cross-month progression, and a day/week AND
+  expression.
+- API-test authorized success, invalid Cron 422, and missing read permission
+  403. For every response, assert unchanged job/run rows, audit fields, and
+  dispatch calls.
+- Regenerate the client and compile the frontend to prove SDK/schema alignment.
+- Browser-test an unsaved Cron's automatic 300ms preview, explicit Shanghai
+  rendering, the five-value result, an inline invalid-Cron error, and removal
+  of stale data after input changes.
+
+### 7. Wrong Vs Correct
+
+#### Wrong
+
+```python
+job = get_job(session=session, job_id=job_id)
+return {"next_run_at": job.next_run_at}
+```
+
+The result cannot preview unsaved changes, is only one stored cursor, and
+needlessly couples a read-only expression explanation to scheduler state.
+
+#### Correct
+
+```python
+base_at = utc_now(now)
+cursor = base_at
+next_run_ats = []
+for _ in range(5):
+    cursor = next_run_at(cron_expression, after=cursor)
+    next_run_ats.append(cursor)
+```
+
+The preview uses exactly the production Cron semantics while preserving a
+side-effect-free boundary.
+
 ## Scenario: Scheduler Audit Actor Propagation
 
 ### 1. Scope / Trigger

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field
 from sqlmodel import SQLModel
@@ -79,3 +79,9 @@ class SchedulerRunsPublic(SQLModel):
 class SchedulerTaskSchemaPublic(SQLModel):
     class_path: str
     json_schema: JsonObject
+
+
+class SchedulerCronPreviewPublic(SQLModel):
+    base_at: datetime
+    timezone: Literal["Asia/Shanghai"]
+    next_run_ats: list[datetime] = Field(min_length=5, max_length=5)

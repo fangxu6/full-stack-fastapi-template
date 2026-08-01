@@ -5,6 +5,7 @@ from app.models.scheduler import SchedulerJob
 from app.modules.iam.dependencies import permission_required
 from app.modules.scheduler import service
 from app.schemas.scheduler import (
+    SchedulerCronPreviewPublic,
     SchedulerJobCreate,
     SchedulerJobPublic,
     SchedulerJobsPublic,
@@ -34,6 +35,22 @@ def _job(job: SchedulerJob) -> SchedulerJobPublic:
 
 def _run(run: object) -> SchedulerRunPublic:
     return SchedulerRunPublic.model_validate(run, from_attributes=True)
+
+
+@router.get(
+    "/cron-preview",
+    dependencies=[Depends(permission_required("scheduler.jobs.read"))],
+    response_model=SchedulerCronPreviewPublic,
+)
+def preview_cron(
+    cron_expression: str = Query(min_length=1, max_length=128),
+) -> SchedulerCronPreviewPublic:
+    base_at, next_run_ats = service.preview_cron(cron_expression=cron_expression)
+    return SchedulerCronPreviewPublic(
+        base_at=base_at,
+        timezone="Asia/Shanghai",
+        next_run_ats=next_run_ats,
+    )
 
 
 @router.get(

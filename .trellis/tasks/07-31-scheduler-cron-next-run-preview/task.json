@@ -3,7 +3,7 @@
   "name": "scheduler-cron-next-run-preview",
   "title": "定时任务 Cron 后续时点预览",
   "description": "D-002：提供 Cron 后续执行时点只读预览",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
