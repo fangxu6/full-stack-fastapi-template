@@ -779,3 +779,36 @@ Added a read-only, five-point Shanghai Cron preview API with regenerated client 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 24: 完成定时任务扩展历史补发
+
+**Date**: 2026-08-01
+**Task**: 完成定时任务扩展历史补发
+**Branch**: `master`
+
+### Summary
+
+将补发窗口扩展为 365 天；补发能力改为实现类显式、默认拒绝；同步管理页边界、回归测试、Trellis 规范与 Wiki。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9f77c61` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
