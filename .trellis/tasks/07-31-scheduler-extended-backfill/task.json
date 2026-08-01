@@ -3,7 +3,7 @@
   "name": "scheduler-extended-backfill",
   "title": "定时任务扩展历史补发",
   "description": "D-003：支持超过 90 天的历史补发",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

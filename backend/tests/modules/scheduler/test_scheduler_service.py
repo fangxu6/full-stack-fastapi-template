@@ -15,6 +15,9 @@ from app.modules.scheduler.cron import matches_cron
 from app.schemas.scheduler import SchedulerJobCreate
 from tests.utils.user import create_random_user
 
+INVENTORY_CREATE_CLASS = (
+    "app.modules.inventory.scheduled_tasks.InventoryDailyReportCreateTask"
+)
 INVENTORY_RETRY_CLASS = (
     "app.modules.inventory.scheduled_tasks.InventoryDailyReportRetryTask"
 )
@@ -78,6 +81,14 @@ class DefaultManualOperationsTask(ScheduledTask):
         del context, config
 
 
+class ReplaySafeBackfillTask(ScheduledTask):
+    config_model = ScheduledTaskConfig
+    allow_backfill = True
+
+    def run(self, *, context: object, config: ScheduledTaskConfig) -> None:
+        del context, config
+
+
 class ManualOperationsDisabledTask(ScheduledTask):
     config_model = ScheduledTaskConfig
     allow_run_now = False
@@ -87,14 +98,19 @@ class ManualOperationsDisabledTask(ScheduledTask):
         del context, config
 
 
-def test_task_capabilities_default_to_allowed(
+def test_task_capabilities_require_explicit_backfill_opt_in(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
         service, "resolve_task_class", lambda _: DefaultManualOperationsTask
     )
 
-    assert service.task_capabilities(class_path=INVENTORY_RETRY_CLASS) == (True, True)
+    assert service.task_capabilities(class_path=INVENTORY_RETRY_CLASS) == (True, False)
+
+
+@pytest.mark.parametrize("class_path", (INVENTORY_CREATE_CLASS, INVENTORY_RETRY_CLASS))
+def test_inventory_tasks_remain_ineligible_for_backfill(class_path: str) -> None:
+    assert service.task_capabilities(class_path=class_path) == (True, False)
 
 
 def test_preview_cron_returns_five_future_shanghai_schedule_times() -> None:
@@ -222,6 +238,112 @@ def test_manual_operations_are_rejected_before_creating_a_run(
             planned_at=now - timedelta(minutes=1),
             now=now,
         )
+
+    assert (
+        db.exec(select(SchedulerRun).where(SchedulerRun.job_id == job.id)).all() == []
+    )
+
+
+def test_backfill_accepts_exactly_365_days_for_a_replay_safe_task(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    now = datetime(2026, 7, 31, 0, 0, tzinfo=UTC)
+    planned_at = now - service.BACKFILL_MAX_AGE
+    actor = create_random_user(db)
+    bind_audit_actor(session=db, actor_id=actor.id)
+    job = service.create_job(
+        session=db,
+        job_in=SchedulerJobCreate(
+            name="Replay-safe backfill",
+            class_path=INVENTORY_RETRY_CLASS,
+            cron_expression="0 8 * * *",
+            config={},
+        ),
+        now=now,
+    )
+    assert job.id is not None
+    monkeypatch.setattr(service, "resolve_task_class", lambda _: ReplaySafeBackfillTask)
+
+    run = service.backfill(
+        session=db,
+        actor_id=actor.id,
+        job_id=job.id,
+        planned_at=planned_at,
+        now=now,
+    )
+
+    assert run.trigger is service.SchedulerRunTrigger.MANUAL_BACKFILL
+    assert run.planned_at == planned_at
+    assert run.requested_by == actor.id
+    assert run.next_dispatch_at == now
+
+
+def test_backfill_rejects_time_older_than_365_days_before_creating_a_run(
+    db: Session,
+) -> None:
+    now = datetime(2026, 7, 31, 0, 0, tzinfo=UTC)
+    actor = create_random_user(db)
+    bind_audit_actor(session=db, actor_id=actor.id)
+    job = service.create_job(
+        session=db,
+        job_in=SchedulerJobCreate(
+            name="Too-old backfill",
+            class_path=INVENTORY_RETRY_CLASS,
+            cron_expression="0 8 * * *",
+            config={},
+        ),
+        now=now,
+    )
+    assert job.id is not None
+
+    with pytest.raises(service.SchedulerValidationError, match="previous 365 days"):
+        service.backfill(
+            session=db,
+            actor_id=actor.id,
+            job_id=job.id,
+            planned_at=now - service.BACKFILL_MAX_AGE - timedelta(microseconds=1),
+            now=now,
+        )
+
+    assert (
+        db.exec(select(SchedulerRun).where(SchedulerRun.job_id == job.id)).all() == []
+    )
+
+
+def test_backfill_rejects_invalid_timestamps_before_creating_a_run(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    now = datetime(2026, 7, 31, 0, 0, tzinfo=UTC)
+    actor = create_random_user(db)
+    bind_audit_actor(session=db, actor_id=actor.id)
+    job = service.create_job(
+        session=db,
+        job_in=SchedulerJobCreate(
+            name="Invalid backfill timestamp",
+            class_path=INVENTORY_RETRY_CLASS,
+            cron_expression="0 8 * * *",
+            config={},
+        ),
+        now=now,
+    )
+    assert job.id is not None
+    monkeypatch.setattr(service, "resolve_task_class", lambda _: ReplaySafeBackfillTask)
+
+    invalid_times = (
+        (now, "previous 365 days"),
+        (now + timedelta(minutes=1), "previous 365 days"),
+        (datetime(2025, 7, 31, 0, 0), "previous 365 days"),
+        (now - timedelta(days=1) + timedelta(minutes=1), "must match"),
+    )
+    for planned_at, message in invalid_times:
+        with pytest.raises(service.SchedulerValidationError, match=message):
+            service.backfill(
+                session=db,
+                actor_id=actor.id,
+                job_id=job.id,
+                planned_at=planned_at,
+                now=now,
+            )
 
     assert (
         db.exec(select(SchedulerRun).where(SchedulerRun.job_id == job.id)).all() == []

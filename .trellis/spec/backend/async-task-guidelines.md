@@ -186,17 +186,26 @@ record become eligible again only after the defined retry boundary.
 ### 1. Scope / Trigger
 
 - Trigger: a `ScheduledTask` implementation needs to disable an unsupported
-  human `MANUAL_NOW` or `MANUAL_BACKFILL` action without adding a database
-  configuration or a new permission.
+  human `MANUAL_NOW` action, or to explicitly opt in to a replay-safe human
+  `MANUAL_BACKFILL` action without adding a database configuration or a new
+  permission.
 
 ### 2. Signatures
 
 ```python
 class ScheduledTask:
     allow_run_now: ClassVar[bool] = True
-    allow_backfill: ClassVar[bool] = True
+    allow_backfill: ClassVar[bool] = False
 
 task_capabilities(*, class_path: str) -> tuple[bool, bool]
+backfill(
+    *,
+    session: Session,
+    actor_id: uuid.UUID,
+    job_id: int,
+    planned_at: datetime,
+    now: datetime | None = None,
+) -> SchedulerRun
 ```
 
 - Read-only job response fields: `can_run_now: bool` and `can_backfill: bool`.
@@ -205,15 +214,20 @@ task_capabilities(*, class_path: str) -> tuple[bool, bool]
 
 ### 3. Contracts
 
-- Both static values default to `True` so existing and newly deployed task
-  classes retain the internal-system default of allowing manual operations.
-- A task class sets only an unsupported operation to `False`; the value is
-  Python implementation metadata, never job/run JSON, database state, or
-  client input.
+- `allow_run_now` defaults to `True`; `allow_backfill` defaults to `False`.
+  A future task class may set `allow_backfill = True` only when its
+  implementation gives `ScheduledTaskContext.planned_at` a replay-safe
+  historical business meaning and preserves its own idempotency.
+- Both values are Python implementation metadata, never job/run JSON, database
+  state, or client input.
 - `run_now()` and `backfill()` read the class path from the job before calling
   `create_run()`. The router exposes the same derived values through every
   `SchedulerJobPublic` response, and the frontend uses them only to hide
   unavailable buttons.
+- A permitted backfill additionally requires a timezone-aware, strictly past,
+  Cron-matching timestamp no older than `timedelta(days=365)`, inclusive at the
+  exact age boundary. It creates one `QUEUED` `MANUAL_BACKFILL` run and relies
+  on the existing shared dispatcher; it never publishes Celery work directly.
 - Inventory daily-report creation and retry both set `allow_backfill = False`:
   neither replays `ScheduledTaskContext.planned_at`, so a historical run would
   not have the requested business meaning.
@@ -222,58 +236,76 @@ task_capabilities(*, class_path: str) -> tuple[bool, bool]
 
 | Condition | Required behavior |
 | --- | --- |
-| `allow_run_now` or `allow_backfill` is `True` | Preserve existing run creation, snapshot, requester, active-run conflict, and dispatch-lease behavior. |
+| `allow_run_now` is `True` | Preserve existing immediate-run creation, snapshot, requester, active-run conflict, and dispatch-lease behavior. |
+| `allow_backfill` is explicitly `True` and the timestamp is valid | Preserve one existing `MANUAL_BACKFILL` run creation, snapshot, requester, active-run conflict, and dispatch-lease behavior. |
 | Matching static value is `False` | Raise `SchedulerValidationError` with 422 `detail + request_id` before `create_run()`; do not persist a run or publish Celery work. |
+| Backfill timestamp is current/future, timezone-naive, older than 365 days, or does not match Cron | Raise `SchedulerValidationError` with 422 `detail + request_id` before the capability check can create a run. |
 | A saved job class path no longer resolves | Return `can_run_now=false` and `can_backfill=false` in job responses so the definition remains manageable; manual operations raise `SchedulerValidationError` 422 before `create_run()`. |
 | Browser receives `can_* = false` | Do not render that operation's existing button; this is only a usability hint, not authorization. |
-| Capability values are absent from config JSON | Inherit the two `True` base-class defaults. |
+| Capability values are absent from config JSON | Do not read them; the implementation class inherits `allow_run_now=True` and `allow_backfill=False`. |
 
 ### 5. Good / Base / Bad Cases
 
-- Good: a daily-report job reports `can_backfill=false`, hides the backfill
-  icon, and returns a unified 422 if a permitted administrator calls the
-  endpoint directly.
-- Base: a task class that does not override either value continues to support
-  both manual operations.
-- Bad: adding a `config["allow_backfill"]` switch, trusting the hidden button
-  as enforcement, or creating a queued run before deciding the operation is
+- Good: a future replay-safe class explicitly sets `allow_backfill = True`; an
+  exact 365-day Cron-matching timestamp creates one queued run through the
+  shared dispatch path.
+- Base: a task class that does not override either value supports immediate
+  execution but reports `can_backfill=false`.
+- Bad: enabling backfill through `config["allow_backfill"]`, declaring it for a
+  task that ignores historical `planned_at`, trusting the hidden button as
+  enforcement, or creating a queued run before deciding the operation is
   unsupported.
 
 ### 6. Tests Required
 
-- Unit-test inherited `True` defaults and explicit `False` overrides through
-  the service helper.
+- Unit-test the inherited `allow_backfill=False` default and an explicit
+  replay-safe `True` override through the service helper.
 - Seed a previously valid job with an unresolvable class path; list/detail must
   remain `200` with both capabilities false, while manual run/backfill returns
   unified 422 and creates no run.
-- Test each rejected service/API path with a Cron-valid historical time and
-  assert no `SchedulerRun` row, audit mutation, or direct dispatch occurs.
-- Assert API job payloads carry both `can_*` fields, regenerate the generated
-  client, and use a browser test to verify the unavailable action is absent.
+- Test exact 365-day acceptance and older/current/future/naive/Cron-invalid
+  rejection at the service/API boundary, each with no `SchedulerRun`, audit
+  mutation, or direct dispatch on failure.
+- Assert API job payloads carry both `can_*` fields and use a browser test to
+  verify the unavailable action is absent and the allowed modal uses the
+  Shanghai-local 365-day minute-safe bounds. Regenerate the generated client
+  only when its public schemas change.
 
 ### 7. Wrong Vs Correct
 
 #### Wrong
 
 ```python
+class InventoryReportTask(ScheduledTask):
+    allow_backfill = True
+
+    def run(self, *, context, config):
+        create_report_for_today()
+
 if job.config.get("allow_backfill"):
     create_run(...)
 ```
 
-The database JSON can change a safety-relevant capability and a rejected
-operation is discovered too late.
+The class promises a historical replay it cannot honor, while database JSON can
+also change a safety-relevant capability and discover a rejection too late.
 
 #### Correct
 
 ```python
+class ReplaySafeTask(ScheduledTask):
+    allow_backfill = True
+
+    def run(self, *, context, config):
+        replay_business_state(planned_at=context.planned_at)
+
 _, can_backfill = task_capabilities(class_path=job.class_path)
 if not can_backfill:
     raise SchedulerValidationError("scheduled task does not support backfill")
 return create_run(...)
 ```
 
-The static implementation contract is checked before any persistent run or
-broker side effect exists.
+The explicit static contract and service check both occur before any persistent
+run or broker side effect exists.
 
 ## Scenario: Scheduler Cron Next-Run Preview
 

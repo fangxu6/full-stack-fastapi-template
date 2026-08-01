@@ -63,6 +63,9 @@ const statusColors: Record<SchedulerRunPublic["status"], string> = {
   SKIPPED: "default",
   SUCCEEDED: "green",
 }
+const BACKFILL_MAX_AGE_DAYS = 365
+const MILLISECONDS_PER_MINUTE = 60_000
+const MILLISECONDS_PER_DAY = 24 * 60 * MILLISECONDS_PER_MINUTE
 
 function formatTime(value: string | null) {
   return value
@@ -81,7 +84,7 @@ function useDebouncedValue(value: string, delayMs: number) {
   return debouncedValue
 }
 
-function getCronPreviewErrorMessage(error: unknown) {
+function getApiErrorMessage(error: unknown, fallback: string) {
   if (
     error instanceof ApiError &&
     typeof error.body === "object" &&
@@ -91,7 +94,7 @@ function getCronPreviewErrorMessage(error: unknown) {
   ) {
     return error.body.detail
   }
-  return "Cron 预览失败，请检查表达式。"
+  return fallback
 }
 
 function parseConfig(value: string): Record<string, unknown> {
@@ -110,6 +113,13 @@ function toShanghaiDateTimeLocal(value: Date) {
   return new Date(value.getTime() + 8 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 16)
+}
+
+function getBackfillMinimum(value: Date) {
+  const cutoff = value.getTime() - BACKFILL_MAX_AGE_DAYS * MILLISECONDS_PER_DAY
+  const roundedUpToMinute =
+    Math.ceil(cutoff / MILLISECONDS_PER_MINUTE) * MILLISECONDS_PER_MINUTE
+  return toShanghaiDateTimeLocal(new Date(roundedUpToMinute))
 }
 
 export function SchedulerJobsPage() {
@@ -245,7 +255,13 @@ export function SchedulerJobsPage() {
         jobId: job.id,
         requestBody: { planned_at: toShanghaiIso(backfillTime) },
       }),
-    onError: () => message.error("补发失败，请确认时间在 90 天内且命中 Cron。"),
+    onError: (error) =>
+      message.error(
+        getApiErrorMessage(
+          error,
+          "补发失败，请确认时间在 365 天内且命中 Cron。",
+        ),
+      ),
     onSuccess: () => {
       message.success("补发任务已排队")
       setBackfillJob(undefined)
@@ -386,6 +402,9 @@ export function SchedulerJobsPage() {
     setPageSize(nextPageSize)
     setHistoryPage(nextPageSize === pageSize ? (pagination.current ?? 1) : 1)
   }
+  const backfillNow = new Date()
+  const backfillMinimum = getBackfillMinimum(backfillNow)
+  const backfillMaximum = toShanghaiDateTimeLocal(backfillNow)
 
   return (
     <div className="flex flex-col gap-5">
@@ -481,7 +500,10 @@ export function SchedulerJobsPage() {
               ) : null}
               {!isCronPreviewDebouncing && cronPreviewQuery.isError ? (
                 <Alert
-                  message={getCronPreviewErrorMessage(cronPreviewQuery.error)}
+                  message={getApiErrorMessage(
+                    cronPreviewQuery.error,
+                    "Cron 预览失败，请检查表达式。",
+                  )}
                   showIcon
                   type="error"
                 />
@@ -571,8 +593,14 @@ export function SchedulerJobsPage() {
         open={Boolean(backfillJob)}
         title="补发任务"
       >
+        <p className="mb-3 text-sm text-muted-foreground">
+          上海时间。仅可补发过去 365 天内且命中 Cron
+          的一个时点；提交后会创建一条补发运行，可能触发任务业务副作用。
+        </p>
         <Input
-          max={toShanghaiDateTimeLocal(new Date())}
+          aria-label="补发时间"
+          max={backfillMaximum}
+          min={backfillMinimum}
           onChange={(event) => setBackfillTime(event.target.value)}
           type="datetime-local"
           value={backfillTime}

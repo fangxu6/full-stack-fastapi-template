@@ -49,6 +49,7 @@ SENSITIVE_KEY_COMPOUNDS = frozenset(
 )
 LEASE_DURATION = timedelta(seconds=settings.CELERY_VISIBILITY_TIMEOUT_SECONDS)
 CRON_PREVIEW_COUNT = 5
+BACKFILL_MAX_AGE = timedelta(days=365)
 INVENTORY_BOOTSTRAP_JOBS = (
     (
         "inventory.daily_report.create",
@@ -381,10 +382,10 @@ def backfill(
     if (
         planned_at.tzinfo is None
         or planned_at >= current
-        or current - planned_at > timedelta(days=90)
+        or current - planned_at > BACKFILL_MAX_AGE
     ):
         raise SchedulerValidationError(
-            "backfill time must be within the previous 90 days"
+            "backfill time must be within the previous 365 days"
         )
     job = get_job(session=session, job_id=job_id)
     try:

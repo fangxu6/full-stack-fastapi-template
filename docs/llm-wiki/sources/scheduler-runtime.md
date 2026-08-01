@@ -1,7 +1,7 @@
 ---
 title: Scheduler Runtime Source
 created: 2026-07-27
-updated: 2026-07-31
+updated: 2026-08-01
 type: source
 tags:
   - llm-wiki
@@ -10,7 +10,7 @@ tags:
   - celery
   - postgres
 status: active
-source_count: 4
+source_count: 5
 ---
 
 # Scheduler Runtime Source
@@ -26,6 +26,9 @@ source_count: 4
 - Paths: `backend/app/modules/scheduler/`, `backend/app/core/celery.py`, and
   `backend/app/alembic/versions/d7e2a5c9f8b1_add_scheduler_run_dispatch_lease.py`
   Role: Current implementation of the durable scheduler runtime boundary.
+- Path: `.trellis/tasks/07-31-scheduler-extended-backfill/`
+  Role: Product decision, executable contract, and completed extension of the
+  manual-backfill age boundary.
 
 ## Key Facts
 
@@ -49,6 +52,17 @@ source_count: 4
   all uncontrolled task execution failures, including `ValueError`, are
   `EXECUTION_FAILED`. `ScheduledTaskSkipped` remains a controlled terminal
   state.
+- Manual operations derive from static implementation metadata, not job config.
+  `ScheduledTask.allow_backfill` becomes the read-only `can_backfill` job field
+  and is enforced again before a run is created. It defaults to false, so a
+  future implementation must explicitly opt in only after defining replay-safe
+  historical semantics. Both current inventory daily report tasks explicitly
+  disallow backfill because their historical `planned_at` has no replay-safe
+  business meaning.
+- Manual backfill accepts one timezone-aware, strictly past, Cron-matching
+  timestamp within 365 days, inclusive at the exact boundary. It remains
+  unavailable to both current inventory tasks and creates no range/batch replay
+  path.
 - Scheduler configuration history was confirmed not to contain credentials.
   Historical JSONB scanning, cleanup, deletion, and credential rotation remain
   outside this capability's scope.
@@ -65,6 +79,9 @@ source_count: 4
   frontend types; it is dispatch bookkeeping, not a user-facing run state.
 - Treat `datetime-local` inputs as Shanghai UTC+8 wall-clock values and submit
   them as UTC; do not render a UTC ISO string directly as the local maximum.
+- Do not turn a static `allow_backfill=False` into an administrator-controlled
+  job setting. A future task class may opt in only after its implementation
+  defines historical `planned_at` semantics and preserves its own idempotency.
 - Verify this boundary with isolated PostgreSQL, a mock broker/SMTP path,
   migration upgrade and downgrade, and a browser backfill flow.
 

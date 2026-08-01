@@ -39,7 +39,7 @@ test("Scheduler hides backfill for tasks that cannot replay a historical time", 
   await expect(row.getByRole("button", { name: "补发任务" })).toHaveCount(0)
 })
 
-test("Scheduler backfill uses Shanghai local wall-clock time for its maximum", async ({
+test("Scheduler backfill uses Shanghai-local 365-day bounds", async ({
   page,
 }) => {
   await page.clock.install({ time: new Date("2026-07-26T00:30:00.000Z") })
@@ -90,7 +90,13 @@ test("Scheduler backfill uses Shanghai local wall-clock time for its maximum", a
   await row.getByRole("button", { name: "补发任务" }).click()
   const dialog = page.getByRole("dialog", { name: "补发任务" })
   const input = dialog.locator('input[type="datetime-local"]')
+  await expect(input).toHaveAttribute("min", "2025-07-26T08:31")
   await expect(input).toHaveAttribute("max", "2026-07-26T08:30")
+  await expect(
+    dialog.getByText(
+      "上海时间。仅可补发过去 365 天内且命中 Cron 的一个时点；提交后会创建一条补发运行，可能触发任务业务副作用。",
+    ),
+  ).toBeVisible()
   await input.fill("2026-07-26T08:29")
   await dialog.getByRole("button", { name: "OK", exact: true }).click()
 })

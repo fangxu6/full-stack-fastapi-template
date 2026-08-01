@@ -60,3 +60,12 @@ Append new records at the end. Do not rewrite historical entries except for obvi
 - Recorded that scheduler alerts persist per-recipient outbox rows; empty
   recipients log `scheduler.alert.unsent`, and SMTP delivery/retry belongs to
   the generic outbox boundary.
+
+## [2026-08-01] ingest | Scheduler manual-backfill capability boundary
+
+- Updated [[docs/llm-wiki/sources/scheduler-runtime|Scheduler runtime source]]
+  from the completed D-003 task and current scheduler implementation.
+- Recorded that `allow_backfill` is default-deny static implementation metadata,
+  both current inventory tasks remain non-replayable, and only a future class
+  with explicit replay-safe historical semantics may opt into the completed
+  365-day single-point backfill window.

@@ -5,10 +5,22 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app.models.scheduler import SchedulerJob, SchedulerRun
+from app.modules.scheduler.contracts import ScheduledTask, ScheduledTaskConfig
 
 INVENTORY_RETRY_CLASS = (
     "app.modules.inventory.scheduled_tasks.InventoryDailyReportRetryTask"
 )
+REPLAY_SAFE_BACKFILL_CLASS = (
+    "app.modules.scheduler.scheduled_tasks.ReplaySafeBackfillTask"
+)
+
+
+class ReplaySafeBackfillTask(ScheduledTask):
+    config_model = ScheduledTaskConfig
+    allow_backfill = True
+
+    def run(self, *, context: object, config: ScheduledTaskConfig) -> None:
+        del context, config
 
 
 def test_scheduler_previews_cron_without_side_effects(
@@ -212,7 +224,10 @@ def test_scheduler_rejects_unsupported_backfill_without_creating_a_run(
     client: TestClient,
     db: Session,
     superuser_token_headers: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    now = datetime(2026, 7, 31, 0, 0, tzinfo=UTC)
+    monkeypatch.setattr("app.modules.scheduler.service.get_datetime_utc", lambda: now)
     created = client.post(
         "/api/v1/scheduler/jobs",
         headers=superuser_token_headers,
@@ -230,11 +245,96 @@ def test_scheduler_rejects_unsupported_backfill_without_creating_a_run(
     response = client.post(
         f"/api/v1/scheduler/jobs/{job_id}/backfill",
         headers=superuser_token_headers,
-        json={"planned_at": (datetime.now(UTC) - timedelta(minutes=1)).isoformat()},
+        json={"planned_at": (now - timedelta(days=365)).isoformat()},
     )
 
     assert response.status_code == 422
     assert response.json()["detail"] == "scheduled task does not support backfill"
+    assert response.json()["request_id"]
+    assert list(db.exec(select(SchedulerRun.id)).all()) == before
+
+
+def test_scheduler_backfill_creates_one_run_at_the_365_day_boundary(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    now = datetime(2026, 7, 31, 0, 0, tzinfo=UTC)
+    planned_at = now - timedelta(days=365)
+    monkeypatch.setattr("app.modules.scheduler.service.get_datetime_utc", lambda: now)
+    monkeypatch.setattr(
+        "app.modules.scheduler.service.resolve_task_class",
+        lambda _: ReplaySafeBackfillTask,
+    )
+    created = client.post(
+        "/api/v1/scheduler/jobs",
+        headers=superuser_token_headers,
+        json={
+            "name": "Replay-safe backfill",
+            "class_path": REPLAY_SAFE_BACKFILL_CLASS,
+            "cron_expression": "0 8 * * *",
+            "config": {},
+        },
+    )
+    assert created.status_code == 200
+    job_id = created.json()["id"]
+    before = list(db.exec(select(SchedulerRun.id)).all())
+
+    response = client.post(
+        f"/api/v1/scheduler/jobs/{job_id}/backfill",
+        headers=superuser_token_headers,
+        json={"planned_at": planned_at.isoformat()},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["trigger"] == "MANUAL_BACKFILL"
+    assert response.json()["status"] == "QUEUED"
+    assert response.json()["planned_at"] == "2025-07-31T00:00:00Z"
+    assert response.json()["class_path"] == REPLAY_SAFE_BACKFILL_CLASS
+    run_ids = list(db.exec(select(SchedulerRun.id)).all())
+    assert len(run_ids) == len(before) + 1
+    run = db.get(SchedulerRun, response.json()["id"])
+    assert run is not None
+    assert run.next_dispatch_at == now
+
+    conflict = client.post(
+        f"/api/v1/scheduler/jobs/{job_id}/backfill",
+        headers=superuser_token_headers,
+        json={"planned_at": planned_at.isoformat()},
+    )
+
+    assert conflict.status_code == 409
+    assert list(db.exec(select(SchedulerRun.id)).all()) == run_ids
+
+
+def test_scheduler_backfill_requires_manage_permission(
+    client: TestClient,
+    db: Session,
+    normal_user_token_headers: dict[str, str],
+    superuser_token_headers: dict[str, str],
+) -> None:
+    created = client.post(
+        "/api/v1/scheduler/jobs",
+        headers=superuser_token_headers,
+        json={
+            "name": "Backfill permission",
+            "class_path": INVENTORY_RETRY_CLASS,
+            "cron_expression": "* * * * *",
+            "config": {},
+        },
+    )
+    assert created.status_code == 200
+    before = list(db.exec(select(SchedulerRun.id)).all())
+
+    response = client.post(
+        f"/api/v1/scheduler/jobs/{created.json()['id']}/backfill",
+        headers=normal_user_token_headers,
+        json={"planned_at": (datetime.now(UTC) - timedelta(minutes=1)).isoformat()},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "The user does not have the required permission"
     assert response.json()["request_id"]
     assert list(db.exec(select(SchedulerRun.id)).all()) == before
 
