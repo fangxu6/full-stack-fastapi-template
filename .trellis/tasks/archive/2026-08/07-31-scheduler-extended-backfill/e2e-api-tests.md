@@ -2,8 +2,8 @@
 
 ## Environment
 
-- Target backend: `http://127.0.0.1:9000`
-- Health check: `GET http://127.0.0.1:9000/api/v1/utils/health-check/`
+- Target backend: `http://127.0.0.1:8000`
+- Health check: `GET http://127.0.0.1:8000/api/v1/utils/health-check/`
 - Isolation: run against the repository-required `aiadmin_test` PostgreSQL
   database; do not write fixtures to the development DB.
 - Auth fixtures: reuse the repository's `superuser_token_headers` for the

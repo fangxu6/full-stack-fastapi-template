@@ -60,19 +60,23 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = ""
     REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379
-    REDIS_PASSWORD: str
+    REDIS_PASSWORD: str = ""
     CELERY_VISIBILITY_TIMEOUT_SECONDS: int = Field(default=3600, gt=0)
     CELERY_RESULT_EXPIRES_SECONDS: int = Field(default=900, gt=0)
 
     @property
     def celery_broker_url(self) -> str:
-        password = quote(self.REDIS_PASSWORD, safe="")
-        return f"redis://:{password}@{self.REDIS_HOST}:{self.REDIS_PORT}/0"
+        return self._celery_redis_url(database=0)
 
     @property
     def celery_result_backend_url(self) -> str:
-        password = quote(self.REDIS_PASSWORD, safe="")
-        return f"redis://:{password}@{self.REDIS_HOST}:{self.REDIS_PORT}/1"
+        return self._celery_redis_url(database=1)
+
+    def _celery_redis_url(self, *, database: int) -> str:
+        credentials = (
+            f":{quote(self.REDIS_PASSWORD, safe='')}@" if self.REDIS_PASSWORD else ""
+        )
+        return f"redis://{credentials}{self.REDIS_HOST}:{self.REDIS_PORT}/{database}"
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -125,6 +129,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _enforce_non_default_secrets(self) -> Self:
+        if self.ENVIRONMENT == "production" and not self.REDIS_PASSWORD:
+            raise ValueError("REDIS_PASSWORD must be configured in production")
         self._check_default_secret("SECRET_KEY", self.SECRET_KEY)
         self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)
         self._check_default_secret("REDIS_PASSWORD", self.REDIS_PASSWORD)

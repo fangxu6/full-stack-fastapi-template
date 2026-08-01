@@ -70,7 +70,7 @@ Pop-Location
 ```
 
 For API E2E execution, start/verify the isolated backend and health endpoint
-(`http://127.0.0.1:9000/api/v1/utils/health-check/`) and record the concrete
+(`http://127.0.0.1:8000/api/v1/utils/health-check/`) and record the concrete
 output or blocker in the task journal. Do not use a live development database.
 
 ## Risk And Rollback Points
@@ -106,7 +106,7 @@ output or blocker in the task journal. Do not use a live development database.
 - Backend quality: Ruff, mypy, and ty all passed. `git diff --check`, Trellis
   task validation, and wiki/spec lint all passed.
 - Frontend quality: Biome and the production build passed. Playwright against
-  `http://127.0.0.1:9000` completed 4 scheduler checks, including the
+  `http://127.0.0.1:8000` completed 4 scheduler checks, including the
   Shanghai-local, minute-safe 365-day modal bound.
 - The full pytest fixture clears `aiadmin_test` at teardown; the isolated
   backend was reinitialized with `app/initial_data.py` before browser tests.
