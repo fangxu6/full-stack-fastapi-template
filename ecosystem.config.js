@@ -4,10 +4,10 @@ module.exports = {
       name: "fsft-backend",
       cwd: "D:/Workspace/full-stack-fastapi-template/backend",
       script: "cmd",
-      args: "/c D:/Workspace/full-stack-fastapi-template/.venv/Scripts/python.exe -m uvicorn app.main:app --reload",
+      args: "/c D:/Workspace/full-stack-fastapi-template/.venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8888",
       interpreter: "none",
       min_uptime: 5000,
-      max_restarts: 10,
+      max_restarts: 3,
       restart_delay: 3000,
       time: true,
       env: {
@@ -24,11 +24,11 @@ module.exports = {
       args: "/c bun run dev --host 0.0.0.0",
       interpreter: "none",
       min_uptime: 5000,
-      max_restarts: 10,
+      max_restarts: 3,
       restart_delay: 3000,
       time: true,
       env: {
-        VITE_API_URL: "http://localhost:8000"
+        VITE_API_URL: "http://localhost:8888"
       }
     },
     {
@@ -38,7 +38,7 @@ module.exports = {
       args: "/c D:/Workspace/full-stack-fastapi-template/.venv/Scripts/celery.exe -A app.core.celery:celery_app worker --pool=solo --concurrency=1",
       interpreter: "none",
       min_uptime: 5000,
-      max_restarts: 10,
+      max_restarts: 3,
       restart_delay: 3000,
       time: true,
       env: {
@@ -55,7 +55,7 @@ module.exports = {
       args: "/c D:/Workspace/full-stack-fastapi-template/.venv/Scripts/celery.exe -A app.core.celery:celery_app beat",
       interpreter: "none",
       min_uptime: 5000,
-      max_restarts: 10,
+      max_restarts: 3,
       restart_delay: 3000,
       time: true,
       env: {
