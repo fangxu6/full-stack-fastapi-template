@@ -20,6 +20,7 @@ import { Route as LayoutRulesRouteImport } from './routes/_layout/rules'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutForbiddenRouteImport } from './routes/_layout/forbidden'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as LayoutAdminIndexRouteImport } from './routes/_layout/admin/index'
 import { Route as LayoutSchedulerJobsRouteImport } from './routes/_layout/scheduler/jobs'
 import { Route as LayoutInventoryShipmentsRouteImport } from './routes/_layout/inventory/shipments'
 import { Route as LayoutInventoryRawRouteImport } from './routes/_layout/inventory/raw'
@@ -81,6 +82,11 @@ const LayoutAdminRoute = LayoutAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutAdminIndexRoute = LayoutAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LayoutAdminRoute,
+} as any)
 const LayoutSchedulerJobsRoute = LayoutSchedulerJobsRouteImport.update({
   id: '/scheduler/jobs',
   path: '/scheduler/jobs',
@@ -130,13 +136,13 @@ export interface FileRoutesByFullPath {
   '/inventory/raw': typeof LayoutInventoryRawRoute
   '/inventory/shipments': typeof LayoutInventoryShipmentsRoute
   '/scheduler/jobs': typeof LayoutSchedulerJobsRoute
+  '/admin/': typeof LayoutAdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/recover-password': typeof RecoverPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/admin': typeof LayoutAdminRouteWithChildren
   '/forbidden': typeof LayoutForbiddenRoute
   '/items': typeof LayoutItemsRoute
   '/rules': typeof LayoutRulesRoute
@@ -148,6 +154,7 @@ export interface FileRoutesByTo {
   '/inventory/raw': typeof LayoutInventoryRawRoute
   '/inventory/shipments': typeof LayoutInventoryShipmentsRoute
   '/scheduler/jobs': typeof LayoutSchedulerJobsRoute
+  '/admin': typeof LayoutAdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -168,6 +175,7 @@ export interface FileRoutesById {
   '/_layout/inventory/raw': typeof LayoutInventoryRawRoute
   '/_layout/inventory/shipments': typeof LayoutInventoryShipmentsRoute
   '/_layout/scheduler/jobs': typeof LayoutSchedulerJobsRoute
+  '/_layout/admin/': typeof LayoutAdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -188,13 +196,13 @@ export interface FileRouteTypes {
     | '/inventory/raw'
     | '/inventory/shipments'
     | '/scheduler/jobs'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
     | '/recover-password'
     | '/reset-password'
     | '/signup'
-    | '/admin'
     | '/forbidden'
     | '/items'
     | '/rules'
@@ -206,6 +214,7 @@ export interface FileRouteTypes {
     | '/inventory/raw'
     | '/inventory/shipments'
     | '/scheduler/jobs'
+    | '/admin'
   id:
     | '__root__'
     | '/_layout'
@@ -225,6 +234,7 @@ export interface FileRouteTypes {
     | '/_layout/inventory/raw'
     | '/_layout/inventory/shipments'
     | '/_layout/scheduler/jobs'
+    | '/_layout/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -314,6 +324,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/admin/': {
+      id: '/_layout/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof LayoutAdminIndexRouteImport
+      parentRoute: typeof LayoutAdminRoute
+    }
     '/_layout/scheduler/jobs': {
       id: '/_layout/scheduler/jobs'
       path: '/scheduler/jobs'
@@ -361,10 +378,12 @@ declare module '@tanstack/react-router' {
 
 interface LayoutAdminRouteChildren {
   LayoutAdminRolesRoute: typeof LayoutAdminRolesRoute
+  LayoutAdminIndexRoute: typeof LayoutAdminIndexRoute
 }
 
 const LayoutAdminRouteChildren: LayoutAdminRouteChildren = {
   LayoutAdminRolesRoute: LayoutAdminRolesRoute,
+  LayoutAdminIndexRoute: LayoutAdminIndexRoute,
 }
 
 const LayoutAdminRouteWithChildren = LayoutAdminRoute._addFileChildren(
