@@ -812,3 +812,36 @@ Added a read-only, five-point Shanghai Cron preview API with regenerated client 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 25: 诊断日报手工任务执行
+
+**Date**: 2026-08-01
+**Task**: 诊断日报手工任务执行
+**Branch**: `master`
+
+### Summary
+
+确认日报投递重试在无到期 delivery 时会成功返回但无副作用；确认日报创建在上海时间 08:00–08:15 之外会记录 DAILY_REPORT_WINDOW_EXPIRED 并跳过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ece8746` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
