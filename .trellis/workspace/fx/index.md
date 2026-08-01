@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 25
+- **Total Sessions**: 26
 - **Last Active**: 2026-08-01
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~847 | Active |
+| `journal-1.md` | ~880 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 26 | 2026-08-01 | Scheduler observability | `56c0767` | `master` |
 | 25 | 2026-08-01 | 诊断日报手工任务执行 | `ece8746` | `master` |
 | 24 | 2026-08-01 | 完成定时任务扩展历史补发 | `9f77c61` | `master` |
 | 23 | 2026-08-01 | Implement scheduler Cron next-run preview | `3820d9b`, `cf718aa` | `master` |

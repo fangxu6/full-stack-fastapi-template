@@ -845,3 +845,36 @@ Added a read-only, five-point Shanghai Cron preview API with regenerated client 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 26: Scheduler observability
+
+**Date**: 2026-08-01
+**Task**: Scheduler observability
+**Branch**: `master`
+
+### Summary
+
+Restored PM2 NDJSON capture and detailed HTTP/Celery error traces.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `56c0767` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
