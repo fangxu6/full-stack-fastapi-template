@@ -108,6 +108,24 @@ Use small, reliable docs as context anchors.
 
 ---
 
+## Path Portability
+
+Shared specifications must not bind contributors or agents to one machine.
+
+- Use repository-relative paths for tracked files, environment variables for
+  externally supplied locations, and commands available on the default PATH
+  for developer tools.
+- Do not document personal directories, drive-letter paths, UNC paths, or a
+  package-manager installation location as a required command or configuration
+  value.
+- When replacing an existing machine-specific path, prefer a repository-relative
+  path, then an environment variable, then a default-PATH command.
+- Keep deliberate runtime endpoints such as `http://localhost:8000`, HTTP route
+  paths, and relative source links; these are contracts, not machine-specific
+  filesystem paths.
+
+---
+
 ## Pre-Modification Rule
 
 Before changing a value, contract, or placement rule, search for the current usage first.

@@ -78,14 +78,20 @@ Future work should preserve that direction instead of drifting back toward route
 
 ## Local Dev Defaults
 
-- Install deps from `backend/`: `uv sync`
-- Run tests from `backend/`: `uv run pytest tests/`
-- Lint: `bash backend/scripts/lint.sh`
-- Format: `bash backend/scripts/format.sh`
+- Run backend commands from `backend/`; the scripts use relative paths such as
+  `app` and do not change their own working directory.
+- Windows PowerShell: use `bash -lc 'cd backend && ./scripts/lint.sh'` from
+  the repository root. The default Bash environment must expose the project
+  toolchain; see [Quality
+  Guidelines](./quality-guidelines.md#scenario-windows-bash-quality-commands)
+  for focused tests and the current `format.sh` limitation.
+- Linux/CI: install dependencies with `uv sync`, run tests with
+  `uv run pytest tests/`, lint with `cd backend && bash scripts/lint.sh`, and
+  format with `cd backend && bash scripts/format.sh`.
 - Type checks are configured in [`backend/pyproject.toml`](../../../backend/pyproject.toml):
   Python is `>=3.14,<4.0`, mypy is strict, Ruff targets `py314`, and `ty`
   treats warnings as errors.
-- Preferred backend quality gate from repo root: `bash backend/scripts/lint.sh`.
+- Preferred quality gate: `cd backend && bash scripts/lint.sh`.
 
 Assume backend verification uses `http://127.0.0.1:8000` unless the task says otherwise.
 

@@ -11,7 +11,7 @@ from starlette.status import (
     HTTP_403_FORBIDDEN,
     HTTP_404_NOT_FOUND,
     HTTP_409_CONFLICT,
-    HTTP_422_UNPROCESSABLE_ENTITY,
+    HTTP_422_UNPROCESSABLE_CONTENT,
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -206,7 +206,7 @@ async def request_validation_exception_handler(
     request_id = normalize_request_id(getattr(request.state, "request_id", None))
     request.state.request_id = request_id
     return JSONResponse(
-        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=HTTP_422_UNPROCESSABLE_CONTENT,
         content={
             "detail": jsonable_encoder(exc.errors()),
             "request_id": request_id,

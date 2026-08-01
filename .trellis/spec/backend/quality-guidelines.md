@@ -48,13 +48,90 @@ Backend quality in this repo is mostly about preserving architectural direction:
 
 ## Minimum Validation Expectations
 
-- Preferred backend gate: `bash backend/scripts/lint.sh` from the repo root, which runs strict mypy, `ty check app`, Ruff, and Ruff format check.
-- Preferred backend test command from `backend/`: set `POSTGRES_DB=aiadmin_test`, then run `bash scripts/test.sh` or a focused `uv run pytest ...` when the full suite is not appropriate. `aiadmin_test` is the required isolated database for destructive backend tests and local API E2E; never point either workflow at the development database.
+- On Windows, use the Bash flow in [Windows Bash Quality Commands](#scenario-windows-bash-quality-commands). It changes to `backend/` before running a backend script.
+- The preferred non-mutating backend gate is `cd backend && bash scripts/lint.sh`, which runs strict mypy, `ty check app`, Ruff, and Ruff format check. The script requires `backend/` as its current directory because it passes `app` as a relative path.
+- Preferred backend test command from `backend/`: set `POSTGRES_DB=aiadmin_test`, then run a focused `uv run pytest ...` when the full suite is not appropriate. `aiadmin_test` is the required isolated database for destructive backend tests and local API E2E; never point either workflow at the development database.
 - If a backend change affects error behavior, verify at least one path that exercises the unified error shape.
 - If auth, permission, or validation behavior changes, verify the relevant `401`, `403`, or `422` contract path.
 - If request/response models change, review frontend generated-client impact before closing the task.
 - If OpenAPI output changes, run `bash ./scripts/generate-client.sh` or explicitly document why regeneration was not required.
 - If tests are skipped, say so explicitly in the handoff.
+
+### Scenario: Windows Bash Quality Commands
+
+#### 1. Scope / Trigger
+
+- Trigger: running backend lint, type checks, formatting checks, or pytest from
+  Windows PowerShell on this workstation.
+
+#### 2. Signatures
+
+From the repository root, run the non-mutating quality gate through the
+default `bash` executable:
+
+```powershell
+bash -lc 'cd backend && ./scripts/lint.sh'
+```
+
+For a focused test, first select the isolated database:
+
+```powershell
+$env:POSTGRES_DB = 'aiadmin_test'
+bash -lc 'cd backend && uv run pytest tests/<path>'
+```
+
+#### 3. Contracts
+
+- The default `bash` executable is the Windows shell entry point for backend
+  Bash commands. It must resolve the project's `uv` toolchain.
+- Do not hard-code a machine-specific Bash installation path in shared docs or
+  automated commands.
+- `backend/scripts/lint.sh` requires `backend/` as its current directory. Do
+  not call `bash backend/scripts/lint.sh` from the repository root.
+- `backend/scripts/format.sh` currently calls `ruff` directly rather than
+  `uv run ruff`; the default Bash environment cannot resolve that command in
+  this workspace. Until the script is made toolchain-aware, run the equivalent
+  `uv run ruff` format commands explicitly instead of claiming the script is a
+  Windows entry point.
+
+#### 4. Validation And Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| Windows backend lint or type check | Invoke `bash -lc 'cd backend && ./scripts/lint.sh'`. |
+| `mypy` cannot find `app` | The command was started outside `backend/`; rerun with `cd backend &&`. |
+| `uv: command not found` | The default Bash environment does not expose the project toolchain; repair that environment before running checks. |
+| `format.sh` reports `ruff: command not found` | Run the equivalent `uv run ruff` commands or update the script; do not add a global `ruff` solely to mask the wrapper's toolchain boundary. |
+
+#### 5. Good / Base / Bad Cases
+
+- Good: a Windows command uses the default `bash` and changes to `backend/`
+  before calling `./scripts/lint.sh`.
+- Base: a Linux or CI command changes to `backend/` before calling the same
+  lint script.
+- Bad: `bash backend/scripts/lint.sh` runs from the repository root, so mypy
+  receives a nonexistent `app` path.
+
+#### 6. Tests Required
+
+- Before a Windows quality gate, verify `bash -lc 'uv --version'` succeeds.
+- Run `lint.sh` from `backend/` and preserve its exit code in the handoff.
+- When formatting is required, verify the explicit `uv run ruff` commands
+  succeed until `format.sh` is made toolchain-aware.
+
+#### 7. Wrong Vs Correct
+
+#### Wrong
+
+```powershell
+bash backend/scripts/lint.sh
+```
+
+#### Correct
+
+```powershell
+bash -lc 'cd backend && ./scripts/lint.sh'
+```
 
 ### Scenario: Isolated PostgreSQL Test Database
 

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from starlette.status import (
     HTTP_401_UNAUTHORIZED,
     HTTP_403_FORBIDDEN,
-    HTTP_422_UNPROCESSABLE_ENTITY,
+    HTTP_422_UNPROCESSABLE_CONTENT,
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
@@ -90,7 +90,7 @@ def test_validation_errors_return_structured_json() -> None:
     with TestClient(app, raise_server_exceptions=False) as test_client:
         response = test_client.get("/__test/validation")
 
-    assert response.status_code == HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == HTTP_422_UNPROCESSABLE_CONTENT
     assert response.headers["X-Request-ID"]
     payload = response.json()
     assert payload["request_id"] == response.headers["X-Request-ID"]
