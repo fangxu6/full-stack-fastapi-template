@@ -8,7 +8,12 @@ from unittest.mock import patch
 
 import pytest
 import structlog
-from celery.signals import task_postrun, task_prerun  # type: ignore[import-untyped]
+from celery.app.log import Logging  # type: ignore[import-untyped]
+from celery.signals import (  # type: ignore[import-untyped]
+    task_failure,
+    task_postrun,
+    task_prerun,
+)
 from sqlmodel import Session, select
 
 from app.core.celery import celery_app
@@ -18,6 +23,14 @@ from app.core.tasks import runtime_ping, send_scheduled_test_email
 from app.models import EmailOutbox, EmailOutboxKind
 from app.services import email_outbox
 from app.utils import EmailData
+
+
+def test_celery_setup_logging_preserves_structlog_output() -> None:
+    with patch.object(Logging, "_setup", False):
+        with patch.object(celery_app.log, "_configure_logger") as configure_logger:
+            celery_app.log.setup_logging_subsystem()
+
+    configure_logger.assert_not_called()
 
 
 def _runtime_environment(tmp_path: Path) -> dict[str, str]:
@@ -201,24 +214,14 @@ def test_eager_failure_then_success_emits_isolated_lifecycle_events(
         (success_task_id, "runtime.ping"),
         (success_task_id, "runtime.ping"),
     ]
-    assert all(
-        payload["schema_version"] == 1 and payload["severity"] == "INFO"
-        for payload in payloads
-    )
-    assert all(
-        set(payload)
-        == {
-            "environment",
-            "event_name",
-            "schema_version",
-            "severity",
-            "task_id",
-            "task_name",
-            "timestamp",
-        }
-        for payload in payloads
-    )
-    assert "private task failure" not in output
+    assert [payload["severity"] for payload in payloads] == [
+        "INFO",
+        "ERROR",
+        "INFO",
+        "INFO",
+    ]
+    assert "RuntimeError: private task failure" in payloads[1]["exception"]
+    assert all("exception" not in payload for payload in (payloads[0], *payloads[2:]))
     assert "safe-success" not in output
 
 
@@ -274,7 +277,7 @@ def test_task_lifecycle_logs_safe_success_and_clears_context(
     )
 
 
-def test_task_postrun_logs_failure_without_exception_payload(
+def test_task_failure_logs_traceback_once_and_postrun_clears_context(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     configure_observability()
@@ -288,6 +291,17 @@ def test_task_postrun_logs_failure_without_exception_payload(
         args=("actor-uuid",),
         kwargs={"run_id": "delivery-123"},
     )
+    try:
+        raise RuntimeError("private exception text")
+    except RuntimeError as exception:
+        task_failure.send(
+            sender=task,
+            task_id=task_id,
+            exception=exception,
+            args=("actor-uuid",),
+            kwargs={"run_id": "delivery-123"},
+            traceback=exception.__traceback__,
+        )
     task_postrun.send(
         sender=task,
         task_id=task_id,
@@ -296,18 +310,23 @@ def test_task_postrun_logs_failure_without_exception_payload(
         kwargs={"run_id": "delivery-123"},
         retval=None,
         state="FAILURE",
-        exception=RuntimeError("private exception text"),
-        traceback="private traceback",
     )
 
     assert structlog.contextvars.get_contextvars() == {}
-    output = capsys.readouterr().out
-    assert '"event_name": "task.failed"' in output
-    assert '"severity": "INFO"' in output
+    payloads = [
+        json.loads(line)
+        for line in capsys.readouterr().out.splitlines()
+        if line.strip()
+    ]
+    assert [payload["event_name"] for payload in payloads] == [
+        "task.started",
+        "task.failed",
+    ]
+    assert payloads[1]["severity"] == "ERROR"
+    assert "RuntimeError: private exception text" in payloads[1]["exception"]
+    output = "\n".join(json.dumps(payload) for payload in payloads)
     assert "actor-uuid" not in output
     assert "delivery-123" not in output
-    assert "private exception text" not in output
-    assert "private traceback" not in output
 
 
 def test_task_postrun_clears_context_without_terminal_event(

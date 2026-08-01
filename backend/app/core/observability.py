@@ -3,6 +3,7 @@ import logging
 import re
 import sys
 from collections.abc import MutableMapping
+from types import TracebackType
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
@@ -24,6 +25,7 @@ EventName = Literal[
     "task.failed",
 ]
 Severity = Literal["INFO", "WARNING", "ERROR", "CRITICAL"]
+DetailedErrorEventName = Literal["http.request.failed", "task.failed"]
 
 REQUEST_ID_PATTERN = re.compile(r"^[a-f0-9]{32}$")
 TASK_ID_PATTERN = re.compile(
@@ -70,6 +72,7 @@ def configure_observability() -> None:
             structlog.processors.TimeStamper(fmt="iso", utc=True, key="timestamp"),
             _add_environment,
             _normalize_event_name,
+            structlog.processors.format_exc_info,
             structlog.processors.JSONRenderer(),
         ],
         logger_factory=structlog.PrintLoggerFactory(file=sys.stdout),
@@ -174,6 +177,37 @@ def log_event(
     try:
         getattr(_LOGGER, severity.lower())(
             event_name,
+            **{key: value for key, value in fields.items() if value is not None},
+        )
+    except Exception:
+        pass
+
+
+def log_exception(
+    *,
+    event_name: DetailedErrorEventName,
+    exception: BaseException,
+    traceback: TracebackType | None = None,
+    elapsed_ms: int | None = None,
+    method: str | None = None,
+    route_template: str | None = None,
+    status_code: int | None = None,
+) -> None:
+    fields = {
+        "severity": "ERROR",
+        "elapsed_ms": elapsed_ms,
+        "method": method,
+        "route_template": route_template,
+        "status_code": status_code,
+    }
+    try:
+        _LOGGER.error(
+            event_name,
+            exc_info=(
+                type(exception),
+                exception,
+                traceback or exception.__traceback__,
+            ),
             **{key: value for key, value in fields.items() if value is not None},
         )
     except Exception:

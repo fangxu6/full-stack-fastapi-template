@@ -6,9 +6,11 @@
 
 ## Overview
 
-The backend emits a small, strict operational event stream. It preserves enough
-safe context to correlate with the request ID returned to the client without
-turning logs into a second store of user or business data.
+The backend emits a small, strict operational event stream. Regular events
+preserve enough safe context to correlate with the request ID returned to the
+client without turning logs into a second store of user or business data.
+Two restricted internal error events also preserve the original exception and
+traceback for operations: unhandled HTTP 5xx and Celery task failure.
 
 ---
 
@@ -17,10 +19,18 @@ turning logs into a second store of user or business data.
 - `structlog>=25,<27` writes one newline-delimited JSON event per line to
   stdout through [`backend/app/core/observability.py`](../../../backend/app/core/observability.py).
 - Request middleware binds a normalized request ID and emits the required HTTP
-  outcome event without logging raw URLs, headers, query parameters, or errors.
+  outcome event without logging raw URLs, headers, or query parameters. Its
+  unhandled-exception boundary emits one detailed `http.request.failed` event.
   It is a pure ASGI middleware registered outside CORS so CORS preflight
   requests also receive request correlation and safe HTTP telemetry.
-- Dependency and startup paths call the constrained `log_event()` facade.
+- Dependency and startup paths call the constrained `log_event()` facade;
+  HTTP and Celery failure boundaries call the restricted `log_exception()`
+  facade.
+- PM2 starts the backend Python executable and Celery worker/beat executables
+  directly. On Windows, `cmd /c` captures shell-builtins but not the Python
+  child output required by this collector contract.
+- PM2 `time` is disabled for backend, worker, and beat. A PM2 timestamp prefix
+  makes a JSON event line invalid NDJSON; event timestamps come from structlog.
 
 ---
 
@@ -37,7 +47,7 @@ context to every event. HTTP requests bind `request_id` and the low-cardinality
 canonical, lowercase, hyphenated UUID `task_id` supplied by the caller and a
 registered `task_name` belonging to the single application Celery instance.
 Task identity reaches a lifecycle event only through `task_prerun`-validated
-contextvars; `log_event()` does not accept direct `task_id` or `task_name`
+contextvars; neither logging facade accepts direct `task_id` or `task_name`
 arguments. These fields must never expand into user, role, permission, token,
 task argument, or business-resource identity.
 
@@ -47,7 +57,8 @@ task argument, or business-resource identity.
 
 Earlier versions wrote free-form messages and exception details. Those legacy
 behaviors are retired and are not permission to add free-form logs containing
-request, resource, business, or credential identifiers.
+request, resource, business, or credential identifiers. Full exceptions are
+permitted only through the two reviewed `log_exception()` call sites below.
 
 ---
 
@@ -112,9 +123,11 @@ log_event(
 - The only HTTP metadata allowed is method, route template, status code, and
   elapsed time. Authentication metadata is limited to `actor_kind` and
   authorization outcome.
-- Never emit bodies, query strings, headers, passwords, tokens, cookies, API
-  keys, user UUIDs, raw exception messages, traceback values, or arbitrary
-  resource/business identifiers.
+- Regular events must never emit bodies, query strings, headers, passwords,
+  tokens, cookies, API keys, user UUIDs, raw exception messages, traceback
+  values, or arbitrary resource/business identifiers. The restricted
+  `log_exception()` path may render the original exception and traceback in
+  its `exception` field for unhandled HTTP 5xx and Celery task failure only.
 - Application code only writes JSON to stdout. The runtime owns collection and
   external export; application code has no collector credential, buffer,
   persistence, or retry behavior.
@@ -194,9 +207,11 @@ bind arbitrary request, actor, exception, or business context directly.
 
 ### 8. Precedence over Legacy Failure Logging
 
-- For paths migrated to D-002 structured logging, emit exactly the allowlisted
-  JSON record. Do not use `logger.exception`, `exc_info`, exception text, a raw
-  URL path, or business/resource identifiers on the stdout collector path.
+- For ordinary paths migrated to D-002 structured logging, emit exactly the
+  allowlisted JSON record. Do not use `logger.exception`, `exc_info`, exception
+  text, a raw URL path, or business/resource identifiers on the stdout
+  collector path. The HTTP middleware and Celery `task_failure` receiver are
+  the only reviewed `log_exception()` call sites.
 - Preserve the public API response contract, including `detail + request_id`.
   Observability must not change status-code mapping or response bodies.
 - The public Nginx location owns request-ID normalization: it overwrites the
@@ -250,6 +265,8 @@ def configure_observability() -> None: ...
 
 def bind_request_context(*, request_id: str, actor_kind: str = "anonymous") -> None: ...
 
+DetailedErrorEventName = Literal["http.request.failed", "task.failed"]
+
 def log_event(
     *,
     event_name: EventName,
@@ -264,6 +281,17 @@ def log_event(
     actor_kind: str | None = None,
     authorization_result: str | None = None,
 ) -> None: ...
+
+def log_exception(
+    *,
+    event_name: DetailedErrorEventName,
+    exception: BaseException,
+    traceback: TracebackType | None = None,
+    elapsed_ms: int | None = None,
+    method: str | None = None,
+    route_template: str | None = None,
+    status_code: int | None = None,
+) -> None: ...
 ```
 
 - `configure_observability()` runs once at each application/startup entry
@@ -272,6 +300,9 @@ def log_event(
   configuration path. It configures `structlog.contextvars`, the direct JSON
   renderer, and one stdout NDJSON sink. Reconfiguration replaces the lazy
   logger so reload and test processes do not retain a stale output stream.
+- The Celery import path registers a `setup_logging` receiver before worker
+  startup. Its presence prevents Celery from adding text handlers or redirecting
+  stdout; it creates no application logger, handler, or additional sink.
 - Request middleware first clears context, then binds the normalized
   32-character lowercase hexadecimal `request_id`. It clears context at
   completion so a request cannot leak data into another request.
@@ -280,16 +311,18 @@ def log_event(
   `X-Request-ID` in `http.response.start`, so a CORS-short-circuited `OPTIONS`
   preflight gets the same response correlation and allowlisted HTTP outcome
   telemetry without buffering or rebuilding its response.
-- `log_event()` is the sole application-owned entry point for D-002 records.
-  It delegates one event to the configured structlog logger; it is not a
-  second logging framework.
+- `log_event()` is the application-owned entry point for ordinary D-002
+  records. `log_exception()` is its restricted companion for the two detailed
+  error events. Both delegate to the same structlog logger and stdout sink;
+  neither is a second logging framework.
 
 ### 3. Contracts
 
-- The structlog processor chain adds only timestamp, severity, environment,
-  and bound safe context before `JSONRenderer`.
-- Never configure `format_exc_info`, `dict_tracebacks`, an exception renderer,
-  or arbitrary context processors on the stdout path.
+- The structlog processor chain adds timestamp, severity, environment, bound
+  context, and `format_exc_info` before `JSONRenderer`. Only `log_exception()`
+  passes `exc_info`, so ordinary events have no `exception` field.
+- Do not configure `dict_tracebacks` or arbitrary context processors on the
+  stdout path.
 - `request_id` and `actor_kind` are the only HTTP context keys; `task_id` and
   `task_name` are the only Celery task context keys that may be bound with
   `structlog.contextvars`. Bind no user ID, email, role, permission, token,
@@ -315,7 +348,8 @@ def log_event(
   application configuration rather than rendering raw messages or tracebacks.
 - Application modules must not call `structlog.get_logger(...).bind(...)`,
   `logger.exception(...)`, or `logger.*(..., exc_info=...)` for operational
-  records. Use `log_event()`.
+  records. Use `log_event()`, except the two approved boundaries that use
+  `log_exception()`.
 
 ### 4. Validation & Error Matrix
 
@@ -324,8 +358,12 @@ def log_event(
 | `configure_observability()` runs again in a reload/test process | Replace prior handlers; do not duplicate JSON lines. |
 | Request ID is invalid or absent | Normalize/generate before binding; never bind caller text. |
 | A Celery task begins | The `task_prerun` signal clears prior context, validates the caller-provided canonical task ID and registered application task name, binds only those two fields, then emits `task.started` at `INFO`. |
-| A Celery task exits | The `task_postrun` signal reads only allowlisted `state` plus the already-bound safe task context. It maps only `SUCCESS` to `task.completed` and `FAILURE` to `task.failed`, both at `INFO`, and only when prerun accepted and bound the task identity; `RETRY`, `REJECTED`, `IGNORED`, unknown states, and rejected identities emit no terminal event. It clears task context in `finally` for every exit path. |
-| Celery passes signal payload extensions | The receiver may accept an opaque signal keyword mapping to satisfy Celery dispatch, but must delete it without reading, forwarding, or serializing args, kwargs, return values, exceptions, tracebacks, or headers. |
+| A Celery task succeeds | The `task_postrun` signal reads only allowlisted `state` plus the already-bound safe task context. It maps `SUCCESS` to `task.completed` at `INFO`; `RETRY`, `REJECTED`, `IGNORED`, `FAILURE`, unknown states, and rejected identities emit no postrun terminal event. It clears task context in `finally` for every exit path. |
+| A Celery task fails | The `task_failure` signal emits one `task.failed` at `ERROR` through `log_exception()` when valid task context exists. It passes the original exception and traceback only; task arguments, keyword arguments, return values, and headers remain unread. |
+| A Celery worker starts | The registered `setup_logging` receiver prevents Celery default handlers, formatters, and stdout redirection from taking over the NDJSON stream. |
+| A Celery worker or beat starts under PM2 | Start the Celery command with global `-q` before `-A`; its direct banner print bypasses logging configuration and otherwise pollutes stdout. |
+| PM2 changes a process executable | Delete and start the named application from `ecosystem.config.js`; do not rely on `pm2 reload` to replace an existing Windows process executable. |
+| Celery passes signal payload extensions | The receiver may accept an opaque signal keyword mapping to satisfy Celery dispatch, but must delete it without reading, forwarding, or serializing args, kwargs, return values, or headers. |
 | CORS preflight short-circuits the inner application | The outer request-correlation middleware adds `X-Request-ID` and emits the sampled/safe `OPTIONS` outcome event; it must not bypass correlation. |
 | A caller supplies `task_id` or `task_name` to `log_event()` | Treat it as a programming error: the closed signature rejects it before serialization. Task identity can enter a lifecycle event only through validated `task_prerun` context. |
 | A caller supplies an unknown/forbidden `log_event()` keyword | Treat it as a programming error: the closed signature rejects it before serialization. Fix the caller; do not add `**kwargs` to silently filter it. |
@@ -343,12 +381,12 @@ def log_event(
 - Base: a fast successful request falls outside the stable 10% sample bucket;
   `log_event()` emits nothing and the HTTP response remains unchanged.
 - Good: a task emits `task.started` and `task.completed` with only its validated
-  `task_id` and registered `task_name`; a failed task emits `task.failed` at
-  `INFO` without exception text.
+  `task_id` and registered `task_name`; a failed task emits one `task.failed`
+  at `ERROR` with its original traceback in `exception`.
 - Bad: `structlog.get_logger().bind(email=user.email, token=token).error(...)`
   adds uncontrolled context that may be serialized. Do not use it.
-- Bad: configuring an exception renderer makes traceback values appear in the
-  collector stream. Do not configure it.
+- Bad: another application module calls `logger.exception(...)` or adds
+  `exc_info`; only `log_exception()` may render a traceback.
 
 ### 6. Tests Required
 
@@ -362,14 +400,18 @@ def log_event(
   bodies or raw exceptions.
 - Unit test direct `task_id` and `task_name` facade arguments are rejected
   before serialization. Use a real eager failure followed by a success task to
-  prove lifecycle identities remain context-only, failure text is excluded,
-  and task context is cleared between executions.
+  prove lifecycle identities remain context-only, the failure has one ERROR
+  event with traceback, and task context is cleared between executions.
 - Unit test stable sampling and every mandatory unsampled event class.
 - Integration test an allowed CORS preflight returns `X-Request-ID` and, with
   deterministic sampling, emits an allowlisted `http.request.completed` event
   for `OPTIONS` without a raw origin or URL.
 - Integration test the production Uvicorn command and verify no default access
-  line, raw URL, exception message, or traceback reaches stdout.
+  line or raw URL reaches stdout; an unhandled exception must instead produce
+  one parseable `http.request.failed` JSON record with `exception`.
+- Runtime-test a PM2-managed `runtime.ping` task after process recreation and
+  assert `task.started` and `task.completed` are raw JSON lines in its out log,
+  without new stderr output or Celery text prefixes.
 - Keep the dependency, task-lifecycle, startup fail-closed, and Sentry scrub
   tests specified in the D-002 E2E plan.
 - Unit test Sentry transaction reconstruction retains a valid canonical trace
@@ -417,8 +459,9 @@ the application's operational payload inside the reviewed contract.
 ### Recommended direction
 
 - D-002 adopts `structlog>=25,<27` as the backend structured-logging framework.
-- Keep `request_id` as the first-class correlation field and use the
-  `log_event()` facade for all operational records.
+- Keep `request_id` as the first-class correlation field and use `log_event()`
+  for ordinary operational records or the restricted `log_exception()` error
+  boundary.
 - When adding logs around new modules or external integrations, register a
   stable source name and preserve the same allowlisted contract instead of
   inventing a different event format.

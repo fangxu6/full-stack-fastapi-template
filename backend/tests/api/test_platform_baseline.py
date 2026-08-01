@@ -108,7 +108,7 @@ def test_openapi_documents_request_id_for_validation_errors() -> None:
     assert "request_id" in validation_error["required"]
 
 
-def test_unhandled_exceptions_emit_safe_failure_event() -> None:
+def test_unhandled_exceptions_emit_detailed_failure_event() -> None:
     router = APIRouter()
 
     @router.get("/__test/logged-error")
@@ -117,15 +117,15 @@ def test_unhandled_exceptions_emit_safe_failure_event() -> None:
 
     app.include_router(router)
 
-    with patch("app.core.exceptions.log_event") as mock_log_event:
+    with patch("app.core.exceptions.log_exception") as mock_log_exception:
         with TestClient(app, raise_server_exceptions=False) as test_client:
             response = test_client.get("/__test/logged-error")
 
     assert response.status_code == HTTP_500_INTERNAL_SERVER_ERROR
-    mock_log_event.assert_called_once()
-    assert mock_log_event.call_args.kwargs["event_name"] == "http.request.failed"
-    assert mock_log_event.call_args.kwargs["severity"] == "ERROR"
-    assert "boom" not in str(mock_log_event.call_args.kwargs)
+    mock_log_exception.assert_called_once()
+    assert mock_log_exception.call_args.kwargs["event_name"] == "http.request.failed"
+    assert isinstance(mock_log_exception.call_args.kwargs["exception"], RuntimeError)
+    assert "boom" in str(mock_log_exception.call_args.kwargs["exception"])
 
 
 def test_modules_router_is_registered(client: TestClient) -> None:

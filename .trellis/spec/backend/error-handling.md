@@ -82,7 +82,9 @@ do not hand-edit generated client types.
 - The minimum failure trail for a real bug is:
   - response body `request_id`
   - response header `X-Request-ID`
-  - server log entry with `request_id` and path
+  - one stdout NDJSON `http.request.failed` record with `request_id`, method,
+    route template, status, elapsed time, and the original traceback in
+    `exception`
 
 ---
 

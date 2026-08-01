@@ -23,6 +23,7 @@ from app.core.observability import (
     bind_request_context,
     clear_request_context,
     log_event,
+    log_exception,
     normalize_request_id,
     should_sample_success,
 )
@@ -108,11 +109,11 @@ class RequestIdMiddleware:
                 started_at=started_at,
                 status_code=status_code,
             )
-        except Exception:
+        except Exception as exc:
             elapsed_ms = int((perf_counter() - started_at) * 1000)
-            log_event(
+            log_exception(
                 event_name="http.request.failed",
-                severity="ERROR",
+                exception=exc,
                 elapsed_ms=elapsed_ms,
                 method=scope["method"],
                 route_template=getattr(scope.get("route"), "path", "unmatched"),

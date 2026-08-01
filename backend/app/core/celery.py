@@ -1,8 +1,14 @@
-from typing import Any, Literal
+from types import TracebackType
+from typing import Any
 
 from celery import Celery  # type: ignore[import-untyped]
 from celery.schedules import crontab  # type: ignore[import-untyped]
-from celery.signals import task_postrun, task_prerun  # type: ignore[import-untyped]
+from celery.signals import (  # type: ignore[import-untyped]
+    setup_logging,
+    task_failure,
+    task_postrun,
+    task_prerun,
+)
 
 from app.core.config import settings
 from app.core.observability import (
@@ -11,11 +17,19 @@ from app.core.observability import (
     configure_observability,
     has_task_context,
     log_event,
+    log_exception,
     normalize_task_id,
     normalize_task_name,
 )
 
 configure_observability()
+
+
+def _preserve_structlog_output(*, signal: Any, **signal_payload: Any) -> None:
+    del signal, signal_payload
+
+
+setup_logging.connect(_preserve_structlog_output, weak=False)
 
 celery_app: Any = Celery(
     "app",
@@ -105,18 +119,35 @@ def _log_task_postrun(
 ) -> None:
     del signal, sender, task_id, signal_payload
     try:
-        event_name: Literal["task.completed", "task.failed"] | None = None
-        if state == "SUCCESS":
-            event_name = "task.completed"
-        elif state == "FAILURE":
-            event_name = "task.failed"
-        if event_name is not None and has_task_context():
-            log_event(event_name=event_name, severity="INFO")
+        if state == "SUCCESS" and has_task_context():
+            log_event(event_name="task.completed", severity="INFO")
     except Exception:
         pass
     finally:
         clear_task_context()
 
 
+def _log_task_failure(
+    *,
+    signal: Any,
+    sender: Any,
+    task_id: Any,
+    exception: Any,
+    traceback: Any,
+    **signal_payload: Any,
+) -> None:
+    del signal, sender, task_id, signal_payload
+    try:
+        if isinstance(exception, BaseException) and has_task_context():
+            log_exception(
+                event_name="task.failed",
+                exception=exception,
+                traceback=traceback if isinstance(traceback, TracebackType) else None,
+            )
+    except Exception:
+        pass
+
+
 task_prerun.connect(_log_task_prerun, weak=False)
+task_failure.connect(_log_task_failure, weak=False)
 task_postrun.connect(_log_task_postrun, weak=False)

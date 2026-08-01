@@ -23,6 +23,11 @@ In most cases, updating `AI_CHANGELOG.md` alone is enough.
 - Risk: 风险、权衡或后续事项
 
 ## Entries
+- Date: 2026-08-01
+- Scope: backend HTTP and Celery error observability
+- Decision: Keep structlog and PM2 stdout as the single application error stream; unexpected HTTP and Celery failures render full traceback values in NDJSON without introducing standard logging handlers or Sentry. PM2 directly starts backend Python and Celery executables with `time` disabled; Celery uses `setup_logging` suppression plus `-q` so stdout remains exclusively structlog JSON.
+- Reason: The internal operational workflow needs root causes, and Windows `cmd /c` captured shell output but not Python child output; PM2 time prefixes also invalidate JSON. A second logger/sink would duplicate routing and collection behavior that direct PM2 plus structlog already provides.
+- Risk: PM2 executable changes require delete/start rather than reload on Windows; Sentry removal remains a separately planned task.
 - Date: 2026-07-27
 - Scope: retired inventory AI query capability
 - Decision: Removed the retired inventory AI query capability and its active operational documentation; ADR-0008 is the authoritative removal record.

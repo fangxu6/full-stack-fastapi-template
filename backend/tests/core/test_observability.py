@@ -17,6 +17,7 @@ from app.core.observability import (
     clear_task_context,
     configure_observability,
     log_event,
+    log_exception,
     normalize_request_id,
     normalize_task_id,
     normalize_task_name,
@@ -138,6 +139,34 @@ def test_task_log_event_emits_only_safe_task_context(
         "task_name",
         "timestamp",
     }
+
+
+def test_log_exception_emits_json_traceback(capsys: CaptureFixture[str]) -> None:
+    configure_observability()
+    bind_request_context(request_id="a" * 32)
+
+    try:
+        raise RuntimeError("http failure")
+    except RuntimeError as exception:
+        log_exception(
+            event_name="http.request.failed",
+            exception=exception,
+            elapsed_ms=12,
+            method="GET",
+            route_template="/test",
+            status_code=500,
+        )
+    finally:
+        clear_request_context()
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["event_name"] == "http.request.failed"
+    assert payload["severity"] == "ERROR"
+    assert payload["request_id"] == "a" * 32
+    assert payload["method"] == "GET"
+    assert payload["route_template"] == "/test"
+    assert payload["status_code"] == 500
+    assert "RuntimeError: http failure" in payload["exception"]
 
 
 def test_log_event_rejects_unknown_fields_before_serialization(
