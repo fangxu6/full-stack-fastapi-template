@@ -246,6 +246,18 @@ export type RuleDocumentSummary = {
     path: string;
 };
 
+export type SchedulerCronPreviewPublic = {
+    base_at: string;
+    timezone: "Asia/Shanghai";
+    next_run_ats: [
+        string,
+        string,
+        string,
+        string,
+        string
+    ];
+};
+
 export type SchedulerJobCreate = {
     name: string;
     class_path: string;
@@ -642,6 +654,12 @@ export type PrivateCreateUserData = {
 };
 
 export type PrivateCreateUserResponse = (UserPublic);
+
+export type SchedulerPreviewCronData = {
+    cronExpression: string;
+};
+
+export type SchedulerPreviewCronResponse = (SchedulerCronPreviewPublic);
 
 export type SchedulerReadJobsData = {
     includeDeleted?: boolean;

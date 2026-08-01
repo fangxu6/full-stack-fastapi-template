@@ -1233,6 +1233,34 @@ export const RuleDocumentsPublicSchema = {
     title: 'RuleDocumentsPublic'
 } as const;
 
+export const SchedulerCronPreviewPublicSchema = {
+    properties: {
+        base_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Base At'
+        },
+        timezone: {
+            type: 'string',
+            const: 'Asia/Shanghai',
+            title: 'Timezone'
+        },
+        next_run_ats: {
+            items: {
+                type: 'string',
+                format: 'date-time'
+            },
+            type: 'array',
+            maxItems: 5,
+            minItems: 5,
+            title: 'Next Run Ats'
+        }
+    },
+    type: 'object',
+    required: ['base_at', 'timezone', 'next_run_ats'],
+    title: 'SchedulerCronPreviewPublic'
+} as const;
+
 export const SchedulerJobCreateSchema = {
     properties: {
         name: {
