@@ -1,11 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router"
-
-import { requirePermission } from "@/app/router/guards"
-import { AdminUsersPage } from "@/platform/system/pages/AdminUsersPage"
+import { createFileRoute, Outlet } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/_layout/admin")({
-  component: AdminUsersPage,
-  beforeLoad: requirePermission("system.users.read"),
+  component: Outlet,
   head: () => ({
     meta: [
       {
