@@ -249,7 +249,7 @@
 - Metrics
 - 健康检查 `/health` `/readiness`
 - 慢查询/慢接口监控
-- 异常上报（Sentry 已有雏形）
+- 结构化错误追踪（structlog stdout NDJSON + Request ID）
 
 #### C. 性能
 

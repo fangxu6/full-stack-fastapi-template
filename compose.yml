@@ -92,7 +92,6 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - REDIS_PASSWORD=${REDIS_PASSWORD?Variable not set}
-      - SENTRY_DSN=${SENTRY_DSN}
 
   backend:
     image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
@@ -126,7 +125,6 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - REDIS_PASSWORD=${REDIS_PASSWORD?Variable not set}
-      - SENTRY_DSN=${SENTRY_DSN}
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
@@ -194,7 +192,6 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD?Variable not set}
-      - SENTRY_DSN=${SENTRY_DSN}
     healthcheck:
       test: ["CMD-SHELL", "celery -A app.core.celery:celery_app inspect ping --destination=celery-worker@celery-worker --timeout=5 | grep -q pong"]
       interval: 15s
@@ -239,7 +236,6 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD?Variable not set}
-      - SENTRY_DSN=${SENTRY_DSN}
     healthcheck:
       test: ["CMD-SHELL", "test -s /tmp/celerybeat.pid && kill -0 \"$(cat /tmp/celerybeat.pid)\""]
       interval: 15s

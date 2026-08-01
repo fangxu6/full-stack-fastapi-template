@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, PropertyMock, patch
 import pytest
 import structlog
 from pytest import CaptureFixture
-from sentry_sdk.types import Event
 
 from app.core.config import settings
 from app.core.db import IamBootstrapInitializationError
@@ -25,7 +24,6 @@ from app.core.observability import (
     should_sample_success,
 )
 from app.initial_data import init as init_initial_data
-from app.main import scrub_sentry_error, scrub_sentry_transaction
 from app.utils import send_email
 
 
@@ -211,54 +209,6 @@ def test_log_event_swallows_sink_failures() -> None:
         log_event(
             event_name="startup.failed", severity="CRITICAL", dependency="postgres"
         )
-
-
-def test_sentry_scrubbers_remove_sensitive_event_fields() -> None:
-    error_payload = scrub_sentry_error(
-        cast(
-            Event,
-            {
-                "request": {"data": "password=secret"},
-                "exception": {"values": [{"value": "upstream token"}]},
-            },
-        ),
-        {},
-    )
-    transaction_payload = scrub_sentry_transaction(
-        cast(
-            Event,
-            {
-                "request": {"url": "https://example.invalid/?token=secret"},
-                "contexts": {"trace": {"trace_id": "a" * 32}},
-                "spans": [{"description": "private value"}],
-            },
-        ),
-        {},
-    )
-
-    assert error_payload is not None
-    assert transaction_payload is not None
-    assert "secret" not in str(error_payload)
-    assert "upstream token" not in str(error_payload)
-    assert "secret" not in str(transaction_payload)
-    assert transaction_payload["spans"] == []
-    assert transaction_payload["contexts"] == {"trace": {"trace_id": "a" * 32}}
-
-
-def test_sentry_transaction_discards_an_invalid_trace_id() -> None:
-    transaction_payload = scrub_sentry_transaction(
-        cast(
-            Event,
-            {
-                "contexts": {"trace": {"trace_id": "trace-token=secret"}},
-            },
-        ),
-        {},
-    )
-
-    assert transaction_payload is not None
-    assert "contexts" not in transaction_payload
-    assert "secret" not in str(transaction_payload)
 
 
 def test_smtp_failure_emits_only_the_registered_dependency() -> None:

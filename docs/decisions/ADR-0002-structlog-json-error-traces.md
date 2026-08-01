@@ -22,9 +22,9 @@ Insert `format_exc_info` before `JSONRenderer` and record unexpected HTTP and
 Celery failures through a constrained exception entry point. Detailed error records
 remain NDJSON and include the existing request/task correlation plus traceback.
 
-Do not introduce standard-library logging handlers, stderr/file sinks, or Sentry
-for this capability. Celery `task_failure` owns the failed event; `task_postrun`
-only emits successful completion and clears context.
+Do not introduce standard-library logging handlers or stderr/file sinks for this
+capability. Celery `task_failure` owns the failed event; `task_postrun` only emits
+successful completion and clears context.
 
 On Windows, PM2 must start the backend Python executable and Celery executables
 directly. The previous `cmd /c` wrapper did not forward Python child output to
@@ -51,10 +51,6 @@ structlog already provides the timestamp and the prefix would invalidate NDJSON.
 
 Rejected because it creates a second application API, sink, and routing model while
 PM2 already captures the single process stdout stream.
-
-### Sentry
-
-Rejected because the user has decided to remove Sentry in a separate iteration.
 
 ### Keep safe events only
 
@@ -85,7 +81,6 @@ Windows, leaving successful scheduler runs without observable lifecycle records.
   `pm2 reload` does not replace an existing Windows executable.
 - Future multi-sink or third-party logging needs may justify a separate standard
   logging integration task.
-- Sentry removal remains D-001 in the active Trellis task.
 
 ## Validation
 
@@ -97,5 +92,4 @@ Windows, leaving successful scheduler runs without observable lifecycle records.
 ## Related Docs
 
 - `docs/decisions/AI_CHANGELOG.md`
-- `docs/decisions/ADR-0001-internal-sentry-trace-correlation.md`
 - `.trellis/tasks/08-01-scheduler-observability-diagnosis/prd.md`

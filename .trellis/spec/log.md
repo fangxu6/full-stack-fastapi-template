@@ -233,3 +233,7 @@ Configured the direct worker import path for NDJSON and suppressed terminal task
 ## [2026-07-29 17:15:06] update | Harden Celery task identity facade
 
 Task lifecycle identity is context-only; log_event rejects direct task_id and task_name inputs, with eager failure-then-success regression coverage.
+
+## [2026-08-01 22:33:05] update | Remove Sentry observability contract
+
+Removed the retired Sentry export, configuration, and scrub-test rules; the active backend contract is the single structlog stdout NDJSON stream.

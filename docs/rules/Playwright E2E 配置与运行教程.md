@@ -55,7 +55,7 @@ uv run python app/initial_data.py
 ```powershell
 Set-Location D:\Workspace\full-stack-fastapi-template\backend
 $env:POSTGRES_DB = 'aiadmin_test'
-uv run fastapi dev app/main.py --host 127.0.0.1 --port 8000
+uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 启动后访问 [健康检查](http://127.0.0.1:8000/api/v1/utils/health-check/)，应返回 `true`。

@@ -1,12 +1,8 @@
-import re
-from datetime import datetime
 from typing import Any, cast
 
-import sentry_sdk
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
-from sentry_sdk.types import Event
 from starlette.exceptions import HTTPException
 from starlette.middleware.cors import CORSMiddleware
 from starlette.types import ExceptionHandler
@@ -21,9 +17,7 @@ from app.core.exceptions import (
     request_validation_exception_handler,
     unhandled_exception_handler,
 )
-from app.core.observability import configure_observability, current_request_id
-
-SENTRY_TRACE_ID_PATTERN = re.compile(r"^[a-f0-9]{32}$")
+from app.core.observability import configure_observability
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -48,56 +42,6 @@ class RequestIdOpenAPIFastAPI(FastAPI):
 
 
 configure_observability()
-
-
-def scrub_sentry_error(_event: Event, _: dict[str, Any]) -> Event | None:
-    try:
-        tags = _sentry_tags("http.request.failed")
-        return {
-            "level": "error",
-            "message": "http.request.failed",
-            "tags": tags,
-        }
-    except Exception:
-        return None
-
-
-def scrub_sentry_transaction(event: Event, _: dict[str, Any]) -> Event | None:
-    try:
-        safe_event: Event = {
-            "type": "transaction",
-            "transaction": "http.request",
-            "transaction_info": {"source": "custom"},
-            "spans": [],
-            "tags": _sentry_tags("http.request.completed"),
-        }
-        for field in ("start_timestamp", "timestamp"):
-            value = event.get(field)
-            if isinstance(value, datetime):
-                safe_event[field] = value
-        trace_id = event.get("contexts", {}).get("trace", {}).get("trace_id")
-        if isinstance(trace_id, str) and SENTRY_TRACE_ID_PATTERN.fullmatch(trace_id):
-            safe_event["contexts"] = {"trace": {"trace_id": trace_id}}
-        return safe_event
-    except Exception:
-        return None
-
-
-def _sentry_tags(event_name: str) -> dict[str, str]:
-    tags = {"environment": settings.ENVIRONMENT, "event_name": event_name}
-    if request_id := current_request_id():
-        tags["request_id"] = request_id
-    return tags
-
-
-if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
-    sentry_sdk.init(
-        dsn=str(settings.SENTRY_DSN),
-        enable_tracing=True,
-        send_default_pii=False,
-        before_send=scrub_sentry_error,
-        before_send_transaction=scrub_sentry_transaction,
-    )
 
 app = RequestIdOpenAPIFastAPI(
     title=settings.PROJECT_NAME,

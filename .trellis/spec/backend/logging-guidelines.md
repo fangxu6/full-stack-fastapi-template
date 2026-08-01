@@ -134,14 +134,6 @@ log_event(
 - Uvicorn's default textual access log is disabled. Its server/error loggers
   must use the same safe structured handler or be suppressed; no default raw
   path, exception message, or traceback may share the stdout collector stream.
-- Sentry is optional outside local environments. It uses the same redaction
-  boundary and receives only `request_id`, environment, and event-name context,
-  except for the narrowly approved internal transaction correlation field:
-  `contexts.trace.trace_id` may be reconstructed only when it is a canonical
-  32-character lowercase hexadecimal trace ID. It must not retain `span_id`,
-  parent/span metadata, request data, user data, exceptions, breadcrumbs,
-  arbitrary tags/context, or spans. See
-  [`ADR-0001`](../../../docs/decisions/ADR-0001-internal-sentry-trace-correlation.md).
 
 ### 4. Validation & Error Matrix
 
@@ -218,16 +210,7 @@ bind arbitrary request, actor, exception, or business context directly.
   inbound `X-Request-ID` with `$request_id` before proxying and writes the
   response header. The backend is still the direct-access fallback: it accepts
   only a 32-character lowercase hexadecimal ID and replaces missing or invalid
-  values with `uuid4().hex` before any structured record or Sentry context is
-  created.
-- Sentry configuration follows the same safe-context contract. It must not add
-  raw request payloads or exception-message values outside the approved fields.
-  Transaction reconstruction may retain only a validated
-  `contexts.trace.trace_id` for internal correlation; malformed, uppercase, or
-  sentinel values are omitted. To restore strict Sentry mode, remove that
-  guarded reconstructed context and update its focused test and this exception
-  rule as recorded in
-  [`ADR-0001`](../../../docs/decisions/ADR-0001-internal-sentry-trace-correlation.md).
+  values with `uuid4().hex` before any structured record is created.
 
 ---
 
@@ -412,11 +395,8 @@ def log_exception(
 - Runtime-test a PM2-managed `runtime.ping` task after process recreation and
   assert `task.started` and `task.completed` are raw JSON lines in its out log,
   without new stderr output or Celery text prefixes.
-- Keep the dependency, task-lifecycle, startup fail-closed, and Sentry scrub
-  tests specified in the D-002 E2E plan.
-- Unit test Sentry transaction reconstruction retains a valid canonical trace
-  ID only, omits malformed or sentinel IDs, and still removes every other trace
-  field plus request, user, exception, breadcrumb, and span data.
+- Keep the dependency, task-lifecycle, and startup fail-closed tests specified
+  in the D-002 E2E plan.
 
 ### 7. Wrong vs Correct
 
