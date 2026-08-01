@@ -56,6 +56,62 @@ Backend quality in this repo is mostly about preserving architectural direction:
 - If OpenAPI output changes, run `bash ./scripts/generate-client.sh` or explicitly document why regeneration was not required.
 - If tests are skipped, say so explicitly in the handoff.
 
+### Scenario: Isolated PostgreSQL Test Database
+
+#### 1. Scope / Trigger
+
+- Trigger: running any backend pytest suite, focused destructive test, or local
+  API E2E flow that initializes or clears PostgreSQL data.
+
+#### 2. Signatures
+
+```bash
+POSTGRES_DB=aiadmin_test bash scripts/test.sh
+POSTGRES_DB=aiadmin_test uv run pytest tests/<path>
+```
+
+#### 3. Contracts
+
+- `aiadmin_test` is the project's local isolated PostgreSQL database for
+  destructive backend tests and API E2E.
+- The database must exist before pytest runs; the session fixture upgrades it
+  to the Alembic head and clears its supported test tables after the suite.
+- `POSTGRES_DB=aiadmin` is development data and must never be used for tests.
+
+#### 4. Validation And Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| `POSTGRES_DB=aiadmin_test` and the database exists | Run migrations and tests. |
+| Name is `aiadmin`, blank, or a system database | Refuse before destructive test setup. |
+| Name has a safe suffix but the database does not exist | Fail during connection/migration; create the isolated database, never substitute the development database. |
+
+#### 5. Good / Base / Bad Cases
+
+- Good: a focused backend test exports `POSTGRES_DB=aiadmin_test` and leaves
+  `aiadmin` untouched.
+- Base: the fixture clears its known tables after a successful suite.
+- Bad: pointing pytest at `aiadmin` to avoid creating the test database.
+
+#### 6. Tests Required
+
+- Verify the database guard rejects `aiadmin` before migrations run.
+- Verify CI/local test commands set `POSTGRES_DB=aiadmin_test` before pytest.
+
+#### 7. Wrong Vs Correct
+
+#### Wrong
+
+```bash
+POSTGRES_DB=aiadmin uv run pytest tests/core/test_config.py
+```
+
+#### Correct
+
+```bash
+POSTGRES_DB=aiadmin_test uv run pytest tests/core/test_config.py
+```
+
 ---
 
 ## Delivery Gate Checklist

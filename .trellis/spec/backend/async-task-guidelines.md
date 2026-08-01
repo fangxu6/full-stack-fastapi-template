@@ -5,7 +5,8 @@
 ### 1. Scope / Trigger
 
 - Trigger: code dispatches background work through the shared Celery runtime.
-- Redis is the authenticated broker and short-lived result backend. PostgreSQL
+- Redis is the broker and short-lived result backend. Local development uses
+  unauthenticated Redis; production requires Redis authentication. PostgreSQL
   remains the durable source of business facts.
 
 ### 2. Signatures
@@ -21,7 +22,9 @@
 
 - Tasks receive only JSON-serializable values. Pass identifiers, then create a
   database session and reload records inside a future task.
-- `REDIS_PASSWORD` is required and cannot be `changethis` outside `local`.
+- `REDIS_PASSWORD` is optional in `local`: an empty value produces Redis URLs
+  with no authentication component. It is required in `production` and cannot
+  be `changethis` outside `local`.
 - The broker uses Redis database `0`; short-lived results use database `1` and
   expire after `CELERY_RESULT_EXPIRES_SECONDS` (900 seconds by default).
 - `task_acks_late=True`, `task_reject_on_worker_lost=True`, and visibility
@@ -35,7 +38,8 @@
 
 | Condition | Required behavior |
 | --- | --- |
-| Missing `REDIS_PASSWORD` | Settings construction fails at startup. |
+| Empty `REDIS_PASSWORD` in `local` | Build unauthenticated Redis URLs and do not issue `AUTH`. |
+| Missing `REDIS_PASSWORD` in `production` | Settings construction fails at startup. |
 | Default Redis password outside local | Settings construction fails. |
 | Non-positive Celery timeout | Settings validation fails. |
 | `runtime.ping` input is not a string or exceeds 64 characters | Raise `ValueError`; do not enqueue business work. |
@@ -52,8 +56,8 @@
 
 ### 6. Tests Required
 
-- Unit tests cover settings validation, Redis URL escaping, and bounded task
-  input.
+- Unit tests cover local no-password Redis URLs, production password
+  validation, Redis URL escaping, and bounded task input.
 - Use Celery eager mode for the task unit path.
 - Integration validation dispatches `runtime.ping` and asserts a live worker
   returns the same marker through Redis.
@@ -77,6 +81,24 @@ deliver_alert.delay(alert_outbox_id)
 
 The task reloads the durable outbox row and records its idempotent delivery
 transition in PostgreSQL.
+
+#### Wrong
+
+```python
+return f"redis://:{quote(self.REDIS_PASSWORD, safe='')}@{host}:{port}/0"
+```
+
+This sends Redis `AUTH` even when a local Redis instance has no password.
+
+#### Correct
+
+```python
+credentials = f":{quote(password, safe='')}@" if password else ""
+return f"redis://{credentials}{host}:{port}/0"
+```
+
+Local Redis connects without authentication, while a production settings
+validation error prevents an empty password from reaching this branch.
 
 ## Scenario: Scheduler Dispatch And Configuration Boundary
 
