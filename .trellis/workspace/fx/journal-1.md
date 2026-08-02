@@ -1013,3 +1013,39 @@ Implemented bounded XLSX DTO parsing and inventory document/legacy imports plus 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 31: Complete inventory Excel frontend workflow
+
+**Date**: 2026-08-02
+**Task**: Complete inventory Excel frontend workflow
+**Branch**: `master`
+
+### Summary
+
+Added reusable XLSX UI workflows, scoped inventory import/export APIs, and a non-blocking generated-client synchronization gate.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2468c97` | (see git log) |
+| `8ac9dcd` | (see git log) |
+| `8e3b0b2` | (see git log) |
+| `7c0dc9b` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
