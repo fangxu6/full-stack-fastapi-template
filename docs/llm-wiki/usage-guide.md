@@ -1,7 +1,7 @@
 ---
 title: LLM-Wiki Usage Guide
 created: 2026-06-04
-updated: 2026-06-04
+updated: 2026-08-02
 type: guide
 tags:
   - llm-wiki
@@ -81,31 +81,15 @@ The new skills live under `.agents/skills/`.
 
 | Skill | Use When |
 | --- | --- |
-| `kb-query` | Answering repository-aware questions through the wiki. |
 | `kb-ingest` | Adding durable knowledge from docs, code findings, Trellis tasks, research, or completed work. |
 | `kb-lint` | Auditing wiki health, links, frontmatter, index coverage, and source traceability. |
-| `kb-tech-solution` | Producing source-backed technical solutions or implementation plans. |
-| `kb-tech-review` | Reviewing specs, plans, or code changes against wiki, architecture, Trellis, and code evidence. |
 | `kb-problem-solve` | Troubleshooting by building an evidence chain before proposing fixes. |
 
 ## Common Workflows
 
 ### Ask a Repository Question
 
-Use `kb-query`.
-
-Expected flow:
-
-1. Read `docs/llm-wiki/index.md`.
-2. Read relevant wiki pages.
-3. Verify source docs or code only when needed.
-4. Answer with evidence paths and clear assumptions.
-
-Example prompt:
-
-```text
-Use kb-query: 当前仓库前后端边界是什么？
-```
+Read `docs/llm-wiki/index.md`, then relevant pages and source code as needed.
 
 ### Add New Knowledge
 
@@ -123,40 +107,6 @@ Example prompt:
 
 ```text
 Use kb-ingest: 将 .trellis/tasks/<task>/research 下的稳定结论沉淀进 docs/llm-wiki。
-```
-
-### Create a Technical Solution
-
-Use `kb-tech-solution`.
-
-Expected flow:
-
-1. Read wiki index and relevant pages.
-2. Read Trellis task artifacts if present.
-3. Verify affected source docs or code.
-4. Produce a plan that follows backend/frontend/Trellis boundaries.
-5. Identify whether `.trellis/spec/**` or `docs/llm-wiki/**` needs updates.
-
-Example prompt:
-
-```text
-Use kb-tech-solution: 为新增一个需要前后端联动的管理页提供方案。
-```
-
-### Review a Plan or Change
-
-Use `kb-tech-review`.
-
-Expected output should separate:
-
-- Confirmed issue
-- Risk inference
-- Needs human confirmation
-
-Example prompt:
-
-```text
-Use kb-tech-review: 审查这个 design.md 是否违反仓库架构边界。
 ```
 
 ### Troubleshoot a Problem
@@ -219,4 +169,3 @@ Use this rule:
 - Keep `index.md` short and navigable.
 - Append `log.md`; do not rewrite history.
 - Mark inference explicitly when a conclusion is not directly sourced.
-

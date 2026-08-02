@@ -69,3 +69,12 @@ Append new records at the end. Do not rewrite historical entries except for obvi
   both current inventory tasks remain non-replayable, and only a future class
   with explicit replay-safe historical semantics may opt into the completed
   365-day single-point backfill window.
+
+## [2026-08-02] maintenance | Simplify LLM-Wiki skills
+
+- Removed `kb-query`, `kb-tech-solution`, and `kb-tech-review`; their generic
+  wiki-loading guidance is covered by Trellis guides and review workflow.
+- Kept `kb-ingest`, `kb-lint`, and `kb-problem-solve` for wiki maintenance and
+  evidence-first troubleshooting.
+- Updated the usage guide and repository AI R&D workflow to remove obsolete
+  skill references.
