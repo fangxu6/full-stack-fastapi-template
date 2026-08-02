@@ -103,10 +103,12 @@ async def import_documents_from_excel(
     session: AuditedWriteSessionDep,
     _current_user: CurrentUser,
     workbook: UploadFile = File(...),
+    document_types: Annotated[list[InventoryDocumentType] | None, Query()] = None,
 ) -> InventoryExcelImportPublic:
     return importer.import_document_workbook(
         session=session,
         content=await _read_xlsx_upload(workbook),
+        allowed_document_types=document_types,
     )
 
 
@@ -143,6 +145,8 @@ def export_inventory_ledger(
     current_user: CurrentUser,
     ledger_kind: InventoryLedgerKind,
     processing_unit_id: uuid.UUID | None = None,
+    receiving_unit_id: uuid.UUID | None = None,
+    document_number: Annotated[str | None, Query(max_length=64)] = None,
     business_date_from: date | None = None,
     business_date_to: date | None = None,
 ) -> Response:
@@ -152,6 +156,8 @@ def export_inventory_ledger(
             session=session,
             ledger_kind=ledger_kind,
             processing_unit_id=processing_unit_id,
+            receiving_unit_id=receiving_unit_id,
+            document_number=document_number,
             business_date_from=business_date_from,
             business_date_to=business_date_to,
         ),

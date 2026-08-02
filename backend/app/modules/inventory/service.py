@@ -783,6 +783,8 @@ def list_ledger_excel_rows(
     session: Session,
     ledger_kind: InventoryLedgerKind,
     processing_unit_id: uuid.UUID | None = None,
+    receiving_unit_id: uuid.UUID | None = None,
+    document_number: str | None = None,
     business_date_from: date | None = None,
     business_date_to: date | None = None,
 ) -> list[InventoryLedgerExcelRow]:
@@ -792,6 +794,12 @@ def list_ledger_excel_rows(
     ]
     if processing_unit_id:
         filters.append(InventoryLedgerEntry.processing_unit_id == processing_unit_id)
+    if receiving_unit_id:
+        filters.append(InventoryDocument.receiving_unit_id == receiving_unit_id)
+    if document_number:
+        filters.append(
+            InventoryDocument.document_number.ilike(f"%{document_number.strip()}%")  # ty:ignore[unresolved-attribute]
+        )
     if business_date_from:
         filters.append(InventoryLedgerEntry.business_date >= business_date_from)
     if business_date_to:

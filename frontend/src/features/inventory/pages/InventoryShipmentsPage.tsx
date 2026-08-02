@@ -2,6 +2,10 @@ import { InventoryDocumentsPage } from "@/features/inventory/pages/InventoryDocu
 
 export function InventoryShipmentsPage() {
   return (
-    <InventoryDocumentsPage title="成品出货" types={["FINISHED_SHIPMENT"]} />
+    <InventoryDocumentsPage
+      ledgerKind="FINISHED"
+      title="成品出货"
+      types={["FINISHED_SHIPMENT"]}
+    />
   )
 }

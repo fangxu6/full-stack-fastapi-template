@@ -21,12 +21,21 @@ import {
 } from "antd"
 import type { ColumnsType, TableProps } from "antd/es/table"
 import type { Dayjs } from "dayjs"
-import { Edit3, Plus, RotateCcw, Trash2 } from "lucide-react"
+import {
+  Download,
+  Edit3,
+  FileDown,
+  Plus,
+  RotateCcw,
+  Trash2,
+  Upload,
+} from "lucide-react"
 import { useState } from "react"
 import {
   IamService,
   type InventoryDocumentCreate,
   type InventoryDocumentPublic,
+  type InventoryLedgerKind,
   InventoryService,
 } from "@/client"
 import { readInventoryDocumentsPage } from "@/features/inventory/api"
@@ -37,8 +46,10 @@ import {
   toOffset,
 } from "@/features/inventory/pagination"
 import { useUnitSelectOptions } from "@/features/inventory/unit-select-options"
+import { downloadXlsx, ExcelImportDialog } from "@/shared/excel"
 
 type DocumentPageProps = {
+  ledgerKind: InventoryLedgerKind
   types: InventoryDocumentCreate["document_type"][]
   title: string
 }
@@ -117,7 +128,11 @@ function renderLinesSummary(
   )
 }
 
-export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
+export function InventoryDocumentsPage({
+  ledgerKind,
+  types,
+  title,
+}: DocumentPageProps) {
   const permissionsQuery = useQuery({
     queryKey: ["iam", "permissions"],
     queryFn: IamService.readMyPermissions,
@@ -125,12 +140,16 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
   const canManage =
     permissionsQuery.data?.permissions.includes("inventory.documents.manage") ??
     false
+  const canReadLedger =
+    permissionsQuery.data?.permissions.includes("inventory.ledger.read") ??
+    false
   const [activeType, setActiveType] = useState(types[0])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [editingDocument, setEditingDocument] =
     useState<InventoryDocumentPublic>()
   const [isEditorOpen, setEditorOpen] = useState(false)
+  const [isExcelImportOpen, setExcelImportOpen] = useState(false)
   const [filters, setFilters] = useState<DocumentFilters>({})
   const [filterForm] = Form.useForm<DocumentFilters>()
   const { message } = App.useApp()
@@ -192,6 +211,43 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
       setPage(1)
       invalidate()
     },
+  })
+  const templateMutation = useMutation({
+    mutationFn: () =>
+      downloadXlsx({
+        filename: "inventory-document-template.xlsx",
+        url: "/api/v1/inventory/excel/templates/documents",
+      }),
+    onError: () => message.error("模板下载失败，请稍后重试。"),
+  })
+  const importMutation = useMutation({
+    mutationFn: (file: File) =>
+      InventoryService.importDocumentsFromExcel({
+        documentTypes: types,
+        // The generated legacy Axios client models FastAPI binary fields as strings.
+        formData: { workbook: file as unknown as string },
+      }),
+    onSuccess: (result) => {
+      message.success(`已导入 ${result.created_documents} 张单据`)
+      setPage(1)
+      invalidate()
+    },
+  })
+  const exportMutation = useMutation({
+    mutationFn: () =>
+      downloadXlsx({
+        filename: `inventory-ledger-${ledgerKind.toLowerCase()}.xlsx`,
+        query: {
+          business_date_from: filters.business_dates?.[0]?.format("YYYY-MM-DD"),
+          business_date_to: filters.business_dates?.[1]?.format("YYYY-MM-DD"),
+          document_number: filters.document_number?.trim() || undefined,
+          ledger_kind: ledgerKind,
+          processing_unit_id: filters.processing_unit_id,
+          receiving_unit_id: filters.receiving_unit_id,
+        },
+        url: "/api/v1/inventory/excel/ledger",
+      }),
+    onError: () => message.error("台账导出失败，请稍后重试。"),
   })
 
   const openEditor = (document?: InventoryDocumentPublic) => {
@@ -284,15 +340,43 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
             单据保存后即时重算对应库存余额。
           </p>
         </div>
-        {canManage ? (
-          <Button
-            icon={<Plus size={16} />}
-            onClick={() => openEditor()}
-            type="primary"
-          >
-            新建{documentLabels[activeType]}
-          </Button>
-        ) : null}
+        <Space wrap>
+          {canManage ? (
+            <Button
+              icon={<Download size={16} />}
+              loading={templateMutation.isPending}
+              onClick={() => templateMutation.mutate()}
+            >
+              下载模板
+            </Button>
+          ) : null}
+          {canManage ? (
+            <Button
+              icon={<Upload size={16} />}
+              onClick={() => setExcelImportOpen(true)}
+            >
+              导入 Excel
+            </Button>
+          ) : null}
+          {canReadLedger ? (
+            <Button
+              icon={<FileDown size={16} />}
+              loading={exportMutation.isPending}
+              onClick={() => exportMutation.mutate()}
+            >
+              导出台账
+            </Button>
+          ) : null}
+          {canManage ? (
+            <Button
+              icon={<Plus size={16} />}
+              onClick={() => openEditor()}
+              type="primary"
+            >
+              新建{documentLabels[activeType]}
+            </Button>
+          ) : null}
+        </Space>
       </div>
       <Tabs
         activeKey={activeType}
@@ -397,6 +481,15 @@ export function InventoryDocumentsPage({ types, title }: DocumentPageProps) {
           onClose={() => setEditorOpen(false)}
           onSaved={() => setPage(1)}
           open={isEditorOpen}
+        />
+      ) : null}
+      {canManage ? (
+        <ExcelImportDialog
+          onClose={() => setExcelImportOpen(false)}
+          onDownloadTemplate={() => templateMutation.mutateAsync()}
+          onImport={(file) => importMutation.mutateAsync(file)}
+          open={isExcelImportOpen}
+          title={`导入${title}`}
         />
       ) : null}
     </div>

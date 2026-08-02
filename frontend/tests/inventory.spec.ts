@@ -317,3 +317,77 @@ test("Remote processing-unit search selects a unit beyond the initial 100 result
   await editorOption.click()
   await expect(editorSelect).toHaveValue(processingUnitName)
 })
+
+test("Inventory document pages provide scoped Excel actions and issue feedback", async ({
+  page,
+}) => {
+  await page.goto("/inventory/raw")
+  await expect(page.getByRole("button", { name: "下载模板" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "导入 Excel" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "导出台账" })).toBeVisible()
+
+  const templateDownload = page.waitForEvent("download")
+  await page.getByRole("button", { name: "下载模板" }).click()
+  expect((await templateDownload).suggestedFilename()).toBe(
+    "inventory-document-template.xlsx",
+  )
+
+  await page.getByRole("textbox", { name: /单号 : \* 单号/ }).fill("XLSX-E2E")
+  const exportRequest = page.waitForRequest((request) => {
+    if (request.method() !== "GET") return false
+    const url = new URL(request.url())
+    return (
+      url.pathname === "/api/v1/inventory/excel/ledger" &&
+      url.searchParams.get("document_number") === "XLSX-E2E" &&
+      url.searchParams.get("ledger_kind") === "RAW"
+    )
+  })
+  const ledgerDownload = page.waitForEvent("download")
+  await page.getByRole("button", { name: "导出台账" }).click()
+  expect((await exportRequest).method()).toBe("GET")
+  expect((await ledgerDownload).suggestedFilename()).toBe(
+    "inventory-ledger-raw.xlsx",
+  )
+
+  await page.route("**/api/v1/inventory/excel/imports/documents*", (route) =>
+    route.fulfill({
+      body: JSON.stringify({
+        detail: {
+          issues: [
+            {
+              column: "单据类型",
+              field: "document_type",
+              message: "Document type is not allowed for this import",
+              row: 2,
+              worksheet: "单据导入",
+            },
+          ],
+          message: "Excel validation failed",
+        },
+        request_id: "excel-e2e-request",
+      }),
+      contentType: "application/json",
+      status: 422,
+    }),
+  )
+  await page.getByRole("button", { name: "导入 Excel" }).click()
+  const importDialog = page.getByRole("dialog", { name: "导入坯布台账" })
+  await importDialog.locator('input[type="file"]').setInputFiles({
+    buffer: Buffer.from("not-a-workbook"),
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    name: "invalid.xlsx",
+  })
+  await importDialog.getByRole("button", { name: "导入", exact: true }).click()
+  await expect(importDialog.getByText("Excel validation failed")).toBeVisible()
+  await expect(
+    importDialog.getByRole("cell", {
+      name: "Document type is not allowed for this import",
+    }),
+  ).toBeVisible()
+
+  await page.goto("/inventory/shipments")
+  await expect(page.getByRole("button", { name: "下载模板" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "导入 Excel" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "导出台账" })).toBeVisible()
+})

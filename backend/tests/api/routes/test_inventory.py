@@ -861,6 +861,154 @@ def test_excel_document_import_rolls_back_the_whole_workbook(
     assert documents.json()["count"] == 0
 
 
+def test_excel_document_import_rejects_document_types_outside_page_scope(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    processing_unit = _create_processing_unit(client, superuser_token_headers)
+    raw_number = f"XLSX-RAW-{uuid.uuid4()}"
+    rows = [
+        [
+            "单据类型",
+            "日期",
+            "单据号",
+            "加工单位",
+            "收货单位",
+            "备注",
+            "品名",
+            "货号",
+            "含毛量",
+            "颜色",
+            "缸号",
+            "匹数",
+            "米数",
+        ],
+        [
+            "RAW_RECEIPT",
+            "2026-08-01",
+            raw_number,
+            processing_unit["name"],
+            None,
+            None,
+            "可回滚坯布",
+            "SCOPE-RAW",
+            "100%",
+            None,
+            None,
+            1,
+            None,
+        ],
+        [
+            "FINISHED_SHIPMENT",
+            "2026-08-01",
+            f"XLSX-FINISHED-{uuid.uuid4()}",
+            processing_unit["name"],
+            "无需解析",
+            None,
+            "越界成品",
+            None,
+            "70%",
+            "蓝",
+            "LOT-SCOPE",
+            1,
+            1,
+        ],
+    ]
+
+    response = client.post(
+        f"{INVENTORY_PATH}/excel/imports/documents",
+        headers=superuser_token_headers,
+        params=[("document_types", "RAW_RECEIPT"), ("document_types", "RAW_RETURN")],
+        files={"workbook": ("scope.xlsx", _xlsx_bytes(rows), XLSX_MEDIA_TYPE)},
+    )
+
+    assert response.status_code == 422
+    issue = response.json()["detail"]["issues"][0]
+    assert issue == {
+        "worksheet": "单据导入",
+        "row": 3,
+        "column": "单据类型",
+        "field": "document_type",
+        "message": "Document type is not allowed for this import",
+    }
+    documents = client.get(
+        f"{INVENTORY_PATH}/documents",
+        headers=superuser_token_headers,
+        params={"document_number": raw_number},
+    )
+    assert documents.status_code == 200
+    assert documents.json()["count"] == 0
+
+
+def test_excel_ledger_export_applies_document_page_filters(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    processing_unit = _create_processing_unit(client, superuser_token_headers)
+    other_processing_unit = _create_processing_unit(client, superuser_token_headers)
+    receiving_unit = _create_receiving_unit(client, superuser_token_headers)
+    matched_number = f"XLSX-LEDGER-{uuid.uuid4()}"
+    target_date = date(2026, 8, 3)
+    _create_raw_receipt(
+        client,
+        superuser_token_headers,
+        processing_unit_id=processing_unit["id"],
+        item_name="匹配台账",
+        item_code="LEDGER-MATCH",
+        document_number=matched_number,
+        business_date=target_date,
+    )
+    _create_raw_receipt(
+        client,
+        superuser_token_headers,
+        processing_unit_id=processing_unit["id"],
+        item_name="日期不匹配台账",
+        item_code="LEDGER-DATE",
+        document_number=f"XLSX-LEDGER-DATE-{uuid.uuid4()}",
+        business_date=date(2026, 8, 4),
+    )
+    _create_raw_receipt(
+        client,
+        superuser_token_headers,
+        processing_unit_id=other_processing_unit["id"],
+        item_name="加工单位不匹配台账",
+        item_code="LEDGER-UNIT",
+        document_number=f"XLSX-LEDGER-UNIT-{uuid.uuid4()}",
+        business_date=target_date,
+    )
+
+    filtered = client.get(
+        f"{INVENTORY_PATH}/excel/ledger",
+        headers=superuser_token_headers,
+        params={
+            "ledger_kind": "RAW",
+            "processing_unit_id": processing_unit["id"],
+            "document_number": matched_number,
+            "business_date_from": str(target_date),
+            "business_date_to": str(target_date),
+        },
+    )
+    assert filtered.status_code == 200
+    rows = list(
+        load_workbook(BytesIO(filtered.content), read_only=True)["库存台账"].values
+    )
+    assert [row[2] for row in rows[1:]] == [matched_number]
+
+    receiving_filtered = client.get(
+        f"{INVENTORY_PATH}/excel/ledger",
+        headers=superuser_token_headers,
+        params={
+            "ledger_kind": "RAW",
+            "receiving_unit_id": receiving_unit["id"],
+        },
+    )
+    assert receiving_filtered.status_code == 200
+    receiving_rows = list(
+        load_workbook(
+            BytesIO(receiving_filtered.content), read_only=True
+        )["库存台账"].values
+    )
+    assert len(receiving_rows) == 1
+
+
 def test_excel_document_import_reports_inconsistent_document_groups(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
