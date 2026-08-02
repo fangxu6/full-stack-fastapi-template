@@ -42,6 +42,29 @@ This repo intentionally avoids a separate global store. The practical state mode
 - Do not introduce global state for data already owned by React Query, router
   state, focused hooks, or generated client calls.
 
+## Query Retry Policy
+
+- Configure shared query retries only through the `QueryClient` in
+  `frontend/src/main.tsx`; per-query `retry: false` remains authoritative and
+  mutations retain their default no-retry behavior.
+- Retry only `GET`, `HEAD`, and `OPTIONS` requests when Axios reports a
+  response-less network failure or the response status is `408`, `429`, or
+  `5xx`. Never retry cancelled, aborted, unknown-method, or write requests.
+- Use delays of 1 second then 2 seconds. A `429` may override the delay with a
+  delta-seconds or HTTP-date `Retry-After` value between 0 and 30 seconds;
+  invalid, past, missing, or over-limit values use the normal delay.
+- Keep `Retry-After` handling in `app/query-retry.ts`. The generated
+  `ApiError` omits response headers, so the app-owned OpenAPI response
+  interceptor exposes only `429` header data without editing generated files.
+- Do not introduce a global request timeout. Direct browser downloads remain
+  outside this policy.
+
+### Tests Required
+
+- Unit-test retryable statuses, safe-method enforcement, cancellation, retry
+  count, and both `Retry-After` formats in
+  `frontend/src/app/query-retry.test.ts`.
+
 ---
 
 ## Recommended Direction

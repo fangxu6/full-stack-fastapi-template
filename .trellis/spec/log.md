@@ -259,3 +259,7 @@ Captured shared binary download, single-file import dialog, scoped inventory imp
 
 Generated client and route-tree output is a pending Phase 3.4 synchronization
 state, not a quality failure; Codex Stop blocks only actual hook failures.
+
+## [2026-08-02 22:47:49] update | Document frontend query retry policy
+
+Record safe-method retries, bounded Retry-After handling, and the main.tsx bootstrap exception.

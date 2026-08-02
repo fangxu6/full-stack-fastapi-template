@@ -25,6 +25,7 @@ COMPONENT_ROOTS = (
     "frontend/src/shared",
 )
 ROUTE_ENTRY_ROOT = "frontend/src/routes"
+BOOTSTRAP_ENTRY_PATHS = ("frontend/src/main.tsx",)
 ANTD_ALLOWED_ROOTS = (
     "frontend/src/app",
     "frontend/src/features",
@@ -144,6 +145,7 @@ class FrontendComponentHook:
             if (
                 path.endswith((".tsx", ".jsx"))
                 and not is_route_entry
+                and path not in BOOTSTRAP_ENTRY_PATHS
                 and not _matches_root(path, COMPONENT_ROOTS)
             ):
                 violations.append(

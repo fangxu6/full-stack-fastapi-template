@@ -21,6 +21,9 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
   [Component Guidelines](./component-guidelines.md).
 - Respect Biome exclusions and generated/vendor-style boundaries from
   [`frontend/biome.json`](../../../frontend/biome.json).
+- `frontend/src/main.tsx` is the sole non-component bootstrap exception to the
+  component-root policy; other non-route `.tsx` files must remain under an
+  approved component root.
 
 ## Scenario: Thin Route AST Enforcement
 

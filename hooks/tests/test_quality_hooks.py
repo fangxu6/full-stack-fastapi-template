@@ -73,6 +73,17 @@ class FrontendComponentHookTests(unittest.TestCase):
             )
         self.assertEqual(result.status, "failed")
 
+    def test_accepts_frontend_bootstrap_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            source = repo_root / "frontend/src/main.tsx"
+            source.parent.mkdir(parents=True)
+            source.write_text("export {}\n", encoding="utf-8")
+            result = FrontendComponentHook().run(
+                HookContext(repo_root, ("frontend/src/main.tsx",))
+            )
+        self.assertEqual(result.status, "passed")
+
     def test_skips_deleted_component(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             result = FrontendComponentHook().run(

@@ -8,6 +8,11 @@ import { createRouter, RouterProvider } from "@tanstack/react-router"
 import { StrictMode } from "react"
 import ReactDOM from "react-dom/client"
 import { AntdProvider } from "./app/providers/AntdProvider"
+import {
+  captureRateLimitResponse,
+  queryRetryDelay,
+  shouldRetryQuery,
+} from "./app/query-retry"
 import { ApiError, OpenAPI } from "./client"
 import { ThemeProvider } from "./components/theme-provider"
 import { Toaster } from "./components/ui/sonner"
@@ -18,6 +23,7 @@ OpenAPI.BASE = import.meta.env.VITE_API_URL
 OpenAPI.TOKEN = async () => {
   return localStorage.getItem("access_token") || ""
 }
+OpenAPI.interceptors.response.use(captureRateLimitResponse)
 
 const handleApiError = (error: Error) => {
   const isInvalidSession =
@@ -34,6 +40,12 @@ const handleApiError = (error: Error) => {
   }
 }
 const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: shouldRetryQuery,
+      retryDelay: queryRetryDelay,
+    },
+  },
   queryCache: new QueryCache({
     onError: handleApiError,
   }),
