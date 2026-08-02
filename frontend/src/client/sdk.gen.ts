@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { DocsReadRuleDocumentsResponse, DocsReadRuleDocumentData, DocsReadRuleDocumentResponse, IamReadMyPermissionsResponse, IamReadPermissionCatalogResponse, IamReadRolesResponse, IamCreateRoleData, IamCreateRoleResponse, IamUpdateRoleData, IamUpdateRoleResponse, IamDeleteRoleData, IamDeleteRoleResponse, IamReplaceRolePermissionsData, IamReplaceRolePermissionsResponse, IamReplaceUserRolesData, IamReplaceUserRolesResponse, InventoryReadProcessingUnitsData, InventoryReadProcessingUnitsResponse, InventoryCreateProcessingUnitData, InventoryCreateProcessingUnitResponse, InventoryUpdateProcessingUnitData, InventoryUpdateProcessingUnitResponse, InventoryReadReceivingUnitsData, InventoryReadReceivingUnitsResponse, InventoryCreateReceivingUnitData, InventoryCreateReceivingUnitResponse, InventoryUpdateReceivingUnitData, InventoryUpdateReceivingUnitResponse, InventoryCreateInventoryDocumentData, InventoryCreateInventoryDocumentResponse, InventoryReadInventoryDocumentsData, InventoryReadInventoryDocumentsResponse, InventoryReadInventoryDocumentData, InventoryReadInventoryDocumentResponse, InventoryUpdateInventoryDocumentData, InventoryUpdateInventoryDocumentResponse, InventoryDeleteInventoryDocumentData, InventoryDeleteInventoryDocumentResponse, InventoryRestoreInventoryDocumentData, InventoryRestoreInventoryDocumentResponse, InventoryReadRawBalancesData, InventoryReadRawBalancesResponse, InventoryReadFinishedBalancesData, InventoryReadFinishedBalancesResponse, InventoryReadInventoryLedgerData, InventoryReadInventoryLedgerResponse, InventoryReadInventorySuggestionsData, InventoryReadInventorySuggestionsResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, ModulesModulesHealthCheckResponse, PrivateCreateUserData, PrivateCreateUserResponse, SchedulerPreviewCronData, SchedulerPreviewCronResponse, SchedulerReadJobsData, SchedulerReadJobsResponse, SchedulerCreateJobData, SchedulerCreateJobResponse, SchedulerReadJobData, SchedulerReadJobResponse, SchedulerUpdateJobData, SchedulerUpdateJobResponse, SchedulerDeleteJobData, SchedulerDeleteJobResponse, SchedulerEnableJobData, SchedulerEnableJobResponse, SchedulerDisableJobData, SchedulerDisableJobResponse, SchedulerRestoreJobData, SchedulerRestoreJobResponse, SchedulerRunNowData, SchedulerRunNowResponse, SchedulerBackfillData, SchedulerBackfillResponse, SchedulerReadRunsData, SchedulerReadRunsResponse, SchedulerReadTaskSchemaData, SchedulerReadTaskSchemaResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { DocsReadRuleDocumentsResponse, DocsReadRuleDocumentData, DocsReadRuleDocumentResponse, IamReadMyPermissionsResponse, IamReadPermissionCatalogResponse, IamReadRolesResponse, IamCreateRoleData, IamCreateRoleResponse, IamUpdateRoleData, IamUpdateRoleResponse, IamDeleteRoleData, IamDeleteRoleResponse, IamReplaceRolePermissionsData, IamReplaceRolePermissionsResponse, IamReplaceUserRolesData, IamReplaceUserRolesResponse, InventoryDownloadDocumentTemplateResponse, InventoryImportDocumentsFromExcelData, InventoryImportDocumentsFromExcelResponse, InventoryImportLegacyWorkbooksFromExcelData, InventoryImportLegacyWorkbooksFromExcelResponse, InventoryExportInventoryLedgerData, InventoryExportInventoryLedgerResponse, InventoryReadProcessingUnitsData, InventoryReadProcessingUnitsResponse, InventoryCreateProcessingUnitData, InventoryCreateProcessingUnitResponse, InventoryUpdateProcessingUnitData, InventoryUpdateProcessingUnitResponse, InventoryReadReceivingUnitsData, InventoryReadReceivingUnitsResponse, InventoryCreateReceivingUnitData, InventoryCreateReceivingUnitResponse, InventoryUpdateReceivingUnitData, InventoryUpdateReceivingUnitResponse, InventoryCreateInventoryDocumentData, InventoryCreateInventoryDocumentResponse, InventoryReadInventoryDocumentsData, InventoryReadInventoryDocumentsResponse, InventoryReadInventoryDocumentData, InventoryReadInventoryDocumentResponse, InventoryUpdateInventoryDocumentData, InventoryUpdateInventoryDocumentResponse, InventoryDeleteInventoryDocumentData, InventoryDeleteInventoryDocumentResponse, InventoryRestoreInventoryDocumentData, InventoryRestoreInventoryDocumentResponse, InventoryReadRawBalancesData, InventoryReadRawBalancesResponse, InventoryReadFinishedBalancesData, InventoryReadFinishedBalancesResponse, InventoryReadInventoryLedgerData, InventoryReadInventoryLedgerResponse, InventoryReadInventorySuggestionsData, InventoryReadInventorySuggestionsResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, ModulesModulesHealthCheckResponse, PrivateCreateUserData, PrivateCreateUserResponse, SchedulerPreviewCronData, SchedulerPreviewCronResponse, SchedulerReadJobsData, SchedulerReadJobsResponse, SchedulerCreateJobData, SchedulerCreateJobResponse, SchedulerReadJobData, SchedulerReadJobResponse, SchedulerUpdateJobData, SchedulerUpdateJobResponse, SchedulerDeleteJobData, SchedulerDeleteJobResponse, SchedulerEnableJobData, SchedulerEnableJobResponse, SchedulerDisableJobData, SchedulerDisableJobResponse, SchedulerRestoreJobData, SchedulerRestoreJobResponse, SchedulerRunNowData, SchedulerRunNowResponse, SchedulerBackfillData, SchedulerBackfillResponse, SchedulerReadRunsData, SchedulerReadRunsResponse, SchedulerReadTaskSchemaData, SchedulerReadTaskSchemaResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class DocsService {
     /**
@@ -188,6 +188,82 @@ export class IamService {
 }
 
 export class InventoryService {
+    /**
+     * Download Document Template
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static downloadDocumentTemplate(): CancelablePromise<InventoryDownloadDocumentTemplateResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/inventory/excel/templates/documents'
+        });
+    }
+
+    /**
+     * Import Documents From Excel
+     * @param data The data for the request.
+     * @param data.formData
+     * @returns InventoryExcelImportPublic Successful Response
+     * @throws ApiError
+     */
+    public static importDocumentsFromExcel(data: InventoryImportDocumentsFromExcelData): CancelablePromise<InventoryImportDocumentsFromExcelResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/inventory/excel/imports/documents',
+            formData: data.formData,
+            mediaType: 'multipart/form-data',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Import Legacy Workbooks From Excel
+     * @param data The data for the request.
+     * @param data.formData
+     * @returns LegacyInventoryExcelImportPublic Successful Response
+     * @throws ApiError
+     */
+    public static importLegacyWorkbooksFromExcel(data: InventoryImportLegacyWorkbooksFromExcelData): CancelablePromise<InventoryImportLegacyWorkbooksFromExcelResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/inventory/excel/imports/legacy',
+            formData: data.formData,
+            mediaType: 'multipart/form-data',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Export Inventory Ledger
+     * @param data The data for the request.
+     * @param data.ledgerKind
+     * @param data.processingUnitId
+     * @param data.businessDateFrom
+     * @param data.businessDateTo
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static exportInventoryLedger(data: InventoryExportInventoryLedgerData): CancelablePromise<InventoryExportInventoryLedgerResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/inventory/excel/ledger',
+            query: {
+                ledger_kind: data.ledgerKind,
+                processing_unit_id: data.processingUnitId,
+                business_date_from: data.businessDateFrom,
+                business_date_to: data.businessDateTo
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
     /**
      * Read Processing Units
      * @param data The data for the request.
