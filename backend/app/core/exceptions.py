@@ -33,11 +33,11 @@ REQUEST_ID_HEADER = "X-Request-ID"
 
 class AppError(Exception):
     status_code = HTTP_500_INTERNAL_SERVER_ERROR
-    detail = "Internal Server Error"
+    detail: str | dict[str, object] = "Internal Server Error"
 
-    def __init__(self, detail: str | None = None) -> None:
+    def __init__(self, detail: str | dict[str, object] | None = None) -> None:
         self.detail = detail or self.detail
-        super().__init__(self.detail)
+        super().__init__(str(self.detail))
 
 
 class NotFoundError(AppError):

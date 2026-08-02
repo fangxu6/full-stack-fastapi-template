@@ -1,9 +1,11 @@
 import uuid
 from datetime import date
 from decimal import Decimal
+from io import BytesIO
 
 import pytest
 from fastapi.testclient import TestClient
+from openpyxl import Workbook, load_workbook
 from sqlmodel import Session
 
 from app.core.config import settings
@@ -11,6 +13,7 @@ from app.models import InventoryDocument
 from app.schemas.inventory import InventoryLinePublic
 
 INVENTORY_PATH = f"{settings.API_V1_STR}/inventory"
+XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
 def _decimal(value: object) -> Decimal:
@@ -69,6 +72,17 @@ def _create_raw_receipt(
     response = client.post(f"{INVENTORY_PATH}/documents", headers=headers, json=payload)
     assert response.status_code == 200, response.json()
     return response.json()
+
+
+def _xlsx_bytes(rows: list[list[object]], *, sheet_name: str = "单据导入") -> bytes:
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = sheet_name
+    for row in rows:
+        worksheet.append(row)
+    output = BytesIO()
+    workbook.save(output)
+    return output.getvalue()
 
 
 @pytest.mark.parametrize(
@@ -677,3 +691,355 @@ def test_suggestions_return_saved_values(
 
     assert response.status_code == 200
     assert response.json()["data"] == [item_name]
+
+
+def test_excel_document_template_and_import_create_multiple_documents(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    processing_unit = _create_processing_unit(client, superuser_token_headers)
+    template = client.get(
+        f"{INVENTORY_PATH}/excel/templates/documents", headers=superuser_token_headers
+    )
+    assert template.status_code == 200
+    assert "attachment" in template.headers["content-disposition"]
+    worksheet = load_workbook(BytesIO(template.content), read_only=True)["单据导入"]
+    headers = next(worksheet.values)
+    assert headers == (
+        "单据类型",
+        "日期",
+        "单据号",
+        "加工单位",
+        "收货单位",
+        "备注",
+        "品名",
+        "货号",
+        "含毛量",
+        "颜色",
+        "缸号",
+        "匹数",
+        "米数",
+    )
+
+    first_number = f"XLSX-{uuid.uuid4()}"
+    second_number = f"XLSX-{uuid.uuid4()}"
+    rows = [
+        list(headers),
+        [
+            "RAW_RECEIPT",
+            "2026-08-01",
+            first_number,
+            processing_unit["name"],
+            None,
+            "首张单据",
+            "坯布 A",
+            "A-001",
+            "100%",
+            None,
+            None,
+            2,
+            None,
+        ],
+        [
+            "RAW_RECEIPT",
+            "2026-08-01",
+            first_number,
+            processing_unit["name"],
+            None,
+            "首张单据",
+            "坯布 B",
+            "B-001",
+            "80%",
+            None,
+            None,
+            1,
+            None,
+        ],
+        [
+            "RAW_RECEIPT",
+            "2026-08-02",
+            second_number,
+            processing_unit["name"],
+            None,
+            None,
+            "坯布 C",
+            "C-001",
+            "70%",
+            None,
+            None,
+            3,
+            None,
+        ],
+    ]
+    response = client.post(
+        f"{INVENTORY_PATH}/excel/imports/documents",
+        headers=superuser_token_headers,
+        files={
+            "workbook": (
+                "documents.xlsx",
+                _xlsx_bytes(rows),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+    )
+
+    assert response.status_code == 201, response.json()
+    assert response.json() == {
+        "created_documents": 2,
+        "document_numbers": [first_number, second_number],
+    }
+
+
+def test_excel_document_import_rolls_back_the_whole_workbook(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    processing_unit = _create_processing_unit(client, superuser_token_headers)
+    first_number = f"XLSX-GOOD-{uuid.uuid4()}"
+    failed_number = f"XLSX-BAD-{uuid.uuid4()}"
+    headers = [
+        "单据类型",
+        "日期",
+        "单据号",
+        "加工单位",
+        "收货单位",
+        "备注",
+        "品名",
+        "货号",
+        "含毛量",
+        "颜色",
+        "缸号",
+        "匹数",
+        "米数",
+    ]
+    rows = [
+        headers,
+        [
+            "RAW_RECEIPT",
+            "2026-08-01",
+            first_number,
+            processing_unit["name"],
+            None,
+            None,
+            "回滚坯布",
+            "ROLLBACK-001",
+            "100%",
+            None,
+            None,
+            1,
+            None,
+        ],
+        [
+            "RAW_RETURN",
+            "2026-08-02",
+            failed_number,
+            processing_unit["name"],
+            None,
+            None,
+            "回滚坯布",
+            "ROLLBACK-001",
+            "100%",
+            None,
+            None,
+            2,
+            None,
+        ],
+    ]
+    response = client.post(
+        f"{INVENTORY_PATH}/excel/imports/documents",
+        headers=superuser_token_headers,
+        files={"workbook": ("rollback.xlsx", _xlsx_bytes(rows), XLSX_MEDIA_TYPE)},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["issues"][0]["column"] == "单据号"
+    assert response.json()["request_id"]
+    documents = client.get(
+        f"{INVENTORY_PATH}/documents",
+        headers=superuser_token_headers,
+        params={"document_number": "XLSX-GOOD"},
+    )
+    assert documents.status_code == 200
+    assert documents.json()["count"] == 0
+
+
+def test_excel_document_import_reports_inconsistent_document_groups(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    processing_unit = _create_processing_unit(client, superuser_token_headers)
+    number = f"XLSX-CONFLICT-{uuid.uuid4()}"
+    headers = [
+        "单据类型",
+        "日期",
+        "单据号",
+        "加工单位",
+        "收货单位",
+        "备注",
+        "品名",
+        "货号",
+        "含毛量",
+        "颜色",
+        "缸号",
+        "匹数",
+        "米数",
+    ]
+    base_row = [
+        "RAW_RECEIPT",
+        "2026-08-01",
+        number,
+        processing_unit["name"],
+        None,
+        None,
+        "冲突坯布",
+        "CONFLICT-001",
+        "100%",
+        None,
+        None,
+        1,
+        None,
+    ]
+    response = client.post(
+        f"{INVENTORY_PATH}/excel/imports/documents",
+        headers=superuser_token_headers,
+        files={
+            "workbook": (
+                "conflict.xlsx",
+                _xlsx_bytes([headers, base_row, [*base_row[:1], "2026-08-02", *base_row[2:]]]),
+                XLSX_MEDIA_TYPE,
+            )
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["issues"][0]["column"] == "日期"
+
+
+def test_excel_legacy_import_and_ledger_export(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    raw_workbook = _xlsx_bytes(
+        [
+            ["日期", "加工单位", "品名", "品号", "含毛量", "入库"],
+            ["2026-08-01", f"历史加工厂-{uuid.uuid4()}", "历史坯布", "H-001", "100%", 2],
+        ],
+        sheet_name="历史坯布",
+    )
+    finished_workbook = _xlsx_bytes(
+        [
+            [
+                "日期",
+                "加工单位",
+                "品名",
+                "含毛量",
+                "颜色+色号",
+                "缸号",
+                "入库匹数",
+                "入库米数",
+                "库存匹数",
+                "库存米数",
+            ],
+            [
+                "2026-08-01",
+                f"历史成品加工厂-{uuid.uuid4()}",
+                "历史成品",
+                "70%",
+                "焦糖",
+                "LOT-001",
+                2,
+                20,
+                2,
+                20,
+            ],
+        ],
+        sheet_name="历史成品",
+    )
+    imported = client.post(
+        f"{INVENTORY_PATH}/excel/imports/legacy",
+        headers=superuser_token_headers,
+        files={
+            "raw_workbook": ("raw.xlsx", raw_workbook, XLSX_MEDIA_TYPE),
+            "finished_workbook": (
+                "finished.xlsx",
+                finished_workbook,
+                XLSX_MEDIA_TYPE,
+            ),
+        },
+    )
+
+    assert imported.status_code == 201, imported.json()
+    assert imported.json()["import_batch_id"]
+    exported = client.get(
+        f"{INVENTORY_PATH}/excel/ledger",
+        headers=superuser_token_headers,
+        params={"ledger_kind": "RAW"},
+    )
+
+    assert exported.status_code == 200
+    worksheet = load_workbook(BytesIO(exported.content), read_only=True)["库存台账"]
+    rows = list(worksheet.values)
+    assert rows[0] == (
+        "日期",
+        "出入库类型",
+        "单据号",
+        "单位名称",
+        "品名",
+        "货号",
+        "含毛量",
+        "颜色",
+        "缸号",
+        "匹数变化",
+        "米数变化",
+        "备注",
+    )
+    assert any(row[4] == "历史坯布" and "历史来源" in row[11] for row in rows[1:])
+    finished_export = client.get(
+        f"{INVENTORY_PATH}/excel/ledger",
+        headers=superuser_token_headers,
+        params={"ledger_kind": "FINISHED"},
+    )
+    assert finished_export.status_code == 200
+    finished_rows = list(
+        load_workbook(BytesIO(finished_export.content), read_only=True)["库存台账"].values
+    )
+    assert any(row[4] == "历史成品" for row in finished_rows[1:])
+
+
+def test_excel_legacy_import_reports_row_issues(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    invalid_raw_workbook = _xlsx_bytes(
+        [
+            ["日期", "加工单位", "品名", "品号", "含毛量", "入库"],
+            ["2026-08-01", "错误加工厂", "错误坯布", "E-001", "100%", "invalid"],
+        ],
+        sheet_name="错误坯布",
+    )
+    response = client.post(
+        f"{INVENTORY_PATH}/excel/imports/legacy",
+        headers=superuser_token_headers,
+        files={
+            "raw_workbook": ("raw.xlsx", invalid_raw_workbook, XLSX_MEDIA_TYPE),
+            "finished_workbook": (
+                "finished.xlsx",
+                _xlsx_bytes([], sheet_name="Sheet"),
+                XLSX_MEDIA_TYPE,
+            ),
+        },
+    )
+
+    assert response.status_code == 422
+    issue = response.json()["detail"]["issues"][0]
+    assert issue["worksheet"] == "错误坯布"
+    assert issue["row"] == 2
+    assert response.json()["request_id"]
+
+
+def test_excel_endpoints_require_inventory_permissions(
+    client: TestClient, normal_user_token_headers: dict[str, str]
+) -> None:
+    unauthenticated = client.get(f"{INVENTORY_PATH}/excel/templates/documents")
+    forbidden = client.get(
+        f"{INVENTORY_PATH}/excel/templates/documents",
+        headers=normal_user_token_headers,
+    )
+
+    assert unauthenticated.status_code == 401
+    assert forbidden.status_code == 403

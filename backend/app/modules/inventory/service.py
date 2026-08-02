@@ -6,14 +6,19 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import desc, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
-from app.models import InventoryDocument, InventoryDocumentLine, InventoryLedgerEntry
+from app.models import (
+    InventoryDocument,
+    InventoryDocumentLine,
+    InventoryLedgerEntry,
+    LegacyImportRow,
+)
 from app.models.base import get_datetime_utc
 from app.models.inventory import (
     InventoryDocumentType,
@@ -30,6 +35,7 @@ from app.schemas.inventory import (
     InventoryDocumentsPublic,
     InventoryLedgerEntriesPublic,
     InventoryLedgerEntryPublic,
+    InventoryLedgerExcelRow,
     InventoryLinePublic,
     InventorySuggestionsPublic,
     MasterUnitCreate,
@@ -216,6 +222,25 @@ def _require_active_units(
         receiving = session.get(ReceivingUnit, document_in.receiving_unit_id)
         if not receiving or receiving.deleted_at or not receiving.is_active:
             raise BadRequestError("Receiving unit is not active")
+
+
+def resolve_active_unit_name(
+    *,
+    session: Session,
+    model: type[ProcessingUnit] | type[ReceivingUnit],
+    name: str,
+) -> uuid.UUID:
+    normalized_name = _normalized_name(name)
+    unit = session.exec(
+        select(model).where(
+            model.normalized_name == normalized_name,
+            model.deleted_at.is_(None),  # ty:ignore[unresolved-attribute]
+            model.is_active.is_(True),  # ty:ignore[unresolved-attribute]
+        )
+    ).first()
+    if not unit:
+        raise BadRequestError("Unit does not exist or is not active")
+    return cast(uuid.UUID, unit.id)
 
 
 def _movement(
@@ -751,6 +776,95 @@ def list_ledger_entries(
         for entry in entries
     ]
     return InventoryLedgerEntriesPublic(data=data, count=count)
+
+
+def list_ledger_excel_rows(
+    *,
+    session: Session,
+    ledger_kind: InventoryLedgerKind,
+    processing_unit_id: uuid.UUID | None = None,
+    business_date_from: date | None = None,
+    business_date_to: date | None = None,
+) -> list[InventoryLedgerExcelRow]:
+    filters: list[Any] = [
+        InventoryLedgerEntry.ledger_kind == ledger_kind,
+        InventoryLedgerEntry.deleted_at.is_(None),  # ty:ignore[unresolved-attribute]
+    ]
+    if processing_unit_id:
+        filters.append(InventoryLedgerEntry.processing_unit_id == processing_unit_id)
+    if business_date_from:
+        filters.append(InventoryLedgerEntry.business_date >= business_date_from)
+    if business_date_to:
+        filters.append(InventoryLedgerEntry.business_date <= business_date_to)
+    statement = (
+        select(
+            InventoryLedgerEntry,
+            InventoryDocument,
+            ProcessingUnit,
+            LegacyImportRow,
+        )
+        .join(
+            ProcessingUnit,
+            ProcessingUnit.id == InventoryLedgerEntry.processing_unit_id,  # ty:ignore[invalid-argument-type]
+        )
+        .outerjoin(
+            InventoryDocumentLine,
+            InventoryDocumentLine.id == InventoryLedgerEntry.document_line_id,  # ty:ignore[invalid-argument-type]
+        )
+        .outerjoin(
+            InventoryDocument,
+            InventoryDocument.id == InventoryDocumentLine.document_id,  # ty:ignore[invalid-argument-type]
+        )
+        .outerjoin(
+            LegacyImportRow,
+            LegacyImportRow.id == InventoryLedgerEntry.legacy_import_row_id,  # ty:ignore[invalid-argument-type]
+        )
+        .where(*filters)
+        .order_by(
+            InventoryLedgerEntry.business_date,  # ty:ignore[invalid-argument-type]
+            InventoryLedgerEntry.id,  # ty:ignore[invalid-argument-type]
+        )
+    )
+    movement_labels = {
+        InventoryMovementType.RAW_RECEIPT: "入库",
+        InventoryMovementType.FINISHED_RECEIPT: "入库",
+        InventoryMovementType.RAW_RETURN: "出库",
+        InventoryMovementType.FINISHED_SHIPMENT: "出库",
+        InventoryMovementType.MIGRATION_RECONCILIATION_OPENING: "期初调整",
+    }
+    return [
+        InventoryLedgerExcelRow.model_validate(
+            {
+                "business_date": entry.business_date,
+                "movement_type": movement_labels[entry.movement_type],
+                "document_number": document.document_number if document else None,
+                "unit_name": unit.name,
+                "item_name": entry.item_name,
+                "item_code": entry.item_code,
+                "wool_content": entry.wool_content,
+                "color_code": entry.color_code,
+                "dye_lot_no": entry.dye_lot_no,
+                "rolls_delta": entry.rolls_delta,
+                "meters_delta": entry.meters_delta,
+                "remarks": "；".join(
+                    part
+                    for part in (
+                        document.remarks if document else None,
+                        entry.reason,
+                        (
+                            f"历史来源：{source.workbook_name}/{source.worksheet_name}"
+                            f" 第{source.source_row_number}行"
+                            if source
+                            else None
+                        ),
+                    )
+                    if part
+                )
+                or None,
+            }
+        )
+        for entry, document, unit, source in session.exec(statement).all()
+    ]
 
 
 def list_suggestions(

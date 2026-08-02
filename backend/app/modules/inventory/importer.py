@@ -7,12 +7,25 @@ from decimal import Decimal
 from pathlib import Path
 from typing import cast
 
-from openpyxl import load_workbook  # type: ignore[import-untyped]
+from openpyxl import Workbook  # type: ignore[import-untyped]
 from openpyxl.utils.datetime import from_excel  # type: ignore[import-untyped]
 from openpyxl.worksheet.worksheet import Worksheet  # type: ignore[import-untyped]
+from pydantic import ValidationError
 from sqlmodel import Session, select
 
-from app.core.audit import bind_audit_actor, clear_audit_actor
+from app.core.audit import (
+    AUDIT_ACTOR_SESSION_KEY,
+    bind_audit_actor,
+    clear_audit_actor,
+)
+from app.core.excel import (
+    MAX_XLSX_DATA_ROWS,
+    ExcelIssue,
+    ExcelRow,
+    ExcelValidationError,
+    load_xlsx_workbook,
+    read_xlsx_rows,
+)
 from app.core.exceptions import BadRequestError, ConflictError
 from app.models import (
     InventoryDocument,
@@ -30,15 +43,155 @@ from app.models.inventory import (
     InventoryMovementType,
     LegacyWorkbookKind,
 )
+from app.modules.inventory import service
+from app.schemas.inventory import (
+    InventoryDocumentCreate,
+    InventoryDocumentExcelRow,
+    InventoryExcelImportPublic,
+    InventoryLineCreate,
+    LegacyInventoryExcelImportPublic,
+)
 
 IMPORTER_VERSION = "inventory-xlsx-v2"
+DOCUMENT_WORKSHEET_NAME = "单据导入"
 MISSING_ITEM_CODE = "未填写品号"
 MISSING_WOOL_CONTENT = "未填写含毛量"
 MISSING_DYE_LOT = "未分缸"
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def _document_issue(row: ExcelRow, *, field_name: str, message: str) -> ExcelIssue:
+    field = InventoryDocumentExcelRow.model_fields[field_name]
+    return ExcelIssue(
+        worksheet=row.worksheet,
+        row=row.row,
+        column=field.alias or field_name,
+        field=field_name,
+        message=message,
+    )
+
+
+def import_document_workbook(
+    *, session: Session, content: bytes
+) -> InventoryExcelImportPublic:
+    result = read_xlsx_rows(
+        content,
+        model_type=InventoryDocumentExcelRow,
+        worksheet_name=DOCUMENT_WORKSHEET_NAME,
+    )
+    if result.issues:
+        raise ExcelValidationError(result.issues)
+
+    groups: dict[str, list[ExcelRow]] = {}
+    for row in result.rows:
+        value = cast(InventoryDocumentExcelRow, row.value)
+        groups.setdefault(value.document_number, []).append(row)
+
+    issues: list[ExcelIssue] = []
+    document_fields = (
+        "document_type",
+        "business_date",
+        "processing_unit_name",
+        "receiving_unit_name",
+        "remarks",
+    )
+    for group in groups.values():
+        first = cast(InventoryDocumentExcelRow, group[0].value)
+        for row in group[1:]:
+            value = cast(InventoryDocumentExcelRow, row.value)
+            for field_name in document_fields:
+                if getattr(value, field_name) != getattr(first, field_name):
+                    issues.append(
+                        _document_issue(
+                            row,
+                            field_name=field_name,
+                            message="Document fields must match within a document number",
+                        )
+                    )
+    if issues:
+        raise ExcelValidationError(issues)
+
+    created_numbers: list[str] = []
+    for number, group in groups.items():
+        first = cast(InventoryDocumentExcelRow, group[0].value)
+        try:
+            processing_unit_id = service.resolve_active_unit_name(
+                session=session,
+                model=ProcessingUnit,
+                name=first.processing_unit_name,
+            )
+        except BadRequestError as error:
+            issues.append(
+                _document_issue(
+                    group[0], field_name="processing_unit_name", message=str(error)
+                )
+            )
+            continue
+        receiving_unit_id = None
+        if first.receiving_unit_name:
+            try:
+                receiving_unit_id = service.resolve_active_unit_name(
+                    session=session,
+                    model=ReceivingUnit,
+                    name=first.receiving_unit_name,
+                )
+            except BadRequestError as error:
+                issues.append(
+                    _document_issue(
+                        group[0],
+                        field_name="receiving_unit_name",
+                        message=str(error),
+                    )
+                )
+                continue
+        try:
+            document_in = InventoryDocumentCreate(
+                document_type=first.document_type,
+                business_date=first.business_date,
+                processing_unit_id=processing_unit_id,
+                receiving_unit_id=receiving_unit_id,
+                document_number=number,
+                remarks=first.remarks,
+                lines=[
+                    InventoryLineCreate(
+                        item_name=value.item_name,
+                        item_code=value.item_code,
+                        wool_content=value.wool_content,
+                        color_code=value.color_code,
+                        dye_lot_no=value.dye_lot_no,
+                        quantity_rolls=value.quantity_rolls,
+                        quantity_meters=value.quantity_meters,
+                    )
+                    for row in group
+                    for value in [cast(InventoryDocumentExcelRow, row.value)]
+                ],
+            )
+        except ValidationError as error:
+            issues.append(
+                _document_issue(
+                    group[0], field_name="document_number", message=str(error)
+                )
+            )
+            continue
+        try:
+            with session.begin_nested():
+                service.create_document(session=session, document_in=document_in)
+        except (BadRequestError, ConflictError) as error:
+            issues.append(
+                _document_issue(
+                    group[0], field_name="document_number", message=str(error)
+                )
+            )
+            continue
+        created_numbers.append(number)
+    if issues:
+        raise ExcelValidationError(issues)
+    return InventoryExcelImportPublic(
+        created_documents=len(created_numbers), document_numbers=created_numbers
+    )
+
+
+def _sha256(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
 
 
 def _text(value: object, placeholder: str | None = None) -> str | None:
@@ -200,6 +353,77 @@ def _movement_definitions(
     return movements, source_unit
 
 
+def import_legacy_workbooks(
+    *,
+    session: Session,
+    raw_content: bytes,
+    raw_filename: str,
+    finished_content: bytes,
+    finished_filename: str,
+) -> LegacyInventoryExcelImportPublic:
+    raw_hash, finished_hash = _sha256(raw_content), _sha256(finished_content)
+    fingerprint = hashlib.sha256(
+        f"{raw_hash}:{finished_hash}:{IMPORTER_VERSION}".encode()
+    ).hexdigest()
+    if session.exec(
+        select(InventoryImportBatch).where(
+            InventoryImportBatch.source_fingerprint == fingerprint
+        )
+    ).first():
+        raise ConflictError("These workbooks were already imported")
+    batch = InventoryImportBatch(
+        source_fingerprint=fingerprint,
+        raw_workbook_sha256=raw_hash,
+        finished_workbook_sha256=finished_hash,
+        importer_version=IMPORTER_VERSION,
+        reconciliation_report={},
+    )
+    session.add(batch)
+    session.flush()
+    report: dict[str, int] = {
+        "source_rows": 0,
+        "ledger_entries": 0,
+        "requires_cleanup": 0,
+        "reconciliation_openings": 0,
+    }
+    issues: list[ExcelIssue] = []
+    balances: dict[tuple[object, ...], tuple[Decimal, Decimal]] = {}
+    raw_workbook = load_xlsx_workbook(raw_content)
+    finished_workbook: Workbook | None = None
+    try:
+        finished_workbook = load_xlsx_workbook(finished_content)
+        _import_book(
+            session=session,
+            batch=batch,
+            workbook=raw_workbook,
+            workbook_name=raw_filename,
+            kind=LegacyWorkbookKind.RAW,
+            report=report,
+            balances=balances,
+            issues=issues,
+        )
+        _import_book(
+            session=session,
+            batch=batch,
+            workbook=finished_workbook,
+            workbook_name=finished_filename,
+            kind=LegacyWorkbookKind.FINISHED,
+            report=report,
+            balances=balances,
+            issues=issues,
+        )
+    finally:
+        raw_workbook.close()
+        if finished_workbook:
+            finished_workbook.close()
+    if issues:
+        raise ExcelValidationError(issues)
+    batch.reconciliation_report = cast(dict[str, object], report)
+    session.add(batch)
+    session.flush()
+    return LegacyInventoryExcelImportPublic(import_batch_id=batch.id, report=report)
+
+
 def import_workbooks(
     *,
     session: Session,
@@ -215,137 +439,199 @@ def import_workbooks(
         raise BadRequestError(
             "Import actor must be active or a provisioned System Actor"
         )
+    previous_actor_id = session.info.get(AUDIT_ACTOR_SESSION_KEY)
     bind_audit_actor(session=session, actor_id=actor_user_id)
     try:
-        raw_hash, finished_hash = _sha256(raw_workbook), _sha256(finished_workbook)
-        fingerprint = hashlib.sha256(
-            f"{raw_hash}:{finished_hash}:{IMPORTER_VERSION}".encode()
-        ).hexdigest()
-        if session.exec(
-            select(InventoryImportBatch).where(
-                InventoryImportBatch.source_fingerprint == fingerprint
-            )
-        ).first():
-            raise ConflictError("These workbooks were already imported")
-        batch = InventoryImportBatch(
-            source_fingerprint=fingerprint,
-            raw_workbook_sha256=raw_hash,
-            finished_workbook_sha256=finished_hash,
-            importer_version=IMPORTER_VERSION,
-            reconciliation_report={},
+        result = import_legacy_workbooks(
+            session=session,
+            raw_content=raw_workbook.read_bytes(),
+            raw_filename=raw_workbook.name,
+            finished_content=finished_workbook.read_bytes(),
+            finished_filename=finished_workbook.name,
         )
-        session.add(batch)
-        session.flush()
-        report: dict[str, int] = {
-            "source_rows": 0,
-            "ledger_entries": 0,
-            "requires_cleanup": 0,
-            "reconciliation_openings": 0,
-        }
-        balances: dict[tuple[object, ...], tuple[Decimal, Decimal]] = {}
-        _import_book(
-            session,
-            batch,
-            raw_workbook,
-            LegacyWorkbookKind.RAW,
-            report,
-            balances,
-        )
-        _import_book(
-            session,
-            batch,
-            finished_workbook,
-            LegacyWorkbookKind.FINISHED,
-            report,
-            balances,
-        )
-        batch.reconciliation_report = cast(dict[str, object], report)
         if dry_run:
             session.rollback()
         else:
             session.commit()
+        return result.report
+    except ExcelValidationError as error:
+        session.rollback()
+        raise BadRequestError(error.issues[0].message) from error
     except Exception:
         session.rollback()
         raise
     finally:
-        clear_audit_actor(session=session)
-    return report
+        if isinstance(previous_actor_id, uuid.UUID):
+            bind_audit_actor(session=session, actor_id=previous_actor_id)
+        else:
+            clear_audit_actor(session=session)
+
+
+def _has_legacy_header(sheet: Worksheet) -> bool:
+    return any(
+        _header_key(cell) == "日期"
+        for row in sheet.iter_rows(values_only=True)
+        for cell in row
+    )
+
+
+def _has_values(sheet: Worksheet) -> bool:
+    return any(
+        value is not None and str(value).strip()
+        for row in sheet.iter_rows(values_only=True)
+        for value in row
+    )
 
 
 def _import_book(
+    *,
     session: Session,
     batch: InventoryImportBatch,
-    path: Path,
+    workbook: Workbook,
+    workbook_name: str,
     kind: LegacyWorkbookKind,
     report: dict[str, int],
     balances: dict[tuple[object, ...], tuple[Decimal, Decimal]],
+    issues: list[ExcelIssue],
 ) -> None:
-    workbook = load_workbook(path, read_only=True, data_only=True)
+    data_rows = 0
     for sheet in workbook.worksheets:
-        for source_row, cells in _row_values(sheet):
-            item_name = _text(_value(cells, "品名", "名称"))
-            if not item_name:
+        if not _has_legacy_header(sheet):
+            if not _has_values(sheet):
                 continue
-            movements, processing_unit_name = _movement_definitions(
-                cells=cells, kind=kind, worksheet_name=sheet.title
-            )
-            unit = cast(
-                ProcessingUnit,
-                _find_or_create_unit(session, ProcessingUnit, processing_unit_name),
-            )
-            report["source_rows"] += 1
-            item_code = _text(_value(cells, "品号", "货号"), MISSING_ITEM_CODE)
-            wool = (
-                _text(_value(cells, "含毛量", "含毛"), MISSING_WOOL_CONTENT)
-                or MISSING_WOOL_CONTENT
-            )
-            color = _text(_value(cells, "颜色+色号", "颜色", "色号"))
-            lot = _text(
-                _value(cells, "缸号"),
-                MISSING_DYE_LOT if kind is LegacyWorkbookKind.FINISHED else None,
-            )
-            cleanup = (
-                item_code == MISSING_ITEM_CODE
-                or wool == MISSING_WOOL_CONTENT
-                or lot == MISSING_DYE_LOT
-            )
-            source = LegacyImportRow(
-                import_batch_id=batch.id,
-                workbook_kind=kind,
-                workbook_name=path.name,
-                worksheet_name=sheet.title,
-                source_row_number=source_row,
-                raw_cells=json.loads(json.dumps(cells, default=str)),
-                source_balance_snapshot=_source_balance_snapshot(cells, kind),
-                requires_cleanup=cleanup,
-            )
-            session.add(source)
-            session.flush()
-            if cleanup:
-                report["requires_cleanup"] += 1
-            if not movements:
-                continue
-            business_date = _date(_value(cells, "日期", "时间"), epoch=workbook.epoch)
-            for document_type, rolls, meters in movements:
-                _write_legacy_movement(
-                    session=session,
-                    batch=batch,
-                    source=source,
-                    unit=unit,
-                    document_type=document_type,
-                    item_name=item_name,
-                    item_code=item_code,
-                    wool=wool,
-                    color=color,
-                    lot=lot,
-                    rolls=rolls,
-                    meters=meters,
-                    business_date=business_date,
-                    number=_text(_value(cells, "单号", "出库单号")),
-                    receiving_name=_text(_value(cells, "收货单位")),
-                    report=report,
-                    balances=balances,
+            issues.append(
+                ExcelIssue(
+                    worksheet=sheet.title,
+                    row=None,
+                    column=None,
+                    field=None,
+                    message="Legacy worksheet does not contain a 日期 header",
                 )
+            )
+            continue
+        source_rows = _row_values(sheet)
+        data_rows += len(source_rows)
+        if data_rows > MAX_XLSX_DATA_ROWS:
+            issues.append(
+                ExcelIssue(
+                    worksheet=sheet.title,
+                    row=None,
+                    column=None,
+                    field=None,
+                    message=(
+                        f"Workbook exceeds the {MAX_XLSX_DATA_ROWS} data row limit"
+                    ),
+                )
+            )
+            return
+        for source_row, cells in source_rows:
+            report_before = report.copy()
+            balances_before = balances.copy()
+            try:
+                with session.begin_nested():
+                    _import_legacy_row(
+                        session=session,
+                        batch=batch,
+                        workbook=workbook,
+                        workbook_name=workbook_name,
+                        kind=kind,
+                        sheet=sheet,
+                        source_row=source_row,
+                        cells=cells,
+                        report=report,
+                        balances=balances,
+                    )
+            except BadRequestError as error:
+                report.clear()
+                report.update(report_before)
+                balances.clear()
+                balances.update(balances_before)
+                issues.append(
+                    ExcelIssue(
+                        worksheet=sheet.title,
+                        row=source_row,
+                        column=None,
+                        field=None,
+                        message=str(error),
+                    )
+                )
+
+
+def _import_legacy_row(
+    *,
+    session: Session,
+    batch: InventoryImportBatch,
+    workbook: Workbook,
+    workbook_name: str,
+    kind: LegacyWorkbookKind,
+    sheet: Worksheet,
+    source_row: int,
+    cells: dict[str, object],
+    report: dict[str, int],
+    balances: dict[tuple[object, ...], tuple[Decimal, Decimal]],
+) -> None:
+    item_name = _text(_value(cells, "品名", "名称"))
+    if not item_name:
+        return
+    movements, processing_unit_name = _movement_definitions(
+        cells=cells, kind=kind, worksheet_name=sheet.title
+    )
+    unit = cast(
+        ProcessingUnit,
+        _find_or_create_unit(session, ProcessingUnit, processing_unit_name),
+    )
+    item_code = _text(_value(cells, "品号", "货号"), MISSING_ITEM_CODE)
+    wool = (
+        _text(_value(cells, "含毛量", "含毛"), MISSING_WOOL_CONTENT)
+        or MISSING_WOOL_CONTENT
+    )
+    color = _text(_value(cells, "颜色+色号", "颜色", "色号"))
+    lot = _text(
+        _value(cells, "缸号"),
+        MISSING_DYE_LOT if kind is LegacyWorkbookKind.FINISHED else None,
+    )
+    cleanup = (
+        item_code == MISSING_ITEM_CODE
+        or wool == MISSING_WOOL_CONTENT
+        or lot == MISSING_DYE_LOT
+    )
+    source = LegacyImportRow(
+        import_batch_id=batch.id,
+        workbook_kind=kind,
+        workbook_name=workbook_name,
+        worksheet_name=sheet.title,
+        source_row_number=source_row,
+        raw_cells=json.loads(json.dumps(cells, default=str)),
+        source_balance_snapshot=_source_balance_snapshot(cells, kind),
+        requires_cleanup=cleanup,
+    )
+    session.add(source)
+    session.flush()
+    if cleanup:
+        report["requires_cleanup"] += 1
+    if movements:
+        business_date = _date(_value(cells, "日期", "时间"), epoch=workbook.epoch)
+        for document_type, rolls, meters in movements:
+            _write_legacy_movement(
+                session=session,
+                batch=batch,
+                source=source,
+                unit=unit,
+                document_type=document_type,
+                item_name=item_name,
+                item_code=item_code,
+                wool=wool,
+                color=color,
+                lot=lot,
+                rolls=rolls,
+                meters=meters,
+                business_date=business_date,
+                number=_text(_value(cells, "单号", "出库单号")),
+                receiving_name=_text(_value(cells, "收货单位")),
+                report=report,
+                balances=balances,
+            )
+    report["source_rows"] += 1
 
 
 def _find_or_create_unit(

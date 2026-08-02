@@ -2,7 +2,8 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import Field as PydanticField
 from sqlmodel import Field, SQLModel
 
 from app.models.inventory import InventoryDocumentType
@@ -60,6 +61,59 @@ class InventoryDocumentCreate(SQLModel):
         elif self.receiving_unit_id is not None:
             raise ValueError("Only finished shipments accept a receiving unit")
         return self
+
+
+class InventoryDocumentExcelRow(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, validate_by_name=True)
+
+    document_type: InventoryDocumentType = PydanticField(alias="单据类型")
+    business_date: date = PydanticField(alias="日期")
+    document_number: str = PydanticField(alias="单据号", min_length=1, max_length=64)
+    processing_unit_name: str = PydanticField(
+        alias="加工单位", min_length=1, max_length=255
+    )
+    receiving_unit_name: str | None = PydanticField(
+        alias="收货单位", default=None, max_length=255
+    )
+    remarks: str | None = PydanticField(alias="备注", default=None)
+    item_name: str = PydanticField(alias="品名", min_length=1, max_length=255)
+    item_code: str | None = PydanticField(alias="货号", default=None, max_length=255)
+    wool_content: str = PydanticField(alias="含毛量", min_length=1, max_length=255)
+    color_code: str | None = PydanticField(alias="颜色", default=None, max_length=255)
+    dye_lot_no: str | None = PydanticField(alias="缸号", default=None, max_length=255)
+    quantity_rolls: Decimal = PydanticField(
+        alias="匹数", gt=0, max_digits=18, decimal_places=2
+    )
+    quantity_meters: Decimal | None = PydanticField(
+        alias="米数", default=None, gt=0, max_digits=18, decimal_places=3
+    )
+
+
+class InventoryLedgerExcelRow(BaseModel):
+    model_config = ConfigDict(validate_by_name=True)
+
+    business_date: date = PydanticField(alias="日期")
+    movement_type: str = PydanticField(alias="出入库类型")
+    document_number: str | None = PydanticField(alias="单据号", default=None)
+    unit_name: str = PydanticField(alias="单位名称")
+    item_name: str = PydanticField(alias="品名")
+    item_code: str | None = PydanticField(alias="货号", default=None)
+    wool_content: str = PydanticField(alias="含毛量")
+    color_code: str | None = PydanticField(alias="颜色", default=None)
+    dye_lot_no: str | None = PydanticField(alias="缸号", default=None)
+    rolls_delta: Decimal = PydanticField(alias="匹数变化")
+    meters_delta: Decimal = PydanticField(alias="米数变化")
+    remarks: str | None = PydanticField(alias="备注", default=None)
+
+
+class InventoryExcelImportPublic(SQLModel):
+    created_documents: int
+    document_numbers: list[str]
+
+
+class LegacyInventoryExcelImportPublic(SQLModel):
+    import_batch_id: uuid.UUID
+    report: dict[str, int]
 
 
 class InventoryLinePublic(InventoryLineBase):

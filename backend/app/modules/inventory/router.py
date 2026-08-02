@@ -2,19 +2,29 @@ import uuid
 from datetime import date
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, Response, UploadFile, status
 
 from app.api.deps import AuditedWriteSessionDep, CurrentUser, SessionDep
+from app.core.excel import (
+    MAX_XLSX_BYTES,
+    ExcelIssue,
+    ExcelValidationError,
+    create_xlsx,
+)
 from app.models.inventory import InventoryDocumentType, InventoryLedgerKind
 from app.modules.iam.dependencies import permission_required
-from app.modules.inventory import service
+from app.modules.inventory import importer, service
 from app.schemas.inventory import (
     InventoryBalancesPublic,
     InventoryDocumentCreate,
+    InventoryDocumentExcelRow,
     InventoryDocumentPublic,
     InventoryDocumentsPublic,
+    InventoryExcelImportPublic,
     InventoryLedgerEntriesPublic,
+    InventoryLedgerExcelRow,
     InventorySuggestionsPublic,
+    LegacyInventoryExcelImportPublic,
     MasterUnitCreate,
     MasterUnitPublic,
     MasterUnitsPublic,
@@ -22,6 +32,135 @@ from app.schemas.inventory import (
 )
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
+
+XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+async def _read_xlsx_upload(upload: UploadFile) -> bytes:
+    filename = upload.filename or ""
+    if not filename.casefold().endswith(".xlsx"):
+        raise ExcelValidationError(
+            [
+                ExcelIssue(
+                    worksheet=None,
+                    row=None,
+                    column=None,
+                    field=None,
+                    message="Only .xlsx workbooks are supported",
+                )
+            ]
+        )
+    content = bytearray()
+    while chunk := await upload.read(1024 * 1024):
+        content.extend(chunk)
+        if len(content) > MAX_XLSX_BYTES:
+            raise ExcelValidationError(
+                [
+                    ExcelIssue(
+                        worksheet=None,
+                        row=None,
+                        column=None,
+                        field=None,
+                        message=f"Workbook exceeds the {MAX_XLSX_BYTES} byte limit",
+                    )
+                ]
+            )
+    return bytes(content)
+
+
+def _xlsx_response(content: bytes, *, filename: str) -> Response:
+    return Response(
+        content=content,
+        media_type=XLSX_MEDIA_TYPE,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get(
+    "/excel/templates/documents",
+    dependencies=[Depends(permission_required("inventory.documents.manage"))],
+)
+def download_document_template(current_user: CurrentUser) -> Response:
+    del current_user
+    output = create_xlsx(
+        [],
+        model_type=InventoryDocumentExcelRow,
+        worksheet_name=importer.DOCUMENT_WORKSHEET_NAME,
+    )
+    return _xlsx_response(
+        output.getvalue(), filename="inventory-document-template.xlsx"
+    )
+
+
+@router.post(
+    "/excel/imports/documents",
+    dependencies=[Depends(permission_required("inventory.documents.manage"))],
+    response_model=InventoryExcelImportPublic,
+    status_code=status.HTTP_201_CREATED,
+)
+async def import_documents_from_excel(
+    *,
+    session: AuditedWriteSessionDep,
+    _current_user: CurrentUser,
+    workbook: UploadFile = File(...),
+) -> InventoryExcelImportPublic:
+    return importer.import_document_workbook(
+        session=session,
+        content=await _read_xlsx_upload(workbook),
+    )
+
+
+@router.post(
+    "/excel/imports/legacy",
+    dependencies=[Depends(permission_required("inventory.documents.manage"))],
+    response_model=LegacyInventoryExcelImportPublic,
+    status_code=status.HTTP_201_CREATED,
+)
+async def import_legacy_workbooks_from_excel(
+    *,
+    session: AuditedWriteSessionDep,
+    _current_user: CurrentUser,
+    raw_workbook: UploadFile = File(...),
+    finished_workbook: UploadFile = File(...),
+) -> LegacyInventoryExcelImportPublic:
+    raw_content = await _read_xlsx_upload(raw_workbook)
+    finished_content = await _read_xlsx_upload(finished_workbook)
+    return importer.import_legacy_workbooks(
+        session=session,
+        raw_content=raw_content,
+        raw_filename=raw_workbook.filename or "raw.xlsx",
+        finished_content=finished_content,
+        finished_filename=finished_workbook.filename or "finished.xlsx",
+    )
+
+
+@router.get(
+    "/excel/ledger",
+    dependencies=[Depends(permission_required("inventory.ledger.read"))],
+)
+def export_inventory_ledger(
+    session: SessionDep,
+    current_user: CurrentUser,
+    ledger_kind: InventoryLedgerKind,
+    processing_unit_id: uuid.UUID | None = None,
+    business_date_from: date | None = None,
+    business_date_to: date | None = None,
+) -> Response:
+    del current_user
+    output = create_xlsx(
+        service.list_ledger_excel_rows(
+            session=session,
+            ledger_kind=ledger_kind,
+            processing_unit_id=processing_unit_id,
+            business_date_from=business_date_from,
+            business_date_to=business_date_to,
+        ),
+        model_type=InventoryLedgerExcelRow,
+        worksheet_name="库存台账",
+    )
+    return _xlsx_response(
+        output.getvalue(), filename=f"inventory-ledger-{ledger_kind}.xlsx"
+    )
 
 
 @router.get(
