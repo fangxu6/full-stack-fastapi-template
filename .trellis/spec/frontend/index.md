@@ -28,6 +28,7 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
 | [State Management](./state-management.md) | Query state, auth persistence, and route-driven state | Customized |
 | [Quality Guidelines](./quality-guidelines.md) | Review guardrails, generated-file rules, regression checks | Customized |
 | [Type Safety](./type-safety.md) | Generated client usage, Zod, alias rules | Customized |
+| [Excel Import and Export](./excel-import-export.md) | Shared browser XLSX workflow and inventory integration contract | Customized |
 
 ---
 
@@ -39,6 +40,8 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
 4. Read [Pagination Contract](./pagination-contract.md) before adding a server-paginated list or Ant Design Table pagination.
 5. Read [Hook Guidelines](./hook-guidelines.md) and [State Management](./state-management.md) before changing auth, query, or route-driven state.
 6. Use [Type Safety](./type-safety.md) and [Quality Guidelines](./quality-guidelines.md) as the final review checklist.
+7. Read [Excel Import and Export](./excel-import-export.md) before adding a
+   browser XLSX workflow or consuming an XLSX endpoint.
 
 ### Trigger-Based Routing
 
@@ -51,6 +54,7 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
 | Server-paginated list or Ant Design Table pagination | [Pagination Contract](./pagination-contract.md), [Component Guidelines](./component-guidelines.md), [State Management](./state-management.md), [Quality Guidelines](./quality-guidelines.md) |
 | Shared component/helper extraction | [Component Guidelines](./component-guidelines.md), [../guides/code-reuse-thinking-guide.md](../guides/code-reuse-thinking-guide.md) |
 | Ant Design component adoption | [Component Guidelines](./component-guidelines.md), [Quality Guidelines](./quality-guidelines.md) |
+| XLSX upload or download workflow | [Excel Import and Export](./excel-import-export.md), [Type Safety](./type-safety.md), [State Management](./state-management.md) |
 
 ---
 

@@ -250,3 +250,12 @@ Task lifecycle identity is context-only; log_event rejects direct task_id and ta
 ## [2026-08-01 22:33:05] update | Remove Sentry observability contract
 
 Removed the retired Sentry export, configuration, and scrub-test rules; the active backend contract is the single structlog stdout NDJSON stream.
+
+## [2026-08-02 13:19:17] update | Document browser XLSX workflow
+
+Captured shared binary download, single-file import dialog, scoped inventory imports, and ledger export filters.
+
+## [2026-08-02 13:44:58] fix | Unblock Codex Stop for generated client sync
+
+Generated client and route-tree output is a pending Phase 3.4 synchronization
+state, not a quality failure; Codex Stop blocks only actual hook failures.

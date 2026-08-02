@@ -30,6 +30,11 @@
 - Standard inventory imports use the flat `InventoryDocumentExcelRow`, group by
   document number, require repeated header values to agree, and resolve only
   active existing processing/receiving units by normalized name.
+- `POST /api/v1/inventory/excel/imports/documents` may receive repeated
+  `document_types` query values. Page-specific callers must supply their
+  allowed types; validate them after row DTO parsing and before grouping so an
+  out-of-scope row retains its `单据类型` coordinate and rolls back the whole
+  workbook. Omitting the parameter preserves the unrestricted CLI/API path.
 - Each document group may use a savepoint to collect failures, but no import
   helper commits. `AuditedWriteSessionDep` owns the HTTP transaction; any issue
   raises after collection and rolls back the whole file.
@@ -40,6 +45,11 @@
 - Ledger XLSX exports query all matching non-deleted rows once, order by
   business date and entry identifier, and preserve legacy source details in
   remarks when no business document is linked.
+- `GET /api/v1/inventory/excel/ledger` accepts optional
+  `processing_unit_id`, `business_date_from`, `business_date_to`,
+  `document_number`, and `receiving_unit_id`. Document-derived filters apply
+  to the outer-joined document and therefore intentionally exclude historical
+  adjustments without a linked document when they are present.
 
 ## Public Contract And Verification
 

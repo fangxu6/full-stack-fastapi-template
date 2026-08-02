@@ -88,6 +88,7 @@ The existing frontend route-permission-navigation contract is the local example:
 - [Backend Type Safety](./backend/type-safety.md)
 - [Component Guidelines](./frontend/component-guidelines.md)
 - [Directory Structure](./frontend/directory-structure.md)
+- [Excel Import and Export](./frontend/excel-import-export.md)
 - [Hook Guidelines](./frontend/hook-guidelines.md)
 - [Frontend Development Guidelines](./frontend/index.md)
 - [Pagination Contract](./frontend/pagination-contract.md)
