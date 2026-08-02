@@ -912,3 +912,36 @@ Removed the Sentry runtime, configuration, dependency, and current documentation
 ### Next Steps
 
 - None - task complete
+
+
+## Session 28: Require Chinese PostgreSQL comments
+
+**Date**: 2026-08-02
+**Task**: Require Chinese PostgreSQL comments
+**Branch**: `master`
+
+### Summary
+
+Added forward-only PostgreSQL Chinese table and column comment rules, migration review guidance, and catalog-based verification.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b07d109` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
