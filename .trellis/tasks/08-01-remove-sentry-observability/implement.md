@@ -46,10 +46,17 @@
 
 ## 6. 合并后发布检查
 
-- 确认 staging 与 production 部署工作流成功，健康检查通过后，删除 GitHub Actions repository /
-  environment 的 `SENTRY_DSN` secret。
-- 从实际部署环境（包括运行节点或其配置管理）删除 `SENTRY_DSN`，重启或滚动部署后复查健康检查。
-- 将外部 secret/环境变量删除的执行结果记录到任务验证说明；未完成前不将 AC-007 标记完成。
+- 新增仅含 `workflow_dispatch` 的 `.github/workflows/remove-sentry-observability.yml`。输入为受
+  限的 `staging`/`production` 选择；job 绑定该 GitHub Environment，并运行在匹配的 self-hosted
+  runner。
+- 不 checkout 源码、不接受 secret 名称、路径或命令输入。以固定 `SENTRY_DSN` 和最小
+  `actions: write` 的 `GITHUB_TOKEN` 调用 GitHub REST API；先验证运行中的 backend、worker、beat
+  容器不含该变量，并从 backend 容器调用本地健康端点，再删除 environment/repository scope。
+- 静态校验 YAML 与 workflow 的输入、权限、runner 标签、固定变量名和 API 路径；推送默认分支后
+  从 Actions 页面分别手动执行 staging、production。只有两次均完成且日志不含值时才标记
+  AC-007/AC-008 完成。
+- 以常规提交删除这份一次性工作流，并将两次运行 URL 与删除结果记录到任务验证说明；未完成前
+  不归档任务。
 
 ## Risk And Rollback
 

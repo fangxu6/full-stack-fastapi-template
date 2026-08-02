@@ -17,6 +17,11 @@ structlog stdout NDJSON 可观测性通道。
 - ADR-0001 与现行 logging 指南仍规定 Sentry 契约；ADR-0002、架构分析和企业脚手架评估仍把
   Sentry 描述为当前或已弃用的能力。
 - 归档 Trellis 任务、开发日志和历史变更记录中的 Sentry 叙述必须保留，不作为当前能力说明。
+- `dc541b6` 已推送至远端 `master`，但本次 Staging 部署仍在等待匹配标签的自托管 runner，尚未
+  产生部署健康结果。
+- 本机没有 GitHub CLI 或 API 凭据，无法直接审计 GitHub Actions repository/environment secrets；
+  本机被忽略的 `.env.production` 已删除唯一的 `SENTRY_DSN` 项，但不能代表远端 runner 上的容器
+  运行环境。
 
 ## Requirements
 
@@ -30,6 +35,9 @@ structlog stdout NDJSON 可观测性通道。
 - R-005：保留归档 Trellis 任务、开发日志和历史变更记录中的 Sentry 叙述，不做全仓批量替换。
 - R-006：合并并成功部署后，删除 GitHub Actions 仓库/环境 secret 与实际部署环境中的
   `SENTRY_DSN`。
+- R-007：新增一个仅可手动触发的 GitHub Actions 清理任务，用于在指定部署环境上审计实际运行
+  容器、删除该环境与仓库范围内的 `SENTRY_DSN` secret，并输出不含 secret 值的执行结果；在
+  staging 和 production 都成功执行后删除该一次性工作流。
 
 ## Acceptance Criteria
 
@@ -46,9 +54,14 @@ structlog stdout NDJSON 可观测性通道。
   通过，且不产生持久化副作用。
 - [ ] AC-007：合并后的发布检查记录已确认 GitHub Actions 和实际部署环境不再保留
   `SENTRY_DSN`。
+- [ ] AC-008：一次性手动工作流仅接受 `staging` 或 `production`，固定处理 `SENTRY_DSN`，在
+  对应 runner 上先验证运行容器和 backend 健康，再删除 environment/repository secret；两环境
+  成功后删除工作流源文件。
 
 ## Out Of Scope
 
 - 新增第三方错误追踪服务、日志 sink、stderr 输出或标准库 logging 管道。
 - 重构 structlog schema、HTTP/Celery 错误追踪逻辑、PM2 配置或 API 合约。
 - 修改归档 Trellis 任务、开发日志和历史变更记录。
+- 将通用 secret 管理能力、任意 secret 名称输入、长期定时清理、第三方凭据写入工作流，或由
+  工作流自行删除其源文件；该任务只能处理已退役的固定变量 `SENTRY_DSN`。

@@ -1,0 +1,112 @@
+name: Remove Sentry Observability
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment environment to clean
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  actions: write
+
+jobs:
+  remove-sentry-observability:
+    environment: ${{ inputs.environment }}
+    if: github.repository_owner != 'fastapi'
+    runs-on: [self-hosted, "${{ inputs.environment }}"]
+    timeout-minutes: 10
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      STACK_NAME: ${{ inputs.environment == 'staging' && secrets.STACK_NAME_STAGING || secrets.STACK_NAME_PRODUCTION }}
+      TARGET_ENVIRONMENT: ${{ inputs.environment }}
+    steps:
+      - name: Verify deployment and remove retired secret
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          : "${STACK_NAME:?The environment stack name must be configured}"
+
+          container_id() {
+            local service="$1"
+            local ids
+            local count
+            ids="$(docker ps -q \
+              --filter "label=com.docker.compose.project=${STACK_NAME}" \
+              --filter "label=com.docker.compose.service=${service}")"
+            count="$(printf '%s\n' "${ids}" | sed '/^$/d' | wc -l | tr -d ' ')"
+
+            if [ "${count}" -ne 1 ]; then
+              echo "::error title=Deployment verification failed::Expected one running ${service} container, found ${count}."
+              exit 1
+            fi
+
+            printf '%s\n' "${ids}"
+          }
+
+          verify_no_sentry() {
+            local service="$1"
+            local id
+            id="$(container_id "${service}")"
+
+            if docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "${id}" | grep -q '^SENTRY_DSN='; then
+              echo "::error title=Sentry variable present::${service} still has SENTRY_DSN."
+              exit 1
+            fi
+
+            echo "${service}: SENTRY_DSN absent"
+          }
+
+          delete_secret() {
+            local path="$1"
+            local scope="$2"
+            local status
+            status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+              --request DELETE \
+              --header 'Accept: application/vnd.github+json' \
+              --header "Authorization: Bearer ${GITHUB_TOKEN}" \
+              --header 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com${path}")"
+
+            case "${status}" in
+              204) echo "${scope}: SENTRY_DSN removed" ;;
+              404) echo "${scope}: SENTRY_DSN already absent" ;;
+              *)
+                echo "::error title=Secret cleanup failed::${scope} returned HTTP ${status}."
+                exit 1
+                ;;
+            esac
+          }
+
+          verify_no_sentry backend
+          verify_no_sentry celery-worker
+          verify_no_sentry celery-beat
+
+          backend_id="$(container_id backend)"
+          docker exec "${backend_id}" python -c '
+          import json
+          from urllib.request import urlopen
+
+          with urlopen("http://127.0.0.1:8000/api/v1/utils/health-check/", timeout=10) as response:
+              assert response.status == 200
+              assert json.load(response) is True
+          '
+
+          echo "backend: health check passed"
+          delete_secret "/repos/${GITHUB_REPOSITORY}/environments/${TARGET_ENVIRONMENT}/secrets/SENTRY_DSN" "${TARGET_ENVIRONMENT} environment"
+          delete_secret "/repos/${GITHUB_REPOSITORY}/actions/secrets/SENTRY_DSN" "repository"
+
+          {
+            echo '## Sentry observability cleanup'
+            echo
+            echo "- Environment: \`${TARGET_ENVIRONMENT}\`"
+            echo '- Running backend, celery-worker, and celery-beat containers have no `SENTRY_DSN`.'
+            echo '- Backend health check passed.'
+            echo '- Environment and repository secrets were removed or already absent.'
+          } >> "${GITHUB_STEP_SUMMARY}"
