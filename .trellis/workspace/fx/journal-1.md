@@ -878,3 +878,37 @@ Restored PM2 NDJSON capture and detailed HTTP/Celery error traces.
 ### Next Steps
 
 - None - task complete
+
+
+## Session 27: Remove Sentry observability
+
+**Date**: 2026-08-02
+**Task**: Remove Sentry observability
+**Branch**: `master`
+
+### Summary
+
+Removed the Sentry runtime, configuration, dependency, and current documentation; added a one-time manual cleanup workflow for the remaining external secrets and deployment verification.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dc541b6` | (see git log) |
+| `89b195c` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
