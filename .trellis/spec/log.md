@@ -4,6 +4,19 @@
 
 ---
 
+## 2026-08-02
+
+- Added the reusable XLSX import/export contract: Pydantic alias DTOs own
+  spreadsheet columns, `core/excel.py` owns bounded and defensive parsing,
+  inventory owns grouping and historical compatibility, and request-scoped
+  writes remain fully atomic.
+- Recorded the structured issue envelope, the historical CLI byte-source
+  boundary, stable ledger-export ordering, existing-permission reuse, and the
+  generated-client verification requirement.
+- Source inputs: `backend/app/core/excel.py`,
+  `backend/app/modules/inventory/{importer,router,service}.py`, and focused
+  core/API inventory tests.
+
 ## 2026-07-20
 
 - Established the forward PostgreSQL primary-key contract: new independent

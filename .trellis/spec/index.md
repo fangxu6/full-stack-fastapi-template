@@ -81,6 +81,7 @@ The existing frontend route-permission-navigation contract is the local example:
 - [Database Guidelines](./backend/database-guidelines.md)
 - [Directory Structure](./backend/directory-structure.md)
 - [Error Handling](./backend/error-handling.md)
+- [Excel Import and Export Contract](./backend/excel-import-export.md)
 - [Backend Development Guidelines](./backend/index.md)
 - [Logging Guidelines](./backend/logging-guidelines.md)
 - [Quality Guidelines](./backend/quality-guidelines.md)
