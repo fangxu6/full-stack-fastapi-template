@@ -44,19 +44,21 @@ class FrontendComponentHookTests(unittest.TestCase):
         self.assertEqual(result.status, "failed")
         self.assertIn("vendor-managed", result.details[0])
 
-    def test_rejects_generated_client_edit_with_sync_guidance(self) -> None:
+    def test_reports_generated_client_as_pending_sync(self) -> None:
         result = FrontendComponentHook().run(
             HookContext(Path.cwd(), ("frontend/src/client/types.gen.ts",))
         )
-        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.status, "pending")
+        self.assertFalse(result.failed)
         self.assertIn("generated artifact", result.details[0])
         self.assertIn("Phase 3.4", result.details[0])
 
-    def test_rejects_generated_route_tree_edit_with_sync_guidance(self) -> None:
+    def test_reports_generated_route_tree_as_pending_sync(self) -> None:
         result = FrontendComponentHook().run(
             HookContext(Path.cwd(), ("frontend/src/routeTree.gen.ts",))
         )
-        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.status, "pending")
+        self.assertFalse(result.failed)
         self.assertIn("generated artifact", result.details[0])
         self.assertIn("Phase 3.4", result.details[0])
 

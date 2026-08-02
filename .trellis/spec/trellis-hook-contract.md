@@ -26,8 +26,11 @@
 
 ## 3. Contracts
 
-- `HookResult.status` is `passed`, `failed`, or `skipped`; the CLI fails only
-  when at least one selected hook fails.
+- `HookResult.status` is `passed`, `failed`, `pending`, or `skipped`; the CLI
+  fails only when at least one selected hook fails.
+- Generated client or route-tree output is `pending`, not a quality failure:
+  it keeps the Phase 3.4 dedicated synchronization commit visible without
+  blocking Codex Stop before the user can confirm that commit.
 - The runner gets worktree paths from Git unless callers supply
   `--changed-file`; `--force` overrides scope matching.
 - Windows backend checks run from `backend/` using root
@@ -35,9 +38,9 @@
 - Frontend UI imports are resolved through `frontend/components.json`.
 - Future hooks are project code and registry entries, never Trellis library
   edits.
-- The Codex Stop adapter returns `{}` after passing/skipped checks. On failure
-  it returns `decision: block` with a reason so Codex continues instead of
-  completing the turn.
+- The Codex Stop adapter returns `{}` after passing, pending, or skipped
+  checks. On failure it returns `decision: block` with a reason so Codex
+  continues instead of completing the turn.
 
 ---
 
@@ -47,7 +50,8 @@
 | --- | --- | --- |
 | Non-matching worktree changes | Hook is skipped | Unit test |
 | Backend diagnostic or missing root tooling | Backend result fails; CLI returns non-zero | Stubbed failure test / forced CLI |
-| Protected frontend primitive/client edit | Frontend result fails | Unit test |
+| Generated client or route-tree output | Frontend result is pending; CLI exits zero | Unit and Stop-adapter tests |
+| Vendor-managed primitive or structural frontend violation | Frontend result fails | Unit test |
 | Unknown selected hook | CLI/registry rejects it | Unit test |
 | New project hook | Registered implementation runs without Trellis changes | Registry test and protected-file diff check |
 | Quality hook fails during Codex Stop | Adapter returns `decision: block` with diagnostics | Adapter unit test |

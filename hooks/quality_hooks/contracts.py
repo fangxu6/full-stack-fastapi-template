@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Literal, Protocol
 
 
-HookStatus = Literal["passed", "failed", "skipped"]
+HookStatus = Literal["passed", "failed", "pending", "skipped"]
 
 
 @dataclass(frozen=True, slots=True)

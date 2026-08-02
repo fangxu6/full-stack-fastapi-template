@@ -31,6 +31,17 @@ class StopQualityGateTests(unittest.TestCase):
             response = stop_quality_gate.run_quality_hooks(REPO_ROOT)
         self.assertEqual(response, {})
 
+    def test_pending_sync_allows_stop(self) -> None:
+        completed = subprocess.CompletedProcess(
+            [],
+            0,
+            '[{"name":"frontend-component-policy","status":"pending","message":"sync required","details":[]}]',
+            "",
+        )
+        with patch.object(stop_quality_gate.subprocess, "run", return_value=completed):
+            response = stop_quality_gate.run_quality_hooks(REPO_ROOT)
+        self.assertEqual(response, {})
+
     def test_failed_runner_blocks_stop(self) -> None:
         completed = subprocess.CompletedProcess(
             [],

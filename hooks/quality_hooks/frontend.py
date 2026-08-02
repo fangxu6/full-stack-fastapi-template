@@ -117,6 +117,7 @@ class FrontendComponentHook:
 
         ui_alias = _configured_ui_alias(context.repo_root)
         violations: list[str] = []
+        pending: list[str] = []
         route_sources: list[Path] = []
         for path in context.changed_files:
             if not path.startswith(FRONTEND_SOURCE_PREFIX):
@@ -126,7 +127,7 @@ class FrontendComponentHook:
                 continue
             is_route_entry = _matches_root(path, (ROUTE_ENTRY_ROOT,))
             if _matches_root(path, GENERATED_ARTIFACT_PATHS):
-                violations.append(
+                pending.append(
                     f"{path}: generated artifact changed; regenerate it with its owning "
                     "tool, review the diff, then use the Phase 3.4 confirmation flow "
                     "for a dedicated synchronization commit"
@@ -183,5 +184,12 @@ class FrontendComponentHook:
                 "failed",
                 "Frontend component policy failed.",
                 tuple(violations),
+            )
+        if pending:
+            return HookResult(
+                self.name,
+                "pending",
+                "Generated frontend artifacts await Phase 3.4 synchronization.",
+                tuple(pending),
             )
         return HookResult(self.name, "passed", "Frontend component policy passed.")
