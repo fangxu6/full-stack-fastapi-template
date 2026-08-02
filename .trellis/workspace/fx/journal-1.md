@@ -978,3 +978,38 @@ Added a reversible Alembic migration that backfilled verified Chinese table and 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 30: Reusable Excel inventory import and export
+
+**Date**: 2026-08-02
+**Task**: Reusable Excel inventory import and export
+**Branch**: `master`
+
+### Summary
+
+Implemented bounded XLSX DTO parsing and inventory document/legacy imports plus ledger export; regenerated the client, added tests, and recorded the backend contract.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fe97287` | (see git log) |
+| `8817f98` | (see git log) |
+| `c64dc81` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

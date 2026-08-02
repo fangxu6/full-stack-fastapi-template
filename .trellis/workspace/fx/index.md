@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 29
+- **Total Sessions**: 30
 - **Last Active**: 2026-08-02
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~980 | Active |
+| `journal-1.md` | ~1015 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 30 | 2026-08-02 | Reusable Excel inventory import and export | `fe97287`, `8817f98`, `c64dc81` | `master` |
 | 29 | 2026-08-02 | Backfill PostgreSQL Chinese comments | `34bb1c3` | `master` |
 | 28 | 2026-08-02 | Require Chinese PostgreSQL comments | `b07d109` | `master` |
 | 27 | 2026-08-02 | Remove Sentry observability | `dc541b6`, `89b195c` | `master` |
