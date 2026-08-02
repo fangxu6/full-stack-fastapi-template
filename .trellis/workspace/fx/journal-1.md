@@ -945,3 +945,36 @@ Added forward-only PostgreSQL Chinese table and column comment rules, migration 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 29: Backfill PostgreSQL Chinese comments
+
+**Date**: 2026-08-02
+**Task**: Backfill PostgreSQL Chinese comments
+**Branch**: `master`
+
+### Summary
+
+Added a reversible Alembic migration that backfilled verified Chinese table and column comments for all 18 managed PostgreSQL tables and 198 columns.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `34bb1c3` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
