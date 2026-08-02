@@ -54,6 +54,24 @@ The backend uses SQLModel + SQLAlchemy on PostgreSQL. Model and schema conventio
 - Keep timestamp fields in UTC with timezone-aware storage.
 - Public list wrappers should keep the existing `data + count` shape, for example `UsersPublic` and `ItemsPublic`.
 
+### PostgreSQL Chinese Comments
+
+- This is a forward-only requirement: every new table and every new physical
+  column, including primary, foreign-key, status, and audit columns, has a
+  non-empty Chinese business comment stored as PostgreSQL `COMMENT` metadata.
+- `Field(description=...)`, OpenAPI metadata, and Python source comments do
+  not substitute for a database comment. Define table comments in
+  `__table_args__` (`{"comment": "..."}` is the final tuple item when the
+  table also has constraints or indexes). Define simple column comments with
+  `sa_column_kwargs={"comment": "..."}` and add `comment` directly to an
+  existing `sa_column=Column(...)` definition.
+- A new table inheriting `AuditFields` requires comments for all inherited
+  physical audit columns. Own those standard comments in `AuditFields`, not in
+  each child model.
+- Do not retroactively alter existing tables or rewrite historical revisions
+  solely for comments. A historical backfill needs a separate task and
+  migration.
+
 ---
 
 ## Scenario: New Entity Primary Keys
@@ -692,6 +710,13 @@ commits explicitly after the service returns.
 
 - Keep SQLModel definitions and Alembic revisions in the same logical change.
 - Generate schema changes through Alembic and commit the revision file.
+- Review every new-table and add-column operation for the generated table and
+  column `comment` values. If autogeneration omits one, add it to that same
+  revision before merge.
+- After `uv run alembic upgrade head` on an isolated `_test` or `_pytest`
+  database, verify the changed table with `obj_description(..., 'pg_class')`
+  and each changed column with `col_description(attrelid, attnum)`. Missing or
+  non-Chinese comments reject the migration review.
 - Treat migration history as part of the contract:
   - [`backend/app/alembic/versions/d98dd8ec85a3_edit_replace_id_integers_in_all_models_.py`](../../../backend/app/alembic/versions/d98dd8ec85a3_edit_replace_id_integers_in_all_models_.py)
   - [`backend/app/alembic/versions/fe56fa70289e_add_created_at_to_user_and_item.py`](../../../backend/app/alembic/versions/fe56fa70289e_add_created_at_to_user_and_item.py)
