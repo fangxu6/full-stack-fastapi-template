@@ -204,6 +204,7 @@ export class InventoryService {
      * Import Documents From Excel
      * @param data The data for the request.
      * @param data.formData
+     * @param data.documentTypes
      * @returns InventoryExcelImportPublic Successful Response
      * @throws ApiError
      */
@@ -211,6 +212,9 @@ export class InventoryService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/inventory/excel/imports/documents',
+            query: {
+                document_types: data.documentTypes
+            },
             formData: data.formData,
             mediaType: 'multipart/form-data',
             errors: {
@@ -243,6 +247,8 @@ export class InventoryService {
      * @param data The data for the request.
      * @param data.ledgerKind
      * @param data.processingUnitId
+     * @param data.receivingUnitId
+     * @param data.documentNumber
      * @param data.businessDateFrom
      * @param data.businessDateTo
      * @returns unknown Successful Response
@@ -255,6 +261,8 @@ export class InventoryService {
             query: {
                 ledger_kind: data.ledgerKind,
                 processing_unit_id: data.processingUnitId,
+                receiving_unit_id: data.receivingUnitId,
+                document_number: data.documentNumber,
                 business_date_from: data.businessDateFrom,
                 business_date_to: data.businessDateTo
             },

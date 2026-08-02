@@ -478,6 +478,7 @@ export type IamReplaceUserRolesResponse = (UserRolesPublic);
 export type InventoryDownloadDocumentTemplateResponse = (unknown);
 
 export type InventoryImportDocumentsFromExcelData = {
+    documentTypes?: (Array<InventoryDocumentType> | null);
     formData: Body_inventory_import_documents_from_excel;
 };
 
@@ -492,8 +493,10 @@ export type InventoryImportLegacyWorkbooksFromExcelResponse = (LegacyInventoryEx
 export type InventoryExportInventoryLedgerData = {
     businessDateFrom?: (string | null);
     businessDateTo?: (string | null);
+    documentNumber?: (string | null);
     ledgerKind: InventoryLedgerKind;
     processingUnitId?: (string | null);
+    receivingUnitId?: (string | null);
 };
 
 export type InventoryExportInventoryLedgerResponse = (unknown);
