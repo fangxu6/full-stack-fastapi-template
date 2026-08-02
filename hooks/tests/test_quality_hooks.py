@@ -143,6 +143,17 @@ class FrontendComponentHookTests(unittest.TestCase):
         self.assertEqual(result.status, "failed")
         self.assertIn("Ant Design", result.details[0])
 
+    def test_allows_antd_for_shared_excel_workflow(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            source = repo_root / "frontend/src/shared/excel/ExcelImportDialog.tsx"
+            source.parent.mkdir(parents=True)
+            source.write_text('import { Upload } from "antd"\n', encoding="utf-8")
+            result = FrontendComponentHook().run(
+                HookContext(repo_root, ("frontend/src/shared/excel/ExcelImportDialog.tsx",))
+            )
+        self.assertEqual(result.status, "passed")
+
     def test_rejects_domain_import_from_shared(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = Path(temp_dir)

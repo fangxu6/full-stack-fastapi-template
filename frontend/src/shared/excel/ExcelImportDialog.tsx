@@ -52,10 +52,11 @@ export function ExcelImportDialog({
   const beforeUpload: UploadProps["beforeUpload"] = (file) => {
     const validationError = validateXlsxFile(file)
     if (validationError) {
+      setFileList([])
       message.error(validationError)
       return Upload.LIST_IGNORE
     }
-    setFileList([file])
+    setFileList([{ name: file.name, originFileObj: file, uid: file.uid }])
     setIssues([])
     setIssueMessage(undefined)
     return false

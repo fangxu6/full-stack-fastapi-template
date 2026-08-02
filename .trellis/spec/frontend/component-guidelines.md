@@ -64,6 +64,9 @@ The main frontend risk in this repo is false sharing: pushing page-specific or b
 - Import Ant Design components directly from `antd` inside the owning feature
   or platform module. The global provider is already mounted through
   [`frontend/src/app/providers/AntdProvider.tsx`](../../../frontend/src/app/providers/AntdProvider.tsx).
+- `shared/excel` is the explicit shared exception: `ExcelImportDialog` remains
+  generic and may import Ant Design directly. The component-policy hook allows
+  this sub-root only; other `shared/*` code must remain free of Ant Design.
 - Do not adopt `@ant-design/pro-components` until its peer dependencies and
   project need are reviewed in a dedicated task.
 

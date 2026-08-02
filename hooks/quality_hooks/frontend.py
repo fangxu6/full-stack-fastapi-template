@@ -29,6 +29,7 @@ ANTD_ALLOWED_ROOTS = (
     "frontend/src/app",
     "frontend/src/features",
     "frontend/src/platform",
+    "frontend/src/shared/excel",
 )
 SHARED_FORBIDDEN_IMPORTS = ("@/features/", "@/platform/")
 

@@ -332,7 +332,7 @@ test("Inventory document pages provide scoped Excel actions and issue feedback",
     "inventory-document-template.xlsx",
   )
 
-  await page.getByRole("textbox", { name: /单号 : \* 单号/ }).fill("XLSX-E2E")
+  await page.getByRole("textbox", { name: "单号 :" }).fill("XLSX-E2E")
   const exportRequest = page.waitForRequest((request) => {
     if (request.method() !== "GET") return false
     const url = new URL(request.url())
@@ -349,8 +349,10 @@ test("Inventory document pages provide scoped Excel actions and issue feedback",
     "inventory-ledger-raw.xlsx",
   )
 
-  await page.route("**/api/v1/inventory/excel/imports/documents*", (route) =>
-    route.fulfill({
+  let importRequests = 0
+  await page.route("**/api/v1/inventory/excel/imports/documents*", (route) => {
+    importRequests += 1
+    return route.fulfill({
       body: JSON.stringify({
         detail: {
           issues: [
@@ -368,17 +370,34 @@ test("Inventory document pages provide scoped Excel actions and issue feedback",
       }),
       contentType: "application/json",
       status: 422,
-    }),
-  )
+    })
+  })
   await page.getByRole("button", { name: "导入 Excel" }).click()
   const importDialog = page.getByRole("dialog", { name: "导入坯布台账" })
-  await importDialog.locator('input[type="file"]').setInputFiles({
+  const fileInput = importDialog.locator('input[type="file"]')
+  await fileInput.setInputFiles({
+    buffer: Buffer.from("workbook"),
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    name: "valid.xlsx",
+  })
+  await fileInput.setInputFiles({
+    buffer: Buffer.from("not-a-workbook"),
+    mimeType: "text/csv",
+    name: "invalid.csv",
+  })
+  await importDialog.getByRole("button", { name: /导\s*入/ }).click()
+  await expect(page.getByText("请选择要导入的工作簿。")).toBeVisible()
+  expect(importRequests).toBe(0)
+
+  await fileInput.setInputFiles({
     buffer: Buffer.from("not-a-workbook"),
     mimeType:
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     name: "invalid.xlsx",
   })
-  await importDialog.getByRole("button", { name: "导入", exact: true }).click()
+  await importDialog.getByRole("button", { name: /导\s*入/ }).click()
+  await expect.poll(() => importRequests).toBe(1)
   await expect(importDialog.getByText("Excel validation failed")).toBeVisible()
   await expect(
     importDialog.getByRole("cell", {
