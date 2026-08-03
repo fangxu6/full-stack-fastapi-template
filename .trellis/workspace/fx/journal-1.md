@@ -1049,3 +1049,36 @@ Added reusable XLSX UI workflows, scoped inventory import/export APIs, and a non
 ### Next Steps
 
 - None - task complete
+
+
+## Session 32: Implement semantic IAM audit
+
+**Date**: 2026-08-03
+**Task**: Implement semantic IAM audit
+**Branch**: `master`
+
+### Summary
+
+Added atomic IAM semantic audit events, guarded audit schema migration, daily retention cleanup, focused validation, and reusable database guidance.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b3cf2bb` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
