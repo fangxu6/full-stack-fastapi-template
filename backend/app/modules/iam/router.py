@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from app.api.deps import CurrentUser, SessionDep, WriteSessionDep
 from app.modules.iam import service
@@ -51,8 +51,18 @@ def read_roles(session: SessionDep) -> RolesPublic:
     dependencies=[Depends(permission_required("iam.roles.manage"))],
     response_model=RolePublic,
 )
-def create_role(session: WriteSessionDep, role_in: RoleCreate) -> RolePublic:
-    return service.create_role(session=session, role_in=role_in)
+def create_role(
+    request: Request,
+    session: WriteSessionDep,
+    current_user: CurrentUser,
+    role_in: RoleCreate,
+) -> RolePublic:
+    return service.create_role(
+        session=session,
+        role_in=role_in,
+        audit_actor_user_id=current_user.id,
+        audit_request_id=request.state.request_id,
+    )
 
 
 @router.patch(
@@ -61,9 +71,19 @@ def create_role(session: WriteSessionDep, role_in: RoleCreate) -> RolePublic:
     response_model=RolePublic,
 )
 def update_role(
-    session: WriteSessionDep, role_id: int, role_in: RoleUpdate
+    request: Request,
+    session: WriteSessionDep,
+    current_user: CurrentUser,
+    role_id: int,
+    role_in: RoleUpdate,
 ) -> RolePublic:
-    return service.update_role(session=session, role_id=role_id, role_in=role_in)
+    return service.update_role(
+        session=session,
+        role_id=role_id,
+        role_in=role_in,
+        audit_actor_user_id=current_user.id,
+        audit_request_id=request.state.request_id,
+    )
 
 
 @router.put(
@@ -72,10 +92,18 @@ def update_role(
     response_model=RolePublic,
 )
 def replace_role_permissions(
-    session: WriteSessionDep, role_id: int, body: RolePermissionsReplace
+    request: Request,
+    session: WriteSessionDep,
+    current_user: CurrentUser,
+    role_id: int,
+    body: RolePermissionsReplace,
 ) -> RolePublic:
     return service.replace_role_permissions(
-        session=session, role_id=role_id, permission_codes=body.permission_codes
+        session=session,
+        role_id=role_id,
+        permission_codes=body.permission_codes,
+        audit_actor_user_id=current_user.id,
+        audit_request_id=request.state.request_id,
     )
 
 
@@ -84,8 +112,15 @@ def replace_role_permissions(
     dependencies=[Depends(permission_required("iam.roles.manage"))],
     response_model=Message,
 )
-def delete_role(session: WriteSessionDep, role_id: int) -> Message:
-    service.delete_role(session=session, role_id=role_id)
+def delete_role(
+    request: Request, session: WriteSessionDep, current_user: CurrentUser, role_id: int
+) -> Message:
+    service.delete_role(
+        session=session,
+        role_id=role_id,
+        audit_actor_user_id=current_user.id,
+        audit_request_id=request.state.request_id,
+    )
     return Message(message="Role deleted successfully")
 
 
@@ -95,10 +130,18 @@ def delete_role(session: WriteSessionDep, role_id: int) -> Message:
     response_model=UserRolesPublic,
 )
 def replace_user_roles(
-    session: WriteSessionDep, user_id: uuid.UUID, body: UserRolesReplace
+    request: Request,
+    session: WriteSessionDep,
+    current_user: CurrentUser,
+    user_id: uuid.UUID,
+    body: UserRolesReplace,
 ) -> UserRolesPublic:
     return UserRolesPublic(
         data=service.replace_user_roles(
-            session=session, user_id=user_id, role_ids=body.role_ids
+            session=session,
+            user_id=user_id,
+            role_ids=body.role_ids,
+            audit_actor_user_id=current_user.id,
+            audit_request_id=request.state.request_id,
         )
     )

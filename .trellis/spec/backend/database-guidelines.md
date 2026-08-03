@@ -700,6 +700,142 @@ session, and lets the listener own the audit fields.
 
 ---
 
+## Scenario: Semantic Change Audit Events
+
+### 1. Scope / Trigger
+
+Apply this when a high-value mutation needs durable, queryable evidence of
+**what business change occurred**, in addition to entity `created_by` /
+`updated_by` fields and operational logs. The first owner is IAM role and
+user-role mutation; another module may reuse the storage only after it defines
+its own action codes and allowed summary fields.
+
+### 2. Signatures
+
+```python
+class AuditEvent(SQLModel, table=True):
+    id: int | None  # BIGINT GENERATED ALWAYS AS IDENTITY
+    occurred_at: datetime  # TIMESTAMPTZ NOT NULL DEFAULT now()
+    actor_user_id: uuid.UUID | None
+    request_id: str | None
+    action: str  # VARCHAR(128), for example iam.role.created
+    resource_type: str  # VARCHAR(64), for example iam_role
+    resource_id: str  # VARCHAR(128), UUID and BIGINT encoded as text
+    changes: dict[str, object]  # JSONB object
+
+def append_audit_event(*, session: Session, actor_user_id: uuid.UUID | None,
+                       request_id: str | None, action: str,
+                       resource_type: str, resource_id: str,
+                       changes: dict[str, object]) -> None: ...
+
+def cleanup_expired_events(*, session: Session,
+                           now: datetime | None = None) -> int: ...
+```
+
+- Table: `audit_event`, with `CHECK (jsonb_typeof(changes) = 'object')` and
+  indexes on `occurred_at DESC`, `(resource_type, resource_id, occurred_at
+  DESC)`, and `(actor_user_id, occurred_at DESC)`.
+- The direct Celery Beat task is `audit.cleanup_events`; it runs daily and is
+  not a `SchedulerJob`.
+
+### 3. Contracts
+
+- `AuditEvent` is not an entity audit-field mixin. It has no foreign keys,
+  `updated_at`, soft delete, update endpoint, PostgreSQL enum, or reader API.
+  The nullable actor UUID intentionally preserves history if a user is deleted.
+- Action codes and resource types are stable, lowercase, dot/noun names owned
+  by the source module. The source module validates its action/resource/summary
+  allowlist before invoking the generic writer. The writer accepts only an
+  object summary and never receives a request body or client-supplied actor.
+- HTTP routes pass `CurrentUser.id` and middleware-owned
+  `request.state.request_id` into their service. The service reads any
+  allowlisted before-state, mutates its existing entities, and adds exactly one
+  event to the same `WriteSessionDep` session after successful validation.
+  `WriteSessionDep` commits or rolls back the business change and event
+  together; the writer must never commit, catch, or independently persist it.
+- `changes` is data-minimized: identifiers, booleans, and approved field names
+  only. Do not store email, names, descriptions, passwords, tokens, raw request
+  or response bodies, or unrestricted old/new rows.
+- Retention deletes only `occurred_at < now - 365 days`. No reader/export,
+  database trigger, privilege model, legal hold, external sink, or
+  tamper-resistance claim exists until a separately approved task defines it.
+- The creating migration supplies Chinese comments for the table and every
+  column. Downgrade must refuse while rows exist; an application rollback leaves
+  the table and evidence intact.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| IAM mutation succeeds and its request commits | Persist exactly one matching event in the same commit. |
+| IAM validation, authorization, or persistence fails | Roll back the business mutation and write no event. |
+| Action/resource/summary is outside its module allowlist | Raise before final commit; do not serialize arbitrary data. |
+| Event timestamp is exactly 365 days old | Retain it; only strictly older events are deleted. |
+| Schema downgrade finds an event row | Raise and preserve the table; require an explicit evidence decision. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: `iam.role.permissions_replaced` records only permission-code lists
+  before/after against `iam_role/<id>` and the current actor/request ID.
+- Base: a non-HTTP future writer records `request_id=NULL` with a resolved
+  actor, following its own action-summary allowlist.
+- Bad: serializing `role_in.model_dump()` or an ORM row into `changes`, adding
+  an event after a route commits, or modeling the daily cleanup as a user-facing
+  scheduler job.
+
+### 6. Tests Required
+
+- API test every initial action code, actor ID, request ID, resource ID, and
+  allowed summary; include a mixed state/non-state PATCH without free-text
+  values in its event.
+- Failure test: an IAM mutation that returns an existing domain error leaves
+  the event count unchanged.
+- Retention test: delete a 366-day-old row and retain a row exactly 365 days
+  old.
+- Migration test: upgrade an isolated `_test`/`_pytest` database; inspect the
+  table/column comments, three indexes, and JSONB-object check. Verify nonempty
+  downgrade refusal, then empty-table downgrade and re-upgrade.
+- Celery test: assert `audit.cleanup_events` is registered and scheduled daily.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+append_audit_event(
+    session=session,
+    actor_user_id=current_user.id,
+    request_id=request.state.request_id,
+    action="iam.role.updated",
+    resource_type="iam_role",
+    resource_id=str(role.id),
+    changes=role_in.model_dump(),
+)
+session.commit()
+```
+
+This leaks arbitrary input and can persist evidence separately from the role
+mutation.
+
+#### Correct
+
+```python
+append_audit_event(
+    session=session,
+    actor_user_id=actor_user_id,
+    request_id=request_id,
+    action="iam.role.updated",
+    resource_type="iam_role",
+    resource_id=str(role.id),
+    changes={"changed_fields": ["name"]},
+)
+```
+
+The owning service has already validated the static summary; the shared request
+Unit of Work owns the one final commit.
+
+---
+
 ## Query and Mutation Patterns
 
 - Compose reads with `select(...)`, `where(...)`, `order_by(...)`, `offset(...)`, and `limit(...)`.

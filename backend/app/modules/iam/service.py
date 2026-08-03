@@ -11,6 +11,7 @@ from app.core.exceptions import (
 )
 from app.models import IamPermission, IamRole, IamRolePermission, IamUserRole, User
 from app.models.base import get_datetime_utc
+from app.modules.audit import service as audit_service
 from app.modules.iam import repository
 from app.modules.iam.constants import (
     BUILTIN_ROLES,
@@ -29,6 +30,20 @@ from app.schemas.iam import (
     RoleSummary,
     RoleUpdate,
 )
+
+_IAM_AUDIT_EVENT_RULES: dict[str, tuple[str, frozenset[str]]] = {
+    "iam.role.created": ("iam_role", frozenset({"code", "permission_codes"})),
+    "iam.role.updated": ("iam_role", frozenset({"changed_fields"})),
+    "iam.role.activated": ("iam_role", frozenset({"is_active", "changed_fields"})),
+    "iam.role.deactivated": (
+        "iam_role",
+        frozenset({"is_active", "changed_fields"}),
+    ),
+    "iam.role.permissions_replaced": ("iam_role", frozenset({"permission_codes"})),
+    "iam.role.deleted": ("iam_role", frozenset()),
+    "iam.user.roles_replaced": ("iam_user", frozenset({"role_ids"})),
+}
+_IAM_AUDIT_STATE_ACTIONS = frozenset({"iam.role.activated", "iam.role.deactivated"})
 
 
 def role_summary(role: IamRole) -> RoleSummary:
@@ -145,7 +160,48 @@ def _validate_custom_permission_codes(
     return permissions
 
 
-def create_role(*, session: Session, role_in: RoleCreate) -> RolePublic:
+def _append_audit_event(
+    *,
+    session: Session,
+    actor_user_id: uuid.UUID | None,
+    request_id: str | None,
+    action: str,
+    resource_type: str,
+    resource_id: str,
+    changes: dict[str, object],
+) -> None:
+    if actor_user_id is None:
+        return
+    expected_resource_type, allowed_change_keys = _IAM_AUDIT_EVENT_RULES[action]
+    change_keys = set(changes)
+    if (
+        resource_type != expected_resource_type
+        or not change_keys <= allowed_change_keys
+    ):
+        raise ValueError("IAM audit event does not match its action contract")
+    if action in _IAM_AUDIT_STATE_ACTIONS:
+        if "is_active" not in changes:
+            raise ValueError("IAM state audit event must include is_active")
+    elif change_keys != allowed_change_keys:
+        raise ValueError("IAM audit event has incomplete change summary")
+    audit_service.append_audit_event(
+        session=session,
+        actor_user_id=actor_user_id,
+        request_id=request_id,
+        action=action,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        changes=changes,
+    )
+
+
+def create_role(
+    *,
+    session: Session,
+    role_in: RoleCreate,
+    audit_actor_user_id: uuid.UUID | None = None,
+    audit_request_id: str | None = None,
+) -> RolePublic:
     if repository.get_role_by_code(session=session, code=role_in.code):
         raise ConflictError("A role with this code already exists")
     permissions = _validate_custom_permission_codes(
@@ -171,30 +227,76 @@ def create_role(*, session: Session, role_in: RoleCreate) -> RolePublic:
     )
     session.flush()
     session.refresh(role)
-    return role_public(session=session, role=role)
+    result = role_public(session=session, role=role)
+    _append_audit_event(
+        session=session,
+        actor_user_id=audit_actor_user_id,
+        request_id=audit_request_id,
+        action="iam.role.created",
+        resource_type="iam_role",
+        resource_id=str(result.id),
+        changes={"code": result.code, "permission_codes": result.permission_codes},
+    )
+    return result
 
 
-def update_role(*, session: Session, role_id: int, role_in: RoleUpdate) -> RolePublic:
-    role = repository.get_role_by_id(session=session, role_id=role_id)
-    if role is None:
-        raise NotFoundError("Role does not exist")
-    _require_custom_role(role)
-    role_data = role_in.model_dump(exclude_unset=True)
-    role.sqlmodel_update(role_data)
-    role.updated_at = get_datetime_utc()
-    session.add(role)
-    session.flush()
-    session.refresh(role)
-    return role_public(session=session, role=role)
-
-
-def replace_role_permissions(
-    *, session: Session, role_id: int, permission_codes: list[str]
+def update_role(
+    *,
+    session: Session,
+    role_id: int,
+    role_in: RoleUpdate,
+    audit_actor_user_id: uuid.UUID | None = None,
+    audit_request_id: str | None = None,
 ) -> RolePublic:
     role = repository.get_role_by_id(session=session, role_id=role_id)
     if role is None:
         raise NotFoundError("Role does not exist")
     _require_custom_role(role)
+    role_data = role_in.model_dump(exclude_unset=True)
+    was_active = role.is_active
+    role.sqlmodel_update(role_data)
+    role.updated_at = get_datetime_utc()
+    session.add(role)
+    session.flush()
+    session.refresh(role)
+    result = role_public(session=session, role=role)
+    changes: dict[str, object]
+    non_state_changed_fields = sorted(set(role_data) - {"is_active"})
+    if "is_active" in role_data and was_active != result.is_active:
+        action = "iam.role.activated" if result.is_active else "iam.role.deactivated"
+        changes = {"is_active": {"before": was_active, "after": result.is_active}}
+        if non_state_changed_fields:
+            changes["changed_fields"] = non_state_changed_fields
+    else:
+        action = "iam.role.updated"
+        changes = {"changed_fields": sorted(role_data)}
+    _append_audit_event(
+        session=session,
+        actor_user_id=audit_actor_user_id,
+        request_id=audit_request_id,
+        action=action,
+        resource_type="iam_role",
+        resource_id=str(result.id),
+        changes=changes,
+    )
+    return result
+
+
+def replace_role_permissions(
+    *,
+    session: Session,
+    role_id: int,
+    permission_codes: list[str],
+    audit_actor_user_id: uuid.UUID | None = None,
+    audit_request_id: str | None = None,
+) -> RolePublic:
+    role = repository.get_role_by_id(session=session, role_id=role_id)
+    if role is None:
+        raise NotFoundError("Role does not exist")
+    _require_custom_role(role)
+    previous_permission_codes = repository.get_role_permission_codes(
+        session=session, role_id=role_id
+    )
     permissions = _validate_custom_permission_codes(
         session=session, permission_codes=permission_codes
     )
@@ -212,10 +314,31 @@ def replace_role_permissions(
     session.add(role)
     session.flush()
     session.refresh(role)
-    return role_public(session=session, role=role)
+    result = role_public(session=session, role=role)
+    _append_audit_event(
+        session=session,
+        actor_user_id=audit_actor_user_id,
+        request_id=audit_request_id,
+        action="iam.role.permissions_replaced",
+        resource_type="iam_role",
+        resource_id=str(result.id),
+        changes={
+            "permission_codes": {
+                "before": previous_permission_codes,
+                "after": result.permission_codes,
+            }
+        },
+    )
+    return result
 
 
-def delete_role(*, session: Session, role_id: int) -> None:
+def delete_role(
+    *,
+    session: Session,
+    role_id: int,
+    audit_actor_user_id: uuid.UUID | None = None,
+    audit_request_id: str | None = None,
+) -> None:
     role = repository.get_role_by_id(session=session, role_id=role_id)
     if role is None:
         raise NotFoundError("Role does not exist")
@@ -232,6 +355,15 @@ def delete_role(*, session: Session, role_id: int) -> None:
     )
     session.delete(role)
     session.flush()
+    _append_audit_event(
+        session=session,
+        actor_user_id=audit_actor_user_id,
+        request_id=audit_request_id,
+        action="iam.role.deleted",
+        resource_type="iam_role",
+        resource_id=str(role_id),
+        changes={},
+    )
 
 
 def _lock_platform_administrator(session: Session) -> IamRole:
@@ -251,7 +383,12 @@ def _ensure_active_platform_administrator(*, session: Session, role: IamRole) ->
 
 
 def replace_user_roles(
-    *, session: Session, user_id: uuid.UUID, role_ids: list[int]
+    *,
+    session: Session,
+    user_id: uuid.UUID,
+    role_ids: list[int],
+    audit_actor_user_id: uuid.UUID | None = None,
+    audit_request_id: str | None = None,
 ) -> list[RoleSummary]:
     user = session.get(User, user_id)
     if user is None or user.is_system_actor:
@@ -280,7 +417,22 @@ def replace_user_roles(
     )
     session.flush()
     _ensure_active_platform_administrator(session=session, role=platform_role)
-    return get_user_role_summaries(session=session, user_id=user_id)
+    result = get_user_role_summaries(session=session, user_id=user_id)
+    _append_audit_event(
+        session=session,
+        actor_user_id=audit_actor_user_id,
+        request_id=audit_request_id,
+        action="iam.user.roles_replaced",
+        resource_type="iam_user",
+        resource_id=str(user_id),
+        changes={
+            "role_ids": {
+                "before": sorted(existing_role_ids),
+                "after": sorted(role.id for role in result),
+            }
+        },
+    )
+    return result
 
 
 def ensure_user_deactivation_is_safe(*, session: Session, user: User) -> None:

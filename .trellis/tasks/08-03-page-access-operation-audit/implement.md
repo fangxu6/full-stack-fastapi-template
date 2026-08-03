@@ -1,82 +1,80 @@
-# IAM audit vertical slice implementation plan
+# IAM semantic change audit implementation plan
 
 ## Ordered checklist
 
-1. Reconcile the final PRD and load the backend/frontend database and
-   cross-layer specs before code changes. Confirm the current Alembic head and
-   generated-client workflow.
-2. Add `AuditEvent` enums, model, schemas, and the `audit_` Alembic migration.
-   Create PostgreSQL enums before the table, use UTC timestamps and BIGINT
-   identity, add explicit indexes/comments, and implement the downgrade guard.
-3. Implement the typed writer and allowlists in `backend/app/modules/audit`.
-   Provide same-session success writes and independent-session failure/denial
-   writes. Add the 365-day batch cleanup service and scheduler task.
-4. Add backend capture boundaries:
-   - enrich `permission_required()` with route/request context and durable
-     backend denial capture;
-   - wrap the five IAM mutation operations with the shared operation helper;
-   - add the Platform Administrator query dependency, list endpoint, and
-     page-access ingestion endpoint;
-   - preserve existing error payloads and request IDs.
-5. Add the frontend contract and UI:
-   - report IAM page guard denials without blocking navigation;
-   - report successful users/roles page mounts once per transition;
-   - add the Platform Administrator-only `/admin/audit` route and paginated
-     query table with filters; provide no export button or endpoint.
-6. Regenerate the OpenAPI client and review the generated diff. Keep route
-   files thin and keep audit orchestration in module services/hooks.
-7. Add focused backend, migration, frontend, and API E2E tests from
-   `e2e-api-tests.md`. Include rollback, missing-related-row, unknown-enum,
-   redaction, and cleanup-boundary cases.
-8. Run the quality gate on a fresh isolated database, inspect migration
-   comments/enums, run frontend checks, and perform a staged diff review before
-   requesting `task.py start` or implementation approval.
+1. Reconcile the PRD, design, deferred register, and backend database/error
+   specs. Confirm the current Alembic head and direct Celery Beat task pattern.
+2. Add `AuditEvent`, its migration, table/column comments, JSONB-object check,
+   three indexes, and guarded downgrade. Do not create enum types, foreign keys,
+   per-entity history tables, or a reader API.
+3. Add the small audit-module writer and IAM-owned action/summary allowlists.
+   The writer receives server-resolved actor and request IDs only.
+4. Update the IAM mutation routes to pass current actor/request context. The
+   IAM service captures allowlisted before state and appends exactly one event
+   in the existing `WriteSessionDep`. Keep existing exception propagation
+   unchanged.
+5. Add `cleanup_expired_events()` and the direct daily `audit.cleanup_events`
+   Celery Beat task. Do not add a `SchedulerJob`, task schema, bootstrap row, or
+   scheduler UI entry.
+6. Add focused model/writer/IAM-route/migration tests and the API cases in
+   `e2e-api-tests.md`. Prove failed IAM requests create no semantic event.
+7. Run backend quality checks on a clean isolated database, verify the catalog
+   comments/indexes/check constraint, and inspect the final diff. No frontend
+   client generation is needed because this task exposes no new API.
 
 ## Validation commands
 
-Run the backend commands from `backend/` and the frontend commands from
-`frontend/`:
+Run from `backend/` with an isolated database:
 
 ```powershell
-cd backend
 $env:POSTGRES_DB = 'aiadmin_audit_test'
 uv run alembic upgrade head
-uv run pytest -q tests/modules/audit tests/api/routes/test_audit.py
-uv run pytest -q tests/modules/iam tests/api/routes/test_iam.py
+uv run pytest -q tests/modules/audit tests/modules/iam tests/api/routes/test_iam.py
 bash scripts/lint.sh
-cd ..
-bash ./scripts/generate-client.sh
-cd frontend
-pnpm lint
-pnpm typecheck
 ```
 
-Use a second fresh `_test`/`_pytest` database for API E2E mutations. Before
-completion, run the repository's full backend suite against a clean isolated
-database and verify `git diff --check` plus generated-client consistency.
+Run the full backend suite against a clean `_test` or `_pytest` database before
+activation. Verify the migration catalog with PostgreSQL comments, the three
+indexes, the JSONB-object check constraint, and the guarded downgrade. Finish
+with `git diff --check`.
 
 ## Risky files and rollback points
 
-- Alembic revision and `backend/app/models/audit.py`: migration failure or
-  enum mismatch blocks deployment; downgrade is allowed only for an empty
-  audit table.
-- `permission_required()` and IAM routers: a capture exception must not turn a
-  permission denial into a 500 or leak request data.
-- `WriteSessionDep` operation wrapper: same-transaction success and independent
-  failure persistence must be covered before broad tests.
-- Frontend guards and generated client: audit reporting must remain
-  best-effort for navigation, while the query page must fail closed for
-  non-administrators.
+- The migration and `backend/app/models/audit.py` own an append-only evidence
+  table. A downgrade must refuse while rows remain.
+- IAM routes must add an event only after their service call succeeds; a domain
+  exception must retain its current response and write no event.
+- The writer must accept only server-resolved `actor_user_id` and `request_id`
+  plus allowlisted summaries. It must never serialize an input model or raw row.
+- The direct Beat task must delete only events older than the 365-day cutoff.
 
-If implementation must roll back, revert application code and leave the audit
-table/events intact. Remove the migration only before it is applied anywhere;
-otherwise use the guarded downgrade after an explicit evidence backup decision.
+Application rollback leaves the table and rows intact. Remove the migration
+only before it has been applied anywhere; otherwise use its guarded downgrade
+after a reviewed evidence backup decision.
 
 ## Review gates before activation
 
-- PRD decisions are all resolved and the convergence pass removes temporary
-  brainstorm sections.
-- `design.md`, `implement.md`, and `e2e-api-tests.md` are reviewed together.
-- No task status change or source implementation occurs until the product
-  owner approves these planning artifacts and `task.py start` is explicitly
-  requested.
+- PRD, design, deferred register, implementation plan, and E2E cases agree on
+  successful IAM changes as the only current event source.
+- No page, denial, failure, query UI/API, export, trigger, or external sink is
+  accidentally exposed by the implementation.
+- No task status change or source implementation occurs until the product owner
+  approves these planning artifacts and explicitly requests `task.py start`.
+
+## Execution evidence (2026-08-03)
+
+- `bash ./scripts/lint.sh` passed: mypy, ty, Ruff, and backend format checks
+  are clean.
+- The isolated `aiadmin_test` migration upgraded to head; comments, indexes,
+  and the JSONB-object check were inspected. A nonempty downgrade refused, then
+  an empty-table downgrade and re-upgrade completed successfully.
+- Focused semantic-audit/IAM/API tests passed. They cover all seven IAM action
+  codes, response `X-Request-ID` propagation, no event on domain failure,
+  mixed state/non-state PATCH minimization, 365-day retention boundary, Celery
+  registration, and test isolation.
+- Full isolated backend suite result: `308 passed, 3 skipped, 5 failed`. The
+  blockers are outside this task: a stale fixed write-route count (`38` versus
+  current `40`), two Celery CLI and one FastAPI subprocess tests whose copied
+  production environment lacks a valid `REDIS_PASSWORD`, and an inventory
+  importer test that sees multiple preexisting `焦糖` ledger rows. None changes
+  the audit schema, writer, IAM mutation flow, or retention task.

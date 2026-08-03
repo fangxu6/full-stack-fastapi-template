@@ -37,6 +37,7 @@ celery_app: Any = Celery(
     backend=settings.celery_result_backend_url,
     include=[
         "app.core.tasks",
+        "app.modules.audit.tasks",
         "app.modules.inventory.tasks",
         "app.modules.scheduler.tasks",
     ],
@@ -63,6 +64,10 @@ celery_app.conf.update(
         "scheduler-cleanup-runs": {
             "task": "scheduler.cleanup_runs",
             "schedule": crontab(hour=3, minute=30),
+        },
+        "audit-cleanup-events": {
+            "task": "audit.cleanup_events",
+            "schedule": crontab(hour=3, minute=40),
         },
     },
     enable_utc=True,

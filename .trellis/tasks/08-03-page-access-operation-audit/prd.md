@@ -1,12 +1,12 @@
-# Page-access and operation audit
+# Semantic change audit
 
 ## Goal
 
-D-003 plans durable, queryable evidence for the first selected protected page
-accesses, denied authorization attempts, and privileged business operations.
-It must answer who performed or attempted which action against which resource,
-when it occurred, and whether it succeeded. It is distinct from operational
-observability and from entity `created_by` / `updated_by` attribution.
+D-003 plans durable, reusable evidence for successful high-value state changes.
+The first slice records IAM role and role-assignment changes so an internal
+operator can answer who changed which permission-bearing resource and when.
+It is distinct from operational observability and from entity `created_by` /
+`updated_by` attribution.
 
 ## Confirmed Context
 
@@ -14,117 +14,89 @@ observability and from entity `created_by` / `updated_by` attribution.
   capabilities. D-003 depends on their actor, permission, and request-context
   contracts.
 - The current `backend/app/modules/audit` package is a skeleton. It has no
-  event store, capture boundary, query API, or reader-facing UI.
-- Frontend page guards enforce `requirePermission()` before protected-route
-  entry and redirect missing permissions to `/forbidden`
-  (`frontend/src/app/router/guards.ts:38`). This is a browser-side decision;
-  it produces no durable page-access or denial record.
-- Backend protected routes use `permission_required()` to call
-  `service.require_permission()` (`backend/app/modules/iam/dependencies.py:8`,
-  `backend/app/modules/iam/service.py:85`). A failed check raises
-  `PermissionDeniedError`.
-- The exception handler emits only the operational `authorization.denied`
-  event with `actor_kind` and an authorization result
-  (`backend/app/core/exceptions.py:169`). `log_event()` has no durable actor
-  identifier, permission code, resource identifier, request payload, or event
-  store (`backend/app/core/observability.py:149`). It cannot satisfy an audit
-  reader or evidence-retention requirement.
-- `AuditedWriteSessionDep` binds the current user for SQLAlchemy audit-field
-  stamping (`backend/app/api/deps.py:20`); the `before_flush` hook writes only
-  entity `created_by` / `updated_by` fields
-  (`backend/app/core/audit.py:103`). It does not record page views, denied
-  access, semantic operation names, deleted-resource evidence, or a query
-  trail.
-- The selected first audit surface is IAM administration. It includes the
-  role-management page and user-management access boundary, their successful
-  entries and denied outcomes, and role creation, update, deactivation,
-  deletion, permission replacement, and user-role replacement
-  (`frontend/src/platform/system/pages/AdminRolesPage.tsx:33`,
-  `frontend/src/platform/system/pages/AdminUsersPage.tsx:41`, and
-  `backend/app/modules/iam/router.py:49`).
-- Scheduler job management (`backend/app/modules/scheduler/router.py:73`) and
-  all inventory pages and operations remain deferred. They may reuse the
-  approved audit contract only in a separately reviewed follow-up scope.
-- V1 captures both frontend route-guard denials and backend permission denials.
-  Frontend records represent browser-reported access attempts; backend records
-  represent authoritative authorization outcomes. The event contract and query
-  UI must expose their distinct evidence sources.
-- V1 records one outcome event for every selected privileged operation. A
-  committed change has outcome `succeeded`; an authorized attempt that fails
-  validation, conflict checks, or transaction completion has outcome `failed`.
-  Failed-operation records contain only the operation, resource identifier,
-  and result code, never the rejected input.
+  event store or shared semantic-change writer.
+- `WriteSessionDep` owns the request transaction and commits only after the
+  route returns (`backend/app/api/dependencies/database.py:15`). An audit row
+  added to that session is therefore atomic with a successful IAM mutation.
+- The IAM mutation surface is role creation, update (including activation or
+  deactivation), permission replacement, deletion, and user-role replacement
+  (`backend/app/modules/iam/router.py:32`).
+- Request correlation is already generated server-side and exposed as
+  `request.state.request_id` and `X-Request-ID`
+  (`backend/app/core/exceptions.py:80`). It is safe to copy into an audit row;
+  it is not supplied by a request body.
+- Existing frontend route guards, authorization-denied logs, and entity audit
+  fields are useful for navigation, operational debugging, and row attribution,
+  but none provides a reusable semantic change history.
+- Scheduler and inventory changes are deferred. They may reuse the table and
+  writer only after an independent task defines their action codes and allowed
+  change summaries.
 
 ## Requirements
 
-1. Deliver the IAM-administration vertical slice: successful protected-page
-   entries, frontend and backend denied-access outcomes, and the listed role
-   and user-role management operations. Its purpose is to investigate access
-   and authorization changes that alter another user's effective permissions.
-2. Define a durable event contract with actor identity, timestamp, event type,
-   evidence source, authorization outcome, permission/action, resource type
-   and identifier, request correlation, outcome, result code, and a redacted
-   change summary only for committed changes.
-3. Define data minimization, redaction, retention, reader authorization,
-   export restrictions, and the failed-authorization capture policy before
-   choosing storage or collection mechanics.
-4. Design capture, query API, and UI boundaries without treating request logs
-   or model audit fields as audit records. The design must cover frontend page
-   entry separately from backend API authorization and write operations.
+1. Deliver the IAM semantic-change vertical slice for successful role and
+   user-role mutations. Every committed mutation writes exactly one durable
+   event in the same transaction.
+2. Introduce one reusable `audit_event` table with actor identity, occurrence
+   time, server-supplied request correlation, namespaced action, primary
+   resource identity, and an allowlisted JSONB change summary.
+3. Define data minimization and 365-day retention for the table. The table is
+   application-append-only: this task introduces no update/delete API and no
+   claim of protection from a database owner or administrator.
+4. Keep the writer generic but the event vocabulary domain-owned. New modules
+   reuse the table and writer while defining their own stable action codes and
+   per-action change-summary allowlists.
 
-## Access Policy
+## Reader Policy
 
-- V1 audit queries are read-only and available only to users assigned the
-  built-in `Platform Administrator` role. The first release introduces no
-  separate audit-reader role or permission.
-- V1 provides no audit-record export. A later export proposal must define its
-  authorization, data minimization, and traceability requirements separately.
+- V1 exposes no audit query endpoint, UI, or export. Existing privileged
+  database operations are the only reader path; this task does not add a
+  database role, grant, or application reader permission.
+- A future reader surface must define its own authorization, pagination,
+  redaction, and export policy before it is implemented.
 
 ## Retention Policy
 
-- IAM audit records are retained for 365 days from their event timestamp, then
-  permanently deleted. The first implementation must provide a deterministic,
-  testable cleanup mechanism and must not rely on best-effort log rotation.
+- Audit events are retained for 365 days from their event timestamp, then
+  permanently deleted by a deterministic direct Celery Beat task. This is not
+  a user-managed scheduler job and does not rely on log rotation.
 - Extending retention, placing records on legal hold, or restoring expired
   records is out of scope for V1 and requires a separate approved policy.
 
 ## Data Minimization and Redaction
 
-- V1 persists only stable user UUIDs, role IDs and codes, event and permission
-  codes, resource identifiers, request correlation, and a whitelisted change
-  summary. It must not persist email addresses, full names, passwords, tokens,
-  complete request or response bodies, or free-text role descriptions.
-- The change summary may name the changed field and record allowed scalar
-  values such as `is_active`, role IDs, and permission codes. It must omit
-  unapproved fields rather than serializing an input model generically.
-- The audit query UI may resolve a current display name outside the audit
-  record, but the durable event remains identifier-only and must stay readable
-  after its related user or role is deleted.
+- V1 persists only actor UUID, stable IAM action/resource identifiers,
+  server-supplied request correlation, and a whitelisted change summary. It
+  must not persist email addresses, full names, passwords, tokens, complete
+  request or response bodies, role descriptions, or arbitrary old/new rows.
+- The change summary records only approved fields. IAM role creation records
+  its code and permission codes; activation changes record `is_active`;
+  permission and user-role replacements record before/after identifier lists.
+  A display-name change records only that `name` changed, not its free text.
 
 ## Acceptance Criteria
 
-- [x] Product owner approves the IAM-administration interaction set and its
-  operational purpose.
-- [x] V1 audit reading is restricted to `Platform Administrator`; export is
-  explicitly excluded.
+- [x] Product owner approves the IAM mutation set and its operational purpose.
+- [x] V1 has no audit API, reader UI, or export.
 - [x] IAM audit records are retained for 365 days and then permanently deleted.
 - [x] V1 uses identifier-only audit records and a whitelist-based change
   summary; it excludes PII, credentials, raw payloads, and free-text role
   descriptions.
-- [x] PRD defines reader roles, retention, redaction, export restrictions, and
-  the policy for both frontend and backend failed authorization.
-- [x] Privileged-operation events distinguish committed success from authorized
-  failure; failed records retain no rejected input.
-- [ ] The approved event contract distinguishes page entry, authorization
-  outcome, and privileged-operation evidence and names the actor/resource
-  fields required for each.
-- [ ] Design, implementation plan, migration/rollback plan, and validation
+- [x] V1 records committed success only; failed and denied attempts remain
+  outside the table.
+- [x] The approved event contract names the actor, request, action, resource,
+  and allowed change fields for every IAM mutation.
+- [x] Design, implementation plan, migration/rollback plan, and validation
   scope are reviewed before `task.py start`.
 
 ## Out of Scope
 
 - Implementing the audit module or activating this task before the listed
   product decisions are made.
-- Treating operational logs or model audit fields as a substitute for durable,
-  reader-authorized audit evidence.
-- Scheduler and inventory audit collection in the IAM MVP.
+- Capturing page entries, frontend or backend authorization denials, failed
+  mutations, or raw database row snapshots.
+- Adding a query API, audit UI, export, database trigger, separate database
+  role, or tamper-resistant audit sink.
+- Scheduler and inventory audit collection in the IAM MVP. See
+  [deferred-iterations.md](deferred-iterations.md) for the confirmed follow-up
+  boundaries.

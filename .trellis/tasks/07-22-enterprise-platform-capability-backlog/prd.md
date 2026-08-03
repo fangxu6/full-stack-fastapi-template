@@ -14,7 +14,7 @@ required planning artifacts are reviewed.
 | --- | --- | --- |
 | Logging | `request_id`, unhandled-exception logging, and Sentry initialization exist. | Partially available: unified request and operation logs, search/retention, and alerting are absent. |
 | Page authorization | Login and administrator guards plus menu hiding exist; backend checks rely on `is_superuser` and resource ownership. | Partially available: a role-permission-resource model and granular page/button/API authorization are absent. |
-| Page-access audit | There is no page-access event store, collection middleware, or query UI; the `audit` module is a skeleton. | Missing. |
+| Semantic change audit | There is no reusable semantic-change event store; the `audit` module is a skeleton. | Missing. |
 | External API | Versioned FastAPI REST endpoints and an OpenAPI schema exist, primarily for the SPA. | Partially available: consumer API key/OAuth client identity, scopes, rate limits, quotas, call auditing, and developer documentation are absent. |
 | MCP tools | Explicitly excluded from the current backlog; the former AI sidecar and its internal tools are retired. | No MCP server capability is planned. Reintroduction requires a future product decision and a new independently approved Trellis task. |
 | Scheduled jobs | No scheduler/worker dependency, task registration, or runtime entry point is present. | Missing. |
@@ -43,7 +43,7 @@ required planning artifacts are reviewed.
 
 The dependency-aware order, stable IDs, and future planning gates are defined
 in [deferred-iterations.md](deferred-iterations.md): authorization foundation,
-structured observability, page-access and operation audit, managed scheduled
+structured observability, semantic change audit, managed scheduled
 jobs, external API boundary, and business workflow platform.
 
 ## Acceptance Criteria

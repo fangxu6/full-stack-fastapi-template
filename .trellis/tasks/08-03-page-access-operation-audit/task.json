@@ -1,9 +1,9 @@
 {
   "id": "page-access-operation-audit",
   "name": "page-access-operation-audit",
-  "title": "Page-access and operation audit",
-  "description": "D-003: plan durable audit evidence for page views, denied access, and privileged operations.",
-  "status": "planning",
+  "title": "Semantic change audit",
+  "description": "D-003: plan durable, reusable evidence for successful IAM permission changes.",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

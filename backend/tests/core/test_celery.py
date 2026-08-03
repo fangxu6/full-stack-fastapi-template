@@ -396,6 +396,9 @@ def test_scheduler_beat_tasks_are_registered() -> None:
     assert celery_app.conf.beat_schedule["scheduler-cleanup-runs"]["task"] == (
         "scheduler.cleanup_runs"
     )
+    assert celery_app.conf.beat_schedule["audit-cleanup-events"]["task"] == (
+        "audit.cleanup_events"
+    )
     assert celery_app.conf.beat_schedule["runtime-daily-test-email"]["task"] == (
         "runtime.send_test_email"
     )
@@ -407,6 +410,7 @@ def test_scheduler_beat_tasks_are_registered() -> None:
     assert "scheduler.scan_due_jobs" in celery_app.tasks
     assert "scheduler.execute_run" in celery_app.tasks
     assert "scheduler.cleanup_runs" in celery_app.tasks
+    assert "audit.cleanup_events" in celery_app.tasks
     assert "runtime.send_test_email" in celery_app.tasks
     assert "email_outbox.scan_due" in celery_app.tasks
     assert "email_outbox.deliver" in celery_app.tasks

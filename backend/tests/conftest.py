@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.db import engine, init_db
 from app.main import app
 from app.models import (
+    AuditEvent,
     EmailOutbox,
     IamPermission,
     IamRole,
@@ -77,6 +78,7 @@ def db() -> Generator[Session]:
         bind_audit_actor(session=session, actor_id=first_superuser.id)
         yield session
         for model in (
+            AuditEvent,
             EmailOutbox,
             SchedulerRun,
             SchedulerJob,

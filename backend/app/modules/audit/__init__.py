@@ -1,1 +1,1 @@
-"""Audit module skeleton."""
+"""Semantic audit event support."""

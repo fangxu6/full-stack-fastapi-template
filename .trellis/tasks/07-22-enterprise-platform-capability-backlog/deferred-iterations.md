@@ -23,7 +23,7 @@ implementation.
 | --- | --- | --- | --- | --- |
 | D-001 | Authorization foundation | Later capabilities need a uniform actor, role, permission, resource, and action contract. | None | RBAC PRD/design, data migration, frontend/backend enforcement, tests, rollback. |
 | D-002 | Structured observability foundation | Existing correlation/error logs do not form an operationally searchable or governable record. | D-001 for actor/action semantics | Log schema, redaction/retention policy, sink/search/alert design, instrumentation, tests. |
-| D-003 | Page-access and operation audit | Page views, denied access, and privileged changes need durable, queryable evidence. | D-001, D-002 | Event model/migration, capture boundary, query API/UI, retention controls, tests. |
+| D-003 | Semantic change audit | High-value permission changes need durable, reusable evidence. | D-001, D-002 | Event model/migration, same-transaction writer, retention controls, tests. |
 | D-004 | Managed scheduled jobs | Recurring business work requires durable execution, idempotency, retry, and audit behavior. | D-001, D-002, D-003 | Job model, runner choice, operational controls, tests, rollback/runbook. |
 | D-005 | External API boundary | The SPA API is not yet a managed external-consumer product surface. | D-001, D-002, D-003 | Consumer identity/scopes, rate limits/quotas, versioning, docs, audit, contract tests. |
 | D-007 | Business workflow platform | A generic workflow runtime should be driven by a real cross-role process, not framework speculation. | D-001, D-003, D-004 | First-process PRD, state machine, assignments/approvals, timeout/retry, work-item UI/API, tests. |
@@ -43,7 +43,7 @@ implementation.
 
 1. D-001 Authorization foundation
 2. D-002 Structured observability foundation
-3. D-003 Page-access and operation audit
+3. D-003 Semantic change audit
 4. D-004 Managed scheduled jobs
 5. D-005 External API boundary
 6. D-007 Business workflow platform

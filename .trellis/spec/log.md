@@ -271,3 +271,7 @@ Documented the forward-only rule that new finite business states use a shared
 booleans for exhaustive binary facts or technical switches. The contract covers
 enum migrations, API validation, additive evolution, and the reference-table
 boundary for administrator-managed classifications.
+
+## [2026-08-03 21:42:19] update | Semantic audit event contract
+
+Documented reusable audit_event storage, atomic IAM semantic events, minimized summaries, guarded downgrade, and direct retention cleanup.
