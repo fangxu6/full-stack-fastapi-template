@@ -13,6 +13,9 @@ implementation.
 - Each item requires an independent Trellis child task before implementation.
 - A dependent item cannot start until its listed prerequisite is complete or
   the child task documents an approved replacement approach.
+- MCP is explicitly excluded from the current backlog. Do not add an MCP
+  server, transport, dependencies, or tool-exposure work unless a future
+  product decision creates a new independently approved Trellis task.
 
 ## Deferred Items
 
@@ -23,10 +26,18 @@ implementation.
 | D-003 | Page-access and operation audit | Page views, denied access, and privileged changes need durable, queryable evidence. | D-001, D-002 | Event model/migration, capture boundary, query API/UI, retention controls, tests. |
 | D-004 | Managed scheduled jobs | Recurring business work requires durable execution, idempotency, retry, and audit behavior. | D-001, D-002, D-003 | Job model, runner choice, operational controls, tests, rollback/runbook. |
 | D-005 | External API boundary | The SPA API is not yet a managed external-consumer product surface. | D-001, D-002, D-003 | Consumer identity/scopes, rate limits/quotas, versioning, docs, audit, contract tests. |
-| D-006 | MCP tool gateway | MCP exposure must reuse approved authorization, audit, and domain boundaries rather than expose private internals. | D-001, D-002, D-003, D-005 | MCP transport/auth design, read-first tool contracts, discovery docs, tests, operations guide. |
 | D-007 | Business workflow platform | A generic workflow runtime should be driven by a real cross-role process, not framework speculation. | D-001, D-003, D-004 | First-process PRD, state machine, assignments/approvals, timeout/retry, work-item UI/API, tests. |
 | D-008 | Alert rule and notification delivery | D-002 defines only a channel-neutral alerting contract; no owned business signal has selected thresholds, recipients, escalation, retry, or delivery channel. | D-002 plus a concrete alert and approved response policy | Rule model, selected email/WeCom/Feishu/DingTalk/in-app adapter, delivery/retry semantics, tests, operations runbook. |
 | D-009 | External logging-platform operations | D-002 emits exporter-ready JSON but does not operate a collector, search, dashboard, reader access, or retention enforcement. | D-002 plus an operations-owned platform choice | Collector/export configuration, authorized reader access, 30-day production/14-day staging retention, dashboards, and runbooks. |
+
+## Planning Child Status
+
+- D-003, D-005, D-007, D-008, and D-009 have linked planning children. Their
+  current PRDs record confirmed constraints and the product decisions required
+  before activation; none authorizes implementation.
+- D-004 is represented by the completed scheduled-task-management delivery.
+  Its remaining parent-level dependency reconciliation waits for D-003 rather
+  than creating a duplicate scheduler implementation task.
 
 ## Suggested Iteration Order
 
@@ -35,11 +46,10 @@ implementation.
 3. D-003 Page-access and operation audit
 4. D-004 Managed scheduled jobs
 5. D-005 External API boundary
-6. D-006 MCP tool gateway
-7. D-007 Business workflow platform
-8. D-008 Alert rule and notification delivery, once a concrete alert owner and
+6. D-007 Business workflow platform
+7. D-008 Alert rule and notification delivery, once a concrete alert owner and
    response policy exist
-9. D-009 External logging-platform operations, once operations selects the
+8. D-009 External logging-platform operations, once operations selects the
    platform; it may be scheduled independently because it changes no
    application behavior
 
@@ -56,9 +66,6 @@ the shared contracts and validation scope are compatible.
 - D-004 must name at least one recurring business job before choosing a queue
   or scheduler.
 - D-005 must name the first external consumer and contractual API use case.
-- D-006 must choose an MCP transport and client-authentication model; it must
-  never expose raw database, shell, file-system, network, or private-service
-  access.
 - D-007 must name the first cross-role business process and its acceptance
   conditions before selecting a workflow model or engine.
 - D-008 must name an important-business or timeout signal, an accountable
