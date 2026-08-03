@@ -74,6 +74,132 @@ The backend uses SQLModel + SQLAlchemy on PostgreSQL. Model and schema conventio
 
 ---
 
+## Scenario: Extensible Persisted Business States
+
+### 1. Scope / Trigger
+
+Apply this forward-only contract when adding a persisted business field that
+expresses a lifecycle, operational mode, eligibility, or other finite state
+whose values could reasonably grow beyond two choices. Do not introduce a
+boolean merely because the first release currently has an enabled/disabled or
+yes/no presentation.
+
+This does not require converting existing boolean columns. A conversion needs a
+separate compatibility and migration task. A boolean remains appropriate for a
+true binary fact or a technical switch whose two values are exhaustive and do
+not represent a business state. An open-ended or administrator-managed
+classification is not an enum either; model it as a referenced dictionary or
+domain table.
+
+### 2. Signatures
+
+Use one `StrEnum` as the model, schema, and persisted-value contract, backed by
+a named PostgreSQL enum type. The type name uses the owning module namespace
+and the field name, for example `approval_state`.
+
+```python
+from enum import StrEnum
+
+from sqlalchemy import Enum as SAEnum
+from sqlmodel import Field, SQLModel
+
+
+class ApprovalState(StrEnum):
+    DRAFT = "DRAFT"
+    APPROVED = "APPROVED"
+    SUSPENDED = "SUSPENDED"
+
+
+class Approval(SQLModel, table=True):
+    state: ApprovalState = Field(
+        default=ApprovalState.DRAFT,
+        sa_type=SAEnum(ApprovalState, name="approval_state"),
+        sa_column_kwargs={"comment": "审批状态"},
+    )
+```
+
+The creating Alembic revision declares the matching named type with
+`postgresql.ENUM(..., name="approval_state", create_type=False)`, creates it
+with `checkfirst=True` before the table, and drops it only after all dependent
+tables are dropped during downgrade.
+
+### 3. Contracts
+
+- Enum members are stable serialized identifiers. Use explicit values and an
+  explicit model default when the business state has a default; do not rely on
+  enum declaration order or a boolean's `False` value to imply state.
+- The SQLModel field and every create, update, filter, and public response
+  schema use the same `StrEnum`, so OpenAPI exposes the complete allowed set
+  instead of a lossy boolean.
+- Every new enum column remains subject to the PostgreSQL Chinese-comment rule.
+- Add a new enum member through a forward Alembic migration that updates the
+  named PostgreSQL type before application code can persist the value. Do not
+  silently rename, delete, or reorder deployed members; those operations need
+  an explicit compatibility, data, and rollback design.
+- A field that needs user-defined, tenant-defined, or otherwise unbounded
+  values uses a foreign-keyed reference table, not a PostgreSQL enum.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| New persisted business state may later need a third value | Define a named `StrEnum` and PostgreSQL enum; do not use `bool`. |
+| New field is an exhaustive binary fact or technical switch | `bool` is allowed; record why no additional business state exists. |
+| Client supplies a value outside the public enum | Reject with the existing 422 validation contract. |
+| New enum value exists only in Python source | Block release until a forward Alembic migration adds the PostgreSQL value. |
+| Deployed enum member must be renamed, removed, or reordered | Create a separate compatibility/migration plan; do not mutate the original type in place. |
+| Existing boolean is discovered during unrelated work | Preserve it unless its task explicitly includes a reviewed conversion. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a new approval workflow begins with `DRAFT` and `APPROVED` but stores
+  `ApprovalState`, leaving `SUSPENDED` and later states as additive enum
+  members rather than forcing a boolean-to-state migration.
+- Base: a persisted checksum result is intrinsically `true` or `false` and has
+  no additional lifecycle meaning, so a boolean remains appropriate.
+- Bad: a new entity stores `is_active: bool` even though operations can later
+  require `SUSPENDED`, `ARCHIVED`, or `PENDING_REVIEW` behavior.
+
+### 6. Tests Required
+
+- Model/migration test: assert the field uses the named enum type, the
+  migration creates the type before its dependent column, and downgrade drops
+  dependents before the type.
+- API test: assert accepted enum values round-trip and an unknown value returns
+  the standard 422 validation response.
+- Evolution test: when adding a member, upgrade an isolated predecessor
+  database and assert the new value is accepted without changing existing
+  values.
+- Cross-layer test: when the field is public, regenerate and type-check the
+  frontend client so enum consumers receive the expanded allowed set.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+class Approval(SQLModel, table=True):
+    is_active: bool = Field(default=False)
+```
+
+`False` cannot distinguish a draft, suspended, archived, or rejected approval,
+so adding any of those states later requires a cross-layer data conversion.
+
+#### Correct
+
+```python
+class Approval(SQLModel, table=True):
+    state: ApprovalState = Field(
+        default=ApprovalState.DRAFT,
+        sa_type=SAEnum(ApprovalState, name="approval_state"),
+    )
+```
+
+The named enum preserves the complete business state, validates its public
+contract, and permits future additive states through an explicit migration.
+
+---
+
 ## Scenario: New Entity Primary Keys
 
 ### 1. Scope / Trigger

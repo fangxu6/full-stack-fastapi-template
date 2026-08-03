@@ -263,3 +263,11 @@ state, not a quality failure; Codex Stop blocks only actual hook failures.
 ## [2026-08-02 22:47:49] update | Document frontend query retry policy
 
 Record safe-method retries, bounded Retry-After handling, and the main.tsx bootstrap exception.
+
+## [2026-08-03] update | Prefer enums for extensible persisted states
+
+Documented the forward-only rule that new finite business states use a shared
+`StrEnum` and named PostgreSQL enum rather than a boolean, while retaining
+booleans for exhaustive binary facts or technical switches. The contract covers
+enum migrations, API validation, additive evolution, and the reference-table
+boundary for administrator-managed classifications.
