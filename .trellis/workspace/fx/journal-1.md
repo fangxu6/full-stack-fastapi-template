@@ -1082,3 +1082,36 @@ Added atomic IAM semantic audit events, guarded audit schema migration, daily re
 ### Next Steps
 
 - None - task complete
+
+
+## Session 33: Centralize frontend permission access
+
+**Date**: 2026-08-04
+**Task**: Centralize frontend permission access
+**Branch**: `master`
+
+### Summary
+
+Centralized the frontend permission QueryClient and query options for route guards, sidebar, inventory pages, and scheduler; validated focused tests, Playwright permission coverage, build, lint, and task checks; deferred route/menu metadata consolidation to a follow-up task.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `479327a` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
