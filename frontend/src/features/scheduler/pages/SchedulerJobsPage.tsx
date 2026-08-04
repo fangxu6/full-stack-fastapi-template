@@ -33,10 +33,9 @@ import {
   Trash2,
 } from "lucide-react"
 import { useEffect, useState } from "react"
-
+import { myPermissionsQueryOptions } from "@/app/permissions"
 import {
   ApiError,
-  IamService,
   type SchedulerJobPublic,
   type SchedulerRunPublic,
   SchedulerService,
@@ -135,10 +134,7 @@ export function SchedulerJobsPage() {
   const [backfillJob, setBackfillJob] = useState<SchedulerJobPublic>()
   const [backfillTime, setBackfillTime] = useState("")
   const [form] = Form.useForm<JobFormValues>()
-  const permissionsQuery = useQuery({
-    queryKey: ["iam", "permissions"],
-    queryFn: IamService.readMyPermissions,
-  })
+  const permissionsQuery = useQuery(myPermissionsQueryOptions)
   const canManage =
     permissionsQuery.data?.permissions.includes("scheduler.jobs.manage") ??
     false

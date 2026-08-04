@@ -9,6 +9,9 @@ async function prepareProtectedNavigation(page: Page) {
   await page.addInitScript(() => {
     localStorage.setItem("access_token", "permission-guard-test-token")
   })
+  await page.route("**/api/v1/users/me", (route) =>
+    route.fulfill({ status: 400, body: JSON.stringify({ detail: "test" }) }),
+  )
 }
 
 async function expectForbiddenReason(
@@ -76,7 +79,7 @@ test("retry returns to the protected page", async ({ page }) => {
   await page.route(permissionsPath, (route) => {
     permissionChecks += 1
     return route.fulfill(
-      permissionChecks === 1
+      permissionChecks <= 3
         ? { status: 500 }
         : {
             body: JSON.stringify({
@@ -113,4 +116,26 @@ test("a successful response without permission shows forbidden", async ({
   await expect(page).toHaveURL(/\/forbidden/)
   expect(new URL(page.url()).searchParams.get("reason")).toBeNull()
   await expect(page.getByRole("heading", { name: "无权访问" })).toBeVisible()
+})
+
+test("permission data is shared between the route guard and page", async ({
+  page,
+}) => {
+  await prepareProtectedNavigation(page)
+  let permissionChecks = 0
+  await page.route(permissionsPath, (route) => {
+    permissionChecks += 1
+    return route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        permissions: ["inventory.balances.read"],
+        roles: [],
+      }),
+      status: 200,
+    })
+  })
+
+  await page.goto(protectedPath)
+  await expect(page).toHaveURL(new RegExp(`${protectedPath}$`))
+  expect(permissionChecks).toBe(1)
 })

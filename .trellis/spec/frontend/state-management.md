@@ -41,11 +41,25 @@ This repo intentionally avoids a separate global store. The practical state mode
 - Keep auth token persistence in one clear place and treat it as part of the auth boundary, not a random utility concern.
 - Do not introduce global state for data already owned by React Query, router
   state, focused hooks, or generated client calls.
+- Keep the singleton `QueryClient` in
+  [`frontend/src/app/query-client.ts`](../../../frontend/src/app/query-client.ts).
+  `main.tsx` provides that instance to React, and non-React router guards use
+  the same instance through an app-level access module.
+- For permission data, define the query key, generated-client query function,
+  and component freshness in
+  [`frontend/src/app/permissions.ts`](../../../frontend/src/app/permissions.ts).
+  React consumers use `useQuery(myPermissionsQueryOptions)`; route guards use
+  `readMyPermissionsForRoute()`, which calls `fetchQuery` with `staleTime: 0`
+  so every protected navigation reads fresh permissions while populating the
+  shared cache.
+- Keep permission predicates and types in
+  [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)
+  pure. Do not move API/query orchestration there.
 
 ## Query Retry Policy
 
 - Configure shared query retries only through the `QueryClient` in
-  `frontend/src/main.tsx`; per-query `retry: false` remains authoritative and
+  `frontend/src/app/query-client.ts`; per-query `retry: false` remains authoritative and
   mutations retain their default no-retry behavior.
 - Retry only `GET`, `HEAD`, and `OPTIONS` requests when Axios reports a
   response-less network failure or the response status is `408`, `429`, or
@@ -71,7 +85,11 @@ This repo intentionally avoids a separate global store. The practical state mode
 
 - Avoid introducing a separate global state library unless repeated cross-route state truly cannot be modeled with query state, router state, or focused hooks.
 - Keep admin navigation and permission behavior derived from current-user data rather than duplicated booleans spread across pages.
-- Preserve the current `401/403` handling pattern in [`frontend/src/main.tsx`](../../../frontend/src/main.tsx) unless there is a deliberate redesign.
+- Preserve the current `401/403` handling pattern in
+  [`frontend/src/app/query-client.ts`](../../../frontend/src/app/query-client.ts)
+  and permission error classification in
+  [`frontend/src/app/permissions.ts`](../../../frontend/src/app/permissions.ts)
+  unless there is a deliberate redesign.
 
 ---
 
@@ -88,6 +106,7 @@ This repo intentionally avoids a separate global store. The practical state mode
 ## Code Anchors
 
 - Auth state and token persistence: [`frontend/src/hooks/useAuth.ts`](../../../frontend/src/hooks/useAuth.ts), [`frontend/src/main.tsx`](../../../frontend/src/main.tsx)
+- Shared query client and permission access: [`frontend/src/app/query-client.ts`](../../../frontend/src/app/query-client.ts), [`frontend/src/app/permissions.ts`](../../../frontend/src/app/permissions.ts)
 - Navigation derived from user state: [`frontend/src/app/navigation/menu-config.ts`](../../../frontend/src/app/navigation/menu-config.ts)
 - Permission entrypoint: [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)
 - Server-state consumers: [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx), [`frontend/src/platform/system/components/users/EditUserMenuItem.tsx`](../../../frontend/src/platform/system/components/users/EditUserMenuItem.tsx)

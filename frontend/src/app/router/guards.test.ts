@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { classifyPermissionQueryError } from "./guards"
+import { classifyPermissionQueryError } from "@/app/permissions"
 
 describe("classifyPermissionQueryError", () => {
   test("classifies 401 as a login redirect", () => {

@@ -2,13 +2,12 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { Drawer, Table, Tabs, Tag } from "antd"
 import type { ColumnsType, TableProps } from "antd/es/table"
 import { useState } from "react"
-
+import { myPermissionsQueryOptions } from "@/app/permissions"
 import type {
   InventoryBalancePublic,
   InventoryLedgerEntryPublic,
   InventoryLedgerKind,
 } from "@/client"
-import { IamService } from "@/client"
 import {
   readFinishedBalancesPage,
   readInventoryLedgerPage,
@@ -31,10 +30,7 @@ const balanceConfig: Record<
 }
 
 export function InventoryBalancesPage() {
-  const permissionsQuery = useQuery({
-    queryKey: ["iam", "permissions"],
-    queryFn: IamService.readMyPermissions,
-  })
+  const permissionsQuery = useQuery(myPermissionsQueryOptions)
   const canReadLedger =
     permissionsQuery.data?.permissions.includes("inventory.ledger.read") ??
     false

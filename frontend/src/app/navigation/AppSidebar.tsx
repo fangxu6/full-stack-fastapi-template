@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { AppSidebarMenu } from "@/app/navigation/AppSidebarMenu"
 import { AppSidebarUserMenu } from "@/app/navigation/AppSidebarUserMenu"
 import { getMenuItemsForUser } from "@/app/navigation/menu-config"
-import { IamService } from "@/client"
+import { myPermissionsQueryOptions } from "@/app/permissions"
 import {
   Sidebar,
   SidebarContent,
@@ -15,10 +15,7 @@ import { SidebarAppearance } from "@/shared/components/theme"
 
 export function AppSidebar() {
   const { user: currentUser } = useAuth()
-  const permissionsQuery = useQuery({
-    queryKey: ["iam", "permissions"],
-    queryFn: IamService.readMyPermissions,
-  })
+  const permissionsQuery = useQuery(myPermissionsQueryOptions)
   const items = getMenuItemsForUser(permissionsQuery.data?.permissions)
 
   return (

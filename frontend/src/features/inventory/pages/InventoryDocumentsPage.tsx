@@ -31,8 +31,8 @@ import {
   Upload,
 } from "lucide-react"
 import { useState } from "react"
+import { myPermissionsQueryOptions } from "@/app/permissions"
 import {
-  IamService,
   type InventoryDocumentCreate,
   type InventoryDocumentPublic,
   type InventoryLedgerKind,
@@ -133,10 +133,7 @@ export function InventoryDocumentsPage({
   types,
   title,
 }: DocumentPageProps) {
-  const permissionsQuery = useQuery({
-    queryKey: ["iam", "permissions"],
-    queryFn: IamService.readMyPermissions,
-  })
+  const permissionsQuery = useQuery(myPermissionsQueryOptions)
   const canManage =
     permissionsQuery.data?.permissions.includes("inventory.documents.manage") ??
     false

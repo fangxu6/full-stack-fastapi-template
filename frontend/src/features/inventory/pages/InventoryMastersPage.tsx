@@ -21,7 +21,8 @@ import type { ColumnsType, TableProps } from "antd/es/table"
 import { Pencil, Plus } from "lucide-react"
 import { useState } from "react"
 
-import { IamService, InventoryService, type MasterUnitPublic } from "@/client"
+import { myPermissionsQueryOptions } from "@/app/permissions"
+import { InventoryService, type MasterUnitPublic } from "@/client"
 import {
   readProcessingUnitsPage,
   readReceivingUnitsPage,
@@ -40,10 +41,7 @@ const unitConfig: Record<UnitKind, { label: string; queryKey: string }> = {
 }
 
 export function InventoryMastersPage() {
-  const permissionsQuery = useQuery({
-    queryKey: ["iam", "permissions"],
-    queryFn: IamService.readMyPermissions,
-  })
+  const permissionsQuery = useQuery(myPermissionsQueryOptions)
   const canManage =
     permissionsQuery.data?.permissions.includes("inventory.masters.manage") ??
     false
