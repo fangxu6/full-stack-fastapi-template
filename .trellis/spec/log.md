@@ -295,3 +295,7 @@ Recorded the fixed inventory correction work-item and attempt boundary: direct-w
 ## [2026-08-04 21:34:06] fix | Use Node for thin-route quality checks
 
 The frontend component-policy hook now invokes scripts/check-thin-routes.mjs with Node, which matches the script's runtime needs and avoids a false failure when Bun is unavailable on PATH.
+
+## [2026-08-04 21:45:03] fix | Restore Bun thin-route quality runtime
+
+Restored Bun as the thin-route AST checker runtime. The hook resolves Bun from PATH first and falls back to Bun's standard user-local installation path for non-interactive Git hook processes.

@@ -37,13 +37,13 @@ Frontend quality in this repo is mostly about preserving structural boundaries a
 ### 2. Signature
 
 ```bash
-node scripts/check-thin-routes.mjs <route-file> [<route-file> ...]
+bun scripts/check-thin-routes.mjs <route-file> [<route-file> ...]
 ```
 
 The command writes JSON containing each checked file path and its violations.
-It uses Node because the AST script imports only Node APIs and the project-local
-TypeScript package; Bun remains the frontend package-manager/runtime choice but
-is not a prerequisite for this policy check.
+The hook resolves Bun from `PATH` first and otherwise uses Bun's standard
+user-local installation path, so non-interactive Git hooks retain the same
+runtime as the frontend toolchain.
 
 ### 3. Contract
 

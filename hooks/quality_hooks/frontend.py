@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -71,9 +72,10 @@ def _thin_route_violations(repo_root: Path, sources: list[Path]) -> list[str]:
         return []
 
     checker = Path(__file__).resolve().parents[2] / "scripts" / "check-thin-routes.mjs"
+    bun = shutil.which("bun") or str(Path.home() / ".bun" / "bin" / "bun")
     try:
         completed = subprocess.run(
-            ["node", str(checker), *(str(source) for source in sources)],
+            [bun, str(checker), *(str(source) for source in sources)],
             capture_output=True,
             check=True,
             cwd=repo_root,
