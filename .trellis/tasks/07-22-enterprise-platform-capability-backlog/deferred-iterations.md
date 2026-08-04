@@ -25,16 +25,19 @@ implementation.
 | D-002 | Structured observability foundation | Existing correlation/error logs do not form an operationally searchable or governable record. | D-001 for actor/action semantics | Log schema, redaction/retention policy, sink/search/alert design, instrumentation, tests. |
 | D-003 | Semantic change audit | High-value permission changes need durable, reusable evidence. | D-001, D-002 | Event model/migration, same-transaction writer, retention controls, tests. |
 | D-004 | Managed scheduled jobs | Recurring business work requires durable execution, idempotency, retry, and audit behavior. | D-001, D-002, D-003 | Job model, runner choice, operational controls, tests, rollback/runbook. |
-| D-005 | External API boundary | The SPA API is not yet a managed external-consumer product surface. | D-001, D-002, D-003 | Consumer identity/scopes, rate limits/quotas, versioning, docs, audit, contract tests. |
+| D-005 | External API boundary | The system has no current need for a managed external-consumer API. ADR-0011 explicitly defers it; its completed planning artifacts are archived for future restoration. | D-001, D-002, D-003 | Restore and revalidate the archived plan, then provide consumer identity/scopes, rate limits/quotas, versioning, docs, audit, and contract tests only when the need is approved. |
 | D-007 | Business workflow platform | A generic workflow runtime should be driven by a real cross-role process, not framework speculation. | D-001, D-003, D-004 | First-process PRD, state machine, assignments/approvals, timeout/retry, work-item UI/API, tests. |
 | D-008 | Alert rule and notification delivery | D-002 defines only a channel-neutral alerting contract; no owned business signal has selected thresholds, recipients, escalation, retry, or delivery channel. | D-002 plus a concrete alert and approved response policy | Rule model, selected email/WeCom/Feishu/DingTalk/in-app adapter, delivery/retry semantics, tests, operations runbook. |
 | D-009 | External logging-platform operations | D-002 emits exporter-ready JSON but does not operate a collector, search, dashboard, reader access, or retention enforcement. | D-002 plus an operations-owned platform choice | Collector/export configuration, authorized reader access, 30-day production/14-day staging retention, dashboards, and runbooks. |
 
 ## Planning Child Status
 
-- D-003, D-005, D-007, D-008, and D-009 have linked planning children. Their
-  current PRDs record confirmed constraints and the product decisions required
-  before activation; none authorizes implementation.
+- D-003, D-007, D-008, and D-009 have linked planning children. Their current
+  PRDs record confirmed constraints and the product decisions required before
+  activation; none authorizes implementation.
+- D-005's planning child is archived under ADR-0011 because the system does
+  not currently need this external API. Restore the archived task and
+  revalidate its plan only when a concrete consumer need is approved.
 - D-004 is represented by the completed scheduled-task-management delivery.
   Its remaining parent-level dependency reconciliation waits for D-003 rather
   than creating a duplicate scheduler implementation task.
@@ -65,7 +68,9 @@ the shared contracts and validation scope are compatible.
   who may read audit data, and whether failed authorization is audited.
 - D-004 must name at least one recurring business job before choosing a queue
   or scheduler.
-- D-005 must name the first external consumer and contractual API use case.
+- Before D-005 is restored, the product owner must name the first external
+  consumer and contractual API use case, then revalidate the archived plan
+  against current code and operations under ADR-0011.
 - D-007 must name the first cross-role business process and its acceptance
   conditions before selecting a workflow model or engine.
 - D-008 must name an important-business or timeout signal, an accountable
