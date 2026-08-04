@@ -1115,3 +1115,39 @@ Implemented PostgreSQL FOR UPDATE serialization for existing IAM role mutations,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 34: 库存异常纠错 MVP
+
+**Date**: 2026-08-04
+**Task**: 库存异常纠错 MVP
+**Branch**: `master`
+
+### Summary
+
+实现库存已影响台账单据的申请、审核、调度执行与失败恢复闭环；补充生成客户端、路由权限、审计追溯和质量钩子 Node 运行时。后端全套测试与静态检查通过，前端 Vite 构建通过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `53e41c2` | (see git log) |
+| `1669b57` | (see git log) |
+| `840bf95` | (see git log) |
+| `6892aaa` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
