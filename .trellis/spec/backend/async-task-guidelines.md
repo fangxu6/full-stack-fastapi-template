@@ -681,3 +681,89 @@ queue_rendered_email(
 
 The request transaction persists the delivery intent before the minute scanner
 hands only its numeric ID to Celery.
+
+## Scenario: Inventory Correction Application Work Item
+
+### 1. Scope / Trigger
+
+- Trigger: an approved inventory-document correction must mutate the document
+  and ledger asynchronously without treating at-least-once Celery delivery as
+  permission to apply the correction twice.
+
+### 2. Signatures
+
+- Task: `inventory.document_correction.apply`, once per minute; it disables
+  run-now and backfill.
+- Tables: `inventory_correction_request`, `inventory_correction_work_item`,
+  and `inventory_correction_attempt`.
+- HTTP boundary: `POST /inventory/correction-requests/{id}/approve` creates
+  one work item and its initial attempt; `POST
+  /inventory/correction-work-items/{id}/recover` accepts an empty body.
+
+### 3. Contracts
+
+- Ordinary update, delete, and restore reject a ledger-affected document with
+  `409 INVENTORY_CORRECTION_REQUIRED`; only the correction executor calls the
+  internal inventory write path.
+- Approval creates exactly one `PENDING` attempt. The scan locks and claims at
+  most 20 pre-created attempts, records the scheduler-run ID, and never
+  creates a new attempt while claiming.
+- The executor locks the work item, attempt, request, and document in one
+  transaction, checks the immutable proposal hash and expected `updated_at`,
+  then commits the inventory/ledger mutation, success state, and semantic audit
+  event together.
+- A lease-expired `RUNNING` attempt is terminal `EXECUTION_LOST`. Domain or
+  unexpected executor failures are terminal categories, not automatic retries.
+  Recovery rechecks the target and proposal, rejects another active request,
+  and appends exactly one new `PENDING` recovery attempt.
+
+### 4. Validation And Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| Direct write targets a ledger-affected document | Return unified 409; do not change document or ledger. |
+| Approval sees a changed target timestamp | Persist `STALE`; create no work item or attempt. |
+| A claimed attempt is redelivered or already terminal | Do nothing; no second ledger effect. |
+| Lease expires before application commits | Mark `TERMINAL_FAILED/EXECUTION_LOST`; do not reapply automatically. |
+| Recovery sees changed target/proposal or another active request | Return unified 409 and append no attempt. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: approval creates a durable work item first, then the scheduler applies
+  its single pending attempt under the System Actor.
+- Base: a negative-balance proposal rolls back the inventory change and records
+  `NEGATIVE_BALANCE` in a separate terminal-finalization transaction.
+- Bad: enqueueing a raw proposal directly to Celery, creating an attempt on
+  every scan, or retrying a terminal correction automatically.
+
+### 6. Tests Required
+
+- Cover direct-write blocking, self-review, duplicate approval, timestamp
+  staleness, negative balance, lease loss, duplicate delivery, recovery, and
+  audit-summary allowlists.
+- Assert attempt count and ledger effects remain unchanged after a duplicate
+  delivery or a rejected recovery.
+- Run the correction API tests against `POSTGRES_DB=aiadmin_test`; regenerate
+  the frontend client and verify the correction route/menu contract when its
+  public schemas change.
+
+### 7. Wrong Vs Correct
+
+#### Wrong
+
+```python
+apply_correction.delay(request_id)
+```
+
+This makes broker redelivery a second business application opportunity.
+
+#### Correct
+
+```python
+attempts = claim_pending_attempts(session=session, scheduler_run_id=run_id)
+for work_item_id, attempt_id in attempts:
+    apply_claimed_attempt(session=session, work_item_id=work_item_id, attempt_id=attempt_id)
+```
+
+The durable attempt is the one application opportunity; its terminal state is
+the idempotency boundary.

@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
 import {
   App,
   Button,
@@ -27,12 +28,14 @@ import {
   FileDown,
   Plus,
   RotateCcw,
+  ShieldCheck,
   Trash2,
   Upload,
 } from "lucide-react"
 import { useState } from "react"
 import { myPermissionsQueryOptions } from "@/app/permissions"
 import {
+  ApiError,
   type InventoryDocumentCreate,
   type InventoryDocumentPublic,
   type InventoryLedgerKind,
@@ -140,6 +143,11 @@ export function InventoryDocumentsPage({
   const canReadLedger =
     permissionsQuery.data?.permissions.includes("inventory.ledger.read") ??
     false
+  const canRequestCorrection =
+    permissionsQuery.data?.permissions.includes(
+      "inventory.corrections.request",
+    ) ?? false
+  const navigate = useNavigate()
   const [activeType, setActiveType] = useState(types[0])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
@@ -192,7 +200,22 @@ export function InventoryDocumentsPage({
   const deleteMutation = useMutation({
     mutationFn: (documentId: string) =>
       InventoryService.deleteInventoryDocument({ documentId }),
-    onError: () => message.error("删除失败，库存不足或数据已变更。"),
+    onError: (error, documentId) => {
+      if (
+        error instanceof ApiError &&
+        typeof error.body === "object" &&
+        error.body &&
+        "detail" in error.body &&
+        error.body.detail === "INVENTORY_CORRECTION_REQUIRED"
+      ) {
+        void navigate({
+          search: { documentId },
+          to: "/inventory/corrections",
+        })
+        return
+      }
+      message.error("删除失败，库存不足或数据已变更。")
+    },
     onSuccess: () => {
       message.success("单据已软删除")
       setPage(1)
@@ -202,7 +225,22 @@ export function InventoryDocumentsPage({
   const restoreMutation = useMutation({
     mutationFn: (documentId: string) =>
       InventoryService.restoreInventoryDocument({ documentId }),
-    onError: () => message.error("恢复失败，恢复后库存不能为负数。"),
+    onError: (error, documentId) => {
+      if (
+        error instanceof ApiError &&
+        typeof error.body === "object" &&
+        error.body &&
+        "detail" in error.body &&
+        error.body.detail === "INVENTORY_CORRECTION_REQUIRED"
+      ) {
+        void navigate({
+          search: { documentId },
+          to: "/inventory/corrections",
+        })
+        return
+      }
+      message.error("恢复失败，恢复后库存不能为负数。")
+    },
     onSuccess: () => {
       message.success("单据已恢复")
       setPage(1)
@@ -287,40 +325,78 @@ export function InventoryDocumentsPage({
     {
       key: "actions",
       render: (_, document) =>
-        !canManage ? null : document.deleted_at ? (
-          <Tooltip title="恢复单据">
-            <Button
-              aria-label="恢复单据"
-              icon={<RotateCcw size={16} />}
-              loading={restoreMutation.isPending}
-              onClick={() => restoreMutation.mutate(document.id)}
-              type="text"
-            />
-          </Tooltip>
-        ) : (
+        !canManage && !canRequestCorrection ? null : document.deleted_at ? (
           <Space size={0}>
-            <Tooltip title="编辑单据">
-              <Button
-                aria-label="编辑单据"
-                icon={<Edit3 size={16} />}
-                onClick={() => openEditor(document)}
-                type="text"
-              />
-            </Tooltip>
-            <Popconfirm
-              description="删除后将从库存余额中排除，可随时恢复。"
-              onConfirm={() => deleteMutation.mutate(document.id)}
-              title="删除这张单据？"
-            >
-              <Tooltip title="删除单据">
+            {canRequestCorrection ? (
+              <Tooltip title="提交纠错">
                 <Button
-                  aria-label="删除单据"
-                  danger
-                  icon={<Trash2 size={16} />}
+                  aria-label="提交纠错"
+                  icon={<ShieldCheck size={16} />}
+                  onClick={() =>
+                    void navigate({
+                      search: { documentId: document.id },
+                      to: "/inventory/corrections",
+                    })
+                  }
                   type="text"
                 />
               </Tooltip>
-            </Popconfirm>
+            ) : null}
+            {canManage ? (
+              <Tooltip title="恢复单据">
+                <Button
+                  aria-label="恢复单据"
+                  icon={<RotateCcw size={16} />}
+                  loading={restoreMutation.isPending}
+                  onClick={() => restoreMutation.mutate(document.id)}
+                  type="text"
+                />
+              </Tooltip>
+            ) : null}
+          </Space>
+        ) : (
+          <Space size={0}>
+            {canRequestCorrection ? (
+              <Tooltip title="提交纠错">
+                <Button
+                  aria-label="提交纠错"
+                  icon={<ShieldCheck size={16} />}
+                  onClick={() =>
+                    void navigate({
+                      search: { documentId: document.id },
+                      to: "/inventory/corrections",
+                    })
+                  }
+                  type="text"
+                />
+              </Tooltip>
+            ) : null}
+            {canManage ? (
+              <>
+                <Tooltip title="编辑单据">
+                  <Button
+                    aria-label="编辑单据"
+                    icon={<Edit3 size={16} />}
+                    onClick={() => openEditor(document)}
+                    type="text"
+                  />
+                </Tooltip>
+                <Popconfirm
+                  description="删除后将从库存余额中排除，可随时恢复。"
+                  onConfirm={() => deleteMutation.mutate(document.id)}
+                  title="删除这张单据？"
+                >
+                  <Tooltip title="删除单据">
+                    <Button
+                      aria-label="删除单据"
+                      danger
+                      icon={<Trash2 size={16} />}
+                      type="text"
+                    />
+                  </Tooltip>
+                </Popconfirm>
+              </>
+            ) : null}
           </Space>
         ),
       title: "操作",
@@ -476,6 +552,12 @@ export function InventoryDocumentsPage({
           documentType={activeType}
           key={editingDocument?.id ?? activeType}
           onClose={() => setEditorOpen(false)}
+          onCorrectionRequired={(document) =>
+            void navigate({
+              search: { documentId: document.id },
+              to: "/inventory/corrections",
+            })
+          }
           onSaved={() => setPage(1)}
           open={isEditorOpen}
         />

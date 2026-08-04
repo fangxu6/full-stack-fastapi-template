@@ -14,10 +14,12 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Identity,
     Index,
     Numeric,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy import (
     Enum as SAEnum,
@@ -62,6 +64,48 @@ class InventoryDailyReportDeliveryStatus(StrEnum):
     RETRY_WAIT = "RETRY_WAIT"
     DELIVERED = "DELIVERED"
     FAILED = "FAILED"
+
+
+class InventoryCorrectionOperation(StrEnum):
+    UPDATE_DOCUMENT = "UPDATE_DOCUMENT"
+    DELETE_DOCUMENT = "DELETE_DOCUMENT"
+    RESTORE_DOCUMENT = "RESTORE_DOCUMENT"
+
+
+class InventoryCorrectionRequestStatus(StrEnum):
+    PENDING_REVIEW = "PENDING_REVIEW"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    WITHDRAWN = "WITHDRAWN"
+    STALE = "STALE"
+    APPLIED = "APPLIED"
+    APPLICATION_FAILED = "APPLICATION_FAILED"
+
+
+class InventoryCorrectionWorkItemStatus(StrEnum):
+    APPROVED_PENDING_APPLY = "APPROVED_PENDING_APPLY"
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    TERMINAL_FAILED = "TERMINAL_FAILED"
+
+
+class InventoryCorrectionAttemptStatus(StrEnum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    TERMINAL_FAILED = "TERMINAL_FAILED"
+
+
+class InventoryCorrectionAttemptOrigin(StrEnum):
+    INITIAL = "INITIAL"
+    RECOVERY = "RECOVERY"
+
+
+class InventoryCorrectionFailureCategory(StrEnum):
+    STALE_TARGET = "STALE_TARGET"
+    NEGATIVE_BALANCE = "NEGATIVE_BALANCE"
+    EXECUTION_LOST = "EXECUTION_LOST"
+    EXECUTION_FAILED = "EXECUTION_FAILED"
 
 
 class LegacyWorkbookKind(StrEnum):
@@ -236,6 +280,272 @@ class InventoryLedgerEntry(AuditFields, table=True):
     )
     meters_delta: Decimal = Field(default=Decimal("0"), sa_type=Numeric(18, 3))  # ty:ignore[invalid-argument-type]
     reason: str | None = None
+
+
+class InventoryCorrectionRequest(AuditFields, table=True):
+    __tablename__ = "inventory_correction_request"
+    __table_args__ = (
+        CheckConstraint(
+            "proposal IS NULL OR jsonb_typeof(proposal) = 'object'",
+            name="ck_inventory_correction_request_proposal_object",
+        ),
+        ForeignKeyConstraint(
+            ["document_id"],
+            ["inventory_document.id"],
+            name="fk_inventory_correction_request_document",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["reviewer_id"],
+            ["user.id"],
+            name="fk_inventory_correction_request_reviewer",
+            ondelete="RESTRICT",
+        ),
+        Index(
+            "uq_inventory_correction_request_active_document",
+            "document_id",
+            unique=True,
+            postgresql_where=text("status IN ('PENDING_REVIEW', 'APPROVED')"),
+        ),
+        Index(
+            "ix_inventory_correction_request_creator_created",
+            "created_by",
+            "created_at",
+            "id",
+        ),
+        {"comment": "库存异常纠错申请"},
+    )
+
+    id: int | None = Field(
+        default=None,
+        sa_column=Column(
+            BigInteger,
+            Identity(always=True),
+            primary_key=True,
+            comment="纠错申请唯一标识",
+        ),
+    )
+    document_id: uuid.UUID = Field(
+        sa_column=Column(PGUUID(as_uuid=True), nullable=False, comment="库存单据标识")
+    )
+    operation: InventoryCorrectionOperation = Field(
+        sa_type=SAEnum(
+            InventoryCorrectionOperation,
+            name="inventory_correction_operation",
+        ),  # ty:ignore[invalid-argument-type]
+        sa_column_kwargs={"comment": "纠错操作"},
+    )
+    expected_updated_at: datetime = Field(
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+        sa_column_kwargs={"comment": "目标单据预期更新时间"},
+    )
+    proposal: dict[str, object] | None = Field(
+        default=None,
+        sa_type=JSONB,
+        sa_column_kwargs={"comment": "不可变纠错提案"},
+    )
+    proposal_hash: str = Field(
+        max_length=64,
+        sa_column_kwargs={"comment": "提案哈希值"},
+    )
+    reason: str = Field(max_length=500, sa_column_kwargs={"comment": "纠错原因"})
+    status: InventoryCorrectionRequestStatus = Field(
+        default=InventoryCorrectionRequestStatus.PENDING_REVIEW,
+        sa_type=SAEnum(
+            InventoryCorrectionRequestStatus,
+            name="inventory_correction_request_status",
+        ),  # ty:ignore[invalid-argument-type]
+        sa_column_kwargs={"comment": "纠错申请状态"},
+    )
+    reviewer_id: uuid.UUID | None = Field(
+        default=None,
+        sa_type=PGUUID(as_uuid=True),  # ty:ignore[invalid-argument-type]
+        sa_column_kwargs={"comment": "审核人标识"},
+    )
+    decided_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+        sa_column_kwargs={"comment": "审核决定时间"},
+    )
+
+
+class InventoryCorrectionWorkItem(AuditFields, table=True):
+    __tablename__ = "inventory_correction_work_item"
+    __table_args__ = (
+        CheckConstraint(
+            "proposal IS NULL OR jsonb_typeof(proposal) = 'object'",
+            name="ck_inventory_correction_work_item_proposal_object",
+        ),
+        CheckConstraint(
+            "handler_type = 'inventory.document_correction'",
+            name="ck_inventory_correction_work_item_handler",
+        ),
+        CheckConstraint(
+            "current_attempt_sequence > 0",
+            name="ck_inventory_correction_work_item_attempt_sequence",
+        ),
+        ForeignKeyConstraint(
+            ["request_id"],
+            ["inventory_correction_request.id"],
+            name="fk_inventory_correction_work_item_request",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["document_id"],
+            ["inventory_document.id"],
+            name="fk_inventory_correction_work_item_document",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "request_id", name="uq_inventory_correction_work_item_request"
+        ),
+        Index(
+            "ix_inventory_correction_work_item_pending_created",
+            "status",
+            "created_at",
+            "id",
+            postgresql_where=text("status = 'APPROVED_PENDING_APPLY'"),
+        ),
+        {"comment": "库存异常纠错应用工作项"},
+    )
+
+    id: int | None = Field(
+        default=None,
+        sa_column=Column(
+            BigInteger,
+            Identity(always=True),
+            primary_key=True,
+            comment="纠错工作项唯一标识",
+        ),
+    )
+    request_id: int = Field(
+        sa_column=Column(BigInteger, nullable=False, comment="纠错申请标识")
+    )
+    document_id: uuid.UUID = Field(
+        sa_column=Column(PGUUID(as_uuid=True), nullable=False, comment="库存单据标识")
+    )
+    expected_updated_at: datetime = Field(
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+        sa_column_kwargs={"comment": "目标单据预期更新时间"},
+    )
+    proposal: dict[str, object] | None = Field(
+        default=None,
+        sa_type=JSONB,
+        sa_column_kwargs={"comment": "纠错提案快照"},
+    )
+    proposal_hash: str = Field(
+        max_length=64,
+        sa_column_kwargs={"comment": "提案哈希值"},
+    )
+    handler_type: str = Field(
+        default="inventory.document_correction",
+        max_length=64,
+        sa_column_kwargs={"comment": "固定处理类型"},
+    )
+    status: InventoryCorrectionWorkItemStatus = Field(
+        default=InventoryCorrectionWorkItemStatus.APPROVED_PENDING_APPLY,
+        sa_type=SAEnum(
+            InventoryCorrectionWorkItemStatus,
+            name="inventory_correction_work_item_status",
+        ),  # ty:ignore[invalid-argument-type]
+        sa_column_kwargs={"comment": "工作项状态"},
+    )
+    lease_expires_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+        sa_column_kwargs={"comment": "应用租约到期时间"},
+    )
+    current_attempt_sequence: int = Field(
+        default=1,
+        sa_column_kwargs={"comment": "当前应用尝试序号"},
+    )
+    terminal_failure_category: InventoryCorrectionFailureCategory | None = Field(
+        default=None,
+        sa_type=SAEnum(
+            InventoryCorrectionFailureCategory,
+            name="inventory_correction_failure_category",
+        ),  # ty:ignore[invalid-argument-type]
+        sa_column_kwargs={"comment": "最终失败类别"},
+    )
+
+
+class InventoryCorrectionAttempt(AuditFields, table=True):
+    __tablename__ = "inventory_correction_attempt"
+    __table_args__ = (
+        CheckConstraint(
+            "sequence > 0",
+            name="ck_inventory_correction_attempt_sequence",
+        ),
+        ForeignKeyConstraint(
+            ["work_item_id"],
+            ["inventory_correction_work_item.id"],
+            name="fk_inventory_correction_attempt_work_item",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "work_item_id",
+            "sequence",
+            name="uq_inventory_correction_attempt_work_item_sequence",
+        ),
+        Index(
+            "ix_inventory_correction_attempt_pending_work_item",
+            "status",
+            "work_item_id",
+            postgresql_where=text("status = 'PENDING'"),
+        ),
+        {"comment": "库存异常纠错应用尝试"},
+    )
+
+    id: int | None = Field(
+        default=None,
+        sa_column=Column(
+            BigInteger,
+            Identity(always=True),
+            primary_key=True,
+            comment="纠错应用尝试唯一标识",
+        ),
+    )
+    work_item_id: int = Field(
+        sa_column=Column(BigInteger, nullable=False, comment="纠错工作项标识")
+    )
+    sequence: int = Field(sa_column_kwargs={"comment": "应用尝试序号"})
+    origin: InventoryCorrectionAttemptOrigin = Field(
+        sa_type=SAEnum(
+            InventoryCorrectionAttemptOrigin,
+            name="inventory_correction_attempt_origin",
+        ),  # ty:ignore[invalid-argument-type]
+        sa_column_kwargs={"comment": "应用尝试来源"},
+    )
+    status: InventoryCorrectionAttemptStatus = Field(
+        default=InventoryCorrectionAttemptStatus.PENDING,
+        sa_type=SAEnum(
+            InventoryCorrectionAttemptStatus,
+            name="inventory_correction_attempt_status",
+        ),  # ty:ignore[invalid-argument-type]
+        sa_column_kwargs={"comment": "应用尝试状态"},
+    )
+    scheduler_run_id: int | None = Field(
+        default=None,
+        sa_column=Column(BigInteger, nullable=True, comment="调度运行标识快照"),
+    )
+    started_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+        sa_column_kwargs={"comment": "开始应用时间"},
+    )
+    finished_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+        sa_column_kwargs={"comment": "完成应用时间"},
+    )
+    failure_category: InventoryCorrectionFailureCategory | None = Field(
+        default=None,
+        sa_type=SAEnum(
+            InventoryCorrectionFailureCategory,
+            name="inventory_correction_failure_category",
+        ),  # ty:ignore[invalid-argument-type]
+        sa_column_kwargs={"comment": "失败类别"},
+    )
 
 
 class InventoryDailyReport(SQLModel, table=True):

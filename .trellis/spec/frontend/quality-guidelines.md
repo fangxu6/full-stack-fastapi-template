@@ -41,6 +41,9 @@ bun scripts/check-thin-routes.mjs <route-file> [<route-file> ...]
 ```
 
 The command writes JSON containing each checked file path and its violations.
+The hook resolves Bun from `PATH` first and otherwise uses Bun's standard
+user-local installation path, so non-interactive Git hooks retain the same
+runtime as the frontend toolchain.
 
 ### 3. Contract
 

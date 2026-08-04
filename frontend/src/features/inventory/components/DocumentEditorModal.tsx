@@ -16,6 +16,7 @@ import { Minus, Plus } from "lucide-react"
 import { useState } from "react"
 
 import {
+  ApiError,
   type InventoryDocumentCreate,
   type InventoryDocumentPublic,
   type InventoryLedgerKind,
@@ -37,8 +38,11 @@ type DocumentEditorModalProps = {
   document?: InventoryDocumentPublic
   documentType: InventoryDocumentCreate["document_type"]
   onClose: () => void
+  onCorrectionRequired?: (document: InventoryDocumentPublic) => void
   onSaved?: () => void
+  onSubmit?: (values: InventoryDocumentCreate) => Promise<unknown>
   open: boolean
+  submitLabel?: string
 }
 
 const documentLabels = {
@@ -104,8 +108,11 @@ export function DocumentEditorModal({
   document,
   documentType,
   onClose,
+  onCorrectionRequired,
   onSaved,
+  onSubmit,
   open,
+  submitLabel = "保存",
 }: DocumentEditorModalProps) {
   const [form] = Form.useForm<DocumentFormValues>()
   const { message } = App.useApp()
@@ -127,17 +134,32 @@ export function DocumentEditorModal({
   })
   const mutation = useMutation({
     mutationFn: (values: InventoryDocumentCreate) =>
-      document
-        ? InventoryService.updateInventoryDocument({
-            documentId: document.id,
-            requestBody: values,
-          })
-        : InventoryService.createInventoryDocument({ requestBody: values }),
-    onError: () => {
+      onSubmit
+        ? onSubmit(values)
+        : document
+          ? InventoryService.updateInventoryDocument({
+              documentId: document.id,
+              requestBody: values,
+            })
+          : InventoryService.createInventoryDocument({ requestBody: values }),
+    onError: (error) => {
+      if (
+        document &&
+        error instanceof ApiError &&
+        typeof error.body === "object" &&
+        error.body &&
+        "detail" in error.body &&
+        error.body.detail === "INVENTORY_CORRECTION_REQUIRED"
+      ) {
+        onCorrectionRequired?.(document)
+        return
+      }
       message.error("保存失败，请检查库存和单据字段。")
     },
     onSuccess: () => {
-      message.success(document ? "单据已更新" : "单据已保存")
+      message.success(
+        onSubmit ? "纠错申请已提交" : document ? "单据已更新" : "单据已保存",
+      )
       onSaved?.()
       void queryClient.invalidateQueries({ queryKey: ["inventory"] })
       onClose()
@@ -372,7 +394,7 @@ export function DocumentEditorModal({
         <div className="flex justify-end gap-2">
           <Button onClick={onClose}>取消</Button>
           <Button htmlType="submit" loading={mutation.isPending} type="primary">
-            保存
+            {submitLabel}
           </Button>
         </div>
       </Form>

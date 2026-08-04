@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { DocsReadRuleDocumentsResponse, DocsReadRuleDocumentData, DocsReadRuleDocumentResponse, IamReadMyPermissionsResponse, IamReadPermissionCatalogResponse, IamReadRolesResponse, IamCreateRoleData, IamCreateRoleResponse, IamUpdateRoleData, IamUpdateRoleResponse, IamDeleteRoleData, IamDeleteRoleResponse, IamReplaceRolePermissionsData, IamReplaceRolePermissionsResponse, IamReplaceUserRolesData, IamReplaceUserRolesResponse, InventoryDownloadDocumentTemplateResponse, InventoryImportDocumentsFromExcelData, InventoryImportDocumentsFromExcelResponse, InventoryImportLegacyWorkbooksFromExcelData, InventoryImportLegacyWorkbooksFromExcelResponse, InventoryExportInventoryLedgerData, InventoryExportInventoryLedgerResponse, InventoryReadProcessingUnitsData, InventoryReadProcessingUnitsResponse, InventoryCreateProcessingUnitData, InventoryCreateProcessingUnitResponse, InventoryUpdateProcessingUnitData, InventoryUpdateProcessingUnitResponse, InventoryReadReceivingUnitsData, InventoryReadReceivingUnitsResponse, InventoryCreateReceivingUnitData, InventoryCreateReceivingUnitResponse, InventoryUpdateReceivingUnitData, InventoryUpdateReceivingUnitResponse, InventoryCreateInventoryDocumentData, InventoryCreateInventoryDocumentResponse, InventoryReadInventoryDocumentsData, InventoryReadInventoryDocumentsResponse, InventoryReadInventoryDocumentData, InventoryReadInventoryDocumentResponse, InventoryUpdateInventoryDocumentData, InventoryUpdateInventoryDocumentResponse, InventoryDeleteInventoryDocumentData, InventoryDeleteInventoryDocumentResponse, InventoryRestoreInventoryDocumentData, InventoryRestoreInventoryDocumentResponse, InventoryReadRawBalancesData, InventoryReadRawBalancesResponse, InventoryReadFinishedBalancesData, InventoryReadFinishedBalancesResponse, InventoryReadInventoryLedgerData, InventoryReadInventoryLedgerResponse, InventoryReadInventorySuggestionsData, InventoryReadInventorySuggestionsResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, ModulesModulesHealthCheckResponse, PrivateCreateUserData, PrivateCreateUserResponse, SchedulerPreviewCronData, SchedulerPreviewCronResponse, SchedulerReadJobsData, SchedulerReadJobsResponse, SchedulerCreateJobData, SchedulerCreateJobResponse, SchedulerReadJobData, SchedulerReadJobResponse, SchedulerUpdateJobData, SchedulerUpdateJobResponse, SchedulerDeleteJobData, SchedulerDeleteJobResponse, SchedulerEnableJobData, SchedulerEnableJobResponse, SchedulerDisableJobData, SchedulerDisableJobResponse, SchedulerRestoreJobData, SchedulerRestoreJobResponse, SchedulerRunNowData, SchedulerRunNowResponse, SchedulerBackfillData, SchedulerBackfillResponse, SchedulerReadRunsData, SchedulerReadRunsResponse, SchedulerReadTaskSchemaData, SchedulerReadTaskSchemaResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { DocsReadRuleDocumentsResponse, DocsReadRuleDocumentData, DocsReadRuleDocumentResponse, IamReadMyPermissionsResponse, IamReadPermissionCatalogResponse, IamReadRolesResponse, IamCreateRoleData, IamCreateRoleResponse, IamUpdateRoleData, IamUpdateRoleResponse, IamDeleteRoleData, IamDeleteRoleResponse, IamReplaceRolePermissionsData, IamReplaceRolePermissionsResponse, IamReplaceUserRolesData, IamReplaceUserRolesResponse, InventoryDownloadDocumentTemplateResponse, InventoryImportDocumentsFromExcelData, InventoryImportDocumentsFromExcelResponse, InventoryImportLegacyWorkbooksFromExcelData, InventoryImportLegacyWorkbooksFromExcelResponse, InventoryExportInventoryLedgerData, InventoryExportInventoryLedgerResponse, InventoryReadProcessingUnitsData, InventoryReadProcessingUnitsResponse, InventoryCreateProcessingUnitData, InventoryCreateProcessingUnitResponse, InventoryUpdateProcessingUnitData, InventoryUpdateProcessingUnitResponse, InventoryReadReceivingUnitsData, InventoryReadReceivingUnitsResponse, InventoryCreateReceivingUnitData, InventoryCreateReceivingUnitResponse, InventoryUpdateReceivingUnitData, InventoryUpdateReceivingUnitResponse, InventoryCreateInventoryDocumentData, InventoryCreateInventoryDocumentResponse, InventoryReadInventoryDocumentsData, InventoryReadInventoryDocumentsResponse, InventoryReadInventoryDocumentData, InventoryReadInventoryDocumentResponse, InventoryUpdateInventoryDocumentData, InventoryUpdateInventoryDocumentResponse, InventoryDeleteInventoryDocumentData, InventoryDeleteInventoryDocumentResponse, InventoryRestoreInventoryDocumentData, InventoryRestoreInventoryDocumentResponse, InventoryReadRawBalancesData, InventoryReadRawBalancesResponse, InventoryReadFinishedBalancesData, InventoryReadFinishedBalancesResponse, InventoryReadInventoryLedgerData, InventoryReadInventoryLedgerResponse, InventoryReadInventorySuggestionsData, InventoryReadInventorySuggestionsResponse, InventoryCorrectionsCreateCorrectionRequestData, InventoryCorrectionsCreateCorrectionRequestResponse, InventoryCorrectionsReadMyCorrectionRequestsData, InventoryCorrectionsReadMyCorrectionRequestsResponse, InventoryCorrectionsReadCorrectionReviewQueueData, InventoryCorrectionsReadCorrectionReviewQueueResponse, InventoryCorrectionsReadCorrectionRequestData, InventoryCorrectionsReadCorrectionRequestResponse, InventoryCorrectionsApproveCorrectionRequestData, InventoryCorrectionsApproveCorrectionRequestResponse, InventoryCorrectionsRejectCorrectionRequestData, InventoryCorrectionsRejectCorrectionRequestResponse, InventoryCorrectionsWithdrawCorrectionRequestData, InventoryCorrectionsWithdrawCorrectionRequestResponse, InventoryCorrectionsReadCorrectionRecoveryQueueData, InventoryCorrectionsReadCorrectionRecoveryQueueResponse, InventoryCorrectionsRecoverCorrectionWorkItemData, InventoryCorrectionsRecoverCorrectionWorkItemResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, ModulesModulesHealthCheckResponse, PrivateCreateUserData, PrivateCreateUserResponse, SchedulerPreviewCronData, SchedulerPreviewCronResponse, SchedulerReadJobsData, SchedulerReadJobsResponse, SchedulerCreateJobData, SchedulerCreateJobResponse, SchedulerReadJobData, SchedulerReadJobResponse, SchedulerUpdateJobData, SchedulerUpdateJobResponse, SchedulerDeleteJobData, SchedulerDeleteJobResponse, SchedulerEnableJobData, SchedulerEnableJobResponse, SchedulerDisableJobData, SchedulerDisableJobResponse, SchedulerRestoreJobData, SchedulerRestoreJobResponse, SchedulerRunNowData, SchedulerRunNowResponse, SchedulerBackfillData, SchedulerBackfillResponse, SchedulerReadRunsData, SchedulerReadRunsResponse, SchedulerReadTaskSchemaData, SchedulerReadTaskSchemaResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class DocsService {
     /**
@@ -651,6 +651,193 @@ export class InventoryService {
                 ledger_kind: data.ledgerKind,
                 field: data.field,
                 query: data.query
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class InventoryCorrectionsService {
+    /**
+     * Create Correction Request
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns InventoryCorrectionRequestPublic Successful Response
+     * @throws ApiError
+     */
+    public static createCorrectionRequest(data: InventoryCorrectionsCreateCorrectionRequestData): CancelablePromise<InventoryCorrectionsCreateCorrectionRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/inventory/correction-requests',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Read My Correction Requests
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns InventoryCorrectionRequestsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readMyCorrectionRequests(data: InventoryCorrectionsReadMyCorrectionRequestsData = {}): CancelablePromise<InventoryCorrectionsReadMyCorrectionRequestsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/inventory/correction-requests/mine',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Read Correction Review Queue
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns InventoryCorrectionRequestsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readCorrectionReviewQueue(data: InventoryCorrectionsReadCorrectionReviewQueueData = {}): CancelablePromise<InventoryCorrectionsReadCorrectionReviewQueueResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/inventory/correction-requests/review-queue',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Read Correction Request
+     * @param data The data for the request.
+     * @param data.correctionRequestId
+     * @returns InventoryCorrectionRequestPublic Successful Response
+     * @throws ApiError
+     */
+    public static readCorrectionRequest(data: InventoryCorrectionsReadCorrectionRequestData): CancelablePromise<InventoryCorrectionsReadCorrectionRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/inventory/correction-requests/{correction_request_id}',
+            path: {
+                correction_request_id: data.correctionRequestId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Approve Correction Request
+     * @param data The data for the request.
+     * @param data.correctionRequestId
+     * @returns InventoryCorrectionRequestPublic Successful Response
+     * @throws ApiError
+     */
+    public static approveCorrectionRequest(data: InventoryCorrectionsApproveCorrectionRequestData): CancelablePromise<InventoryCorrectionsApproveCorrectionRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/inventory/correction-requests/{correction_request_id}/approve',
+            path: {
+                correction_request_id: data.correctionRequestId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Reject Correction Request
+     * @param data The data for the request.
+     * @param data.correctionRequestId
+     * @returns InventoryCorrectionRequestPublic Successful Response
+     * @throws ApiError
+     */
+    public static rejectCorrectionRequest(data: InventoryCorrectionsRejectCorrectionRequestData): CancelablePromise<InventoryCorrectionsRejectCorrectionRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/inventory/correction-requests/{correction_request_id}/reject',
+            path: {
+                correction_request_id: data.correctionRequestId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Withdraw Correction Request
+     * @param data The data for the request.
+     * @param data.correctionRequestId
+     * @returns InventoryCorrectionRequestPublic Successful Response
+     * @throws ApiError
+     */
+    public static withdrawCorrectionRequest(data: InventoryCorrectionsWithdrawCorrectionRequestData): CancelablePromise<InventoryCorrectionsWithdrawCorrectionRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/inventory/correction-requests/{correction_request_id}/withdraw',
+            path: {
+                correction_request_id: data.correctionRequestId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Read Correction Recovery Queue
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns InventoryCorrectionWorkItemsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readCorrectionRecoveryQueue(data: InventoryCorrectionsReadCorrectionRecoveryQueueData = {}): CancelablePromise<InventoryCorrectionsReadCorrectionRecoveryQueueResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/inventory/correction-work-items/recovery-queue',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+
+    /**
+     * Recover Correction Work Item
+     * @param data The data for the request.
+     * @param data.workItemId
+     * @returns InventoryCorrectionWorkItemPublic Successful Response
+     * @throws ApiError
+     */
+    public static recoverCorrectionWorkItem(data: InventoryCorrectionsRecoverCorrectionWorkItemData): CancelablePromise<InventoryCorrectionsRecoverCorrectionWorkItemResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/inventory/correction-work-items/{work_item_id}/recover',
+            path: {
+                work_item_id: data.workItemId
             },
             errors: {
                 422: 'Validation Error'
