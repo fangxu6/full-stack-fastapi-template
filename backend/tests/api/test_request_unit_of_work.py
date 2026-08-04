@@ -9,16 +9,23 @@ from sqlmodel import Session, select
 
 from app.api.dependencies import auth, database
 from app.api.main import api_router
+from app.core import cache
 from app.core.config import settings
 from app.models import EmailOutbox, EmailOutboxKind
 
 
 class TrackingSession:
-    def __init__(self, events: list[str]) -> None:
+    def __init__(
+        self, events: list[str], commit_error: Exception | None = None
+    ) -> None:
         self.events = events
+        self.commit_error = commit_error
+        self.info: dict[str, object] = {}
 
     def commit(self) -> None:
         self.events.append("commit")
+        if self.commit_error is not None:
+            raise self.commit_error
 
     def rollback(self) -> None:
         self.events.append("rollback")
@@ -82,6 +89,100 @@ def test_write_dependency_rolls_back_http_exception_before_close() -> None:
 
     assert response.status_code == 409
     assert events == ["open", "rollback", "close"]
+
+
+def test_write_dependency_invalidates_after_successful_commit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events: list[str] = []
+    session = TrackingSession(events)
+    app = FastAPI()
+    write_session_dep = getattr(database, "WriteSessionDep", None)
+    key = cache.make_cache_key("test", "success")
+
+    assert write_session_dep is not None
+
+    def get_tracking_db() -> Generator[Any]:
+        yield from tracking_db(session, events)
+
+    def record_delete(*keys: str) -> None:
+        assert keys == (key,)
+        events.append("cache_delete")
+
+    monkeypatch.setattr(cache, "delete", record_delete)
+    app.dependency_overrides[database.get_db] = get_tracking_db
+
+    @app.post("/__test/cache-commit")
+    def write(write_session: write_session_dep) -> dict[str, bool]:
+        cache.defer_cache_invalidation(write_session, key)
+        return {"ok": True}
+
+    with TestClient(app) as client:
+        response = client.post("/__test/cache-commit")
+
+    assert response.status_code == 200
+    assert events == ["open", "commit", "cache_delete", "close"]
+    assert session.info == {}
+
+
+def test_write_dependency_discards_invalidation_on_rollback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events: list[str] = []
+    session = TrackingSession(events)
+    app = FastAPI()
+    write_session_dep = getattr(database, "WriteSessionDep", None)
+    key = cache.make_cache_key("test", "rollback")
+
+    assert write_session_dep is not None
+
+    def get_tracking_db() -> Generator[Any]:
+        yield from tracking_db(session, events)
+
+    monkeypatch.setattr(cache, "delete", lambda *keys: events.append("cache_delete"))
+    app.dependency_overrides[database.get_db] = get_tracking_db
+
+    @app.post("/__test/cache-rollback")
+    def fail(write_session: write_session_dep) -> None:
+        cache.defer_cache_invalidation(write_session, key)
+        raise HTTPException(status_code=409, detail="conflict")
+
+    with TestClient(app) as client:
+        response = client.post("/__test/cache-rollback")
+
+    assert response.status_code == 409
+    assert events == ["open", "rollback", "close"]
+    assert session.info == {}
+
+
+def test_write_dependency_discards_invalidation_when_commit_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events: list[str] = []
+    session = TrackingSession(events, commit_error=RuntimeError("commit failed"))
+    app = FastAPI()
+    write_session_dep = getattr(database, "WriteSessionDep", None)
+    key = cache.make_cache_key("test", "commit-failure")
+
+    assert write_session_dep is not None
+
+    def get_tracking_db() -> Generator[Any]:
+        yield from tracking_db(session, events)
+
+    monkeypatch.setattr(cache, "delete", lambda *keys: events.append("cache_delete"))
+    app.dependency_overrides[database.get_db] = get_tracking_db
+
+    @app.post("/write")
+    def write(write_session: write_session_dep) -> dict[str, bool]:
+        cache.defer_cache_invalidation(write_session, key)
+        return {"ok": True}
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.post("/write")
+
+    assert response.status_code == 500
+    assert events == ["open", "commit", "rollback", "close"]
+    assert session.info == {}
 
 
 def test_all_http_write_handlers_depend_on_write_session() -> None:

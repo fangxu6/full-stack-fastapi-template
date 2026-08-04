@@ -28,6 +28,7 @@ Future work should preserve that direction instead of drifting back toward route
 | [Quality Guidelines](./quality-guidelines.md) | Review rules, forbidden regressions, validation expectations | Customized |
 | [Logging Guidelines](./logging-guidelines.md) | Structlog pipeline, request correlation, redaction, and operational-event contracts | Customized |
 | [Async Task Runtime](./async-task-guidelines.md) | Celery/Redis task boundaries, configuration, and verification | Customized |
+| [Cache Guidelines](./cache-guidelines.md) | Opt-in Redis Cache-Aside primitives, invalidation, and telemetry | Customized |
 
 ---
 
@@ -39,6 +40,8 @@ Future work should preserve that direction instead of drifting back toward route
 4. Read [Error Handling](./error-handling.md) and [Logging Guidelines](./logging-guidelines.md) before changing API or service behavior.
 5. Use [Quality Guidelines](./quality-guidelines.md) as the final backend review checklist.
 6. Read [Async Task Runtime](./async-task-guidelines.md) before adding or dispatching Celery tasks.
+7. Read [Cache Guidelines](./cache-guidelines.md) before adding a Redis business cache
+   or registering cache invalidation.
 
 ### Trigger-Based Routing
 
@@ -49,6 +52,7 @@ Future work should preserve that direction instead of drifting back toward route
 | Expected error or auth/permission failure change | [Error Handling](./error-handling.md), [Logging Guidelines](./logging-guidelines.md), [Quality Guidelines](./quality-guidelines.md) |
 | Public API payload or OpenAPI output change | [Type Safety](./type-safety.md), [Database Guidelines](./database-guidelines.md), [../guides/cross-layer-thinking-guide.md](../guides/cross-layer-thinking-guide.md) |
 | New bounded backend capability | [Directory Structure](./directory-structure.md), [../guides/code-reuse-thinking-guide.md](../guides/code-reuse-thinking-guide.md) |
+| Redis business cache or cache invalidation | [Cache Guidelines](./cache-guidelines.md), [Logging Guidelines](./logging-guidelines.md), [Quality Guidelines](./quality-guidelines.md) |
 
 ---
 

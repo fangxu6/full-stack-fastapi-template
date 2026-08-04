@@ -26,6 +26,7 @@ def test_celery_urls_percent_encode_the_redis_password() -> None:
     assert (
         settings.celery_result_backend_url == "redis://:pass%3A%2F%40word@redis:6379/1"
     )
+    assert settings.redis_cache_url == "redis://:pass%3A%2F%40word@redis:6379/2"
 
 
 def test_celery_urls_omit_authentication_without_a_redis_password() -> None:
@@ -33,11 +34,17 @@ def test_celery_urls_omit_authentication_without_a_redis_password() -> None:
 
     assert settings.celery_broker_url == "redis://redis:6379/0"
     assert settings.celery_result_backend_url == "redis://redis:6379/1"
+    assert settings.redis_cache_url == "redis://redis:6379/2"
 
 
 @pytest.mark.parametrize(
     "setting_name",
-    ["CELERY_VISIBILITY_TIMEOUT_SECONDS", "CELERY_RESULT_EXPIRES_SECONDS"],
+    [
+        "CACHE_REDIS_CONNECT_TIMEOUT_SECONDS",
+        "CACHE_REDIS_SOCKET_TIMEOUT_SECONDS",
+        "CELERY_VISIBILITY_TIMEOUT_SECONDS",
+        "CELERY_RESULT_EXPIRES_SECONDS",
+    ],
 )
 def test_celery_timeouts_must_be_positive(setting_name: str) -> None:
     with pytest.raises(ValidationError, match="greater than 0"):

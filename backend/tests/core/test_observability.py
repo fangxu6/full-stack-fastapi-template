@@ -139,6 +139,38 @@ def test_task_log_event_emits_only_safe_task_context(
     }
 
 
+def test_cache_log_event_emits_only_allowlisted_fields(
+    capsys: CaptureFixture[str],
+) -> None:
+    configure_observability()
+    bind_request_context(request_id="a" * 32)
+
+    log_event(
+        event_name="cache.operation",
+        severity="INFO",
+        cache_operation="read",
+        cache_result="hit",
+        elapsed_ms=23,
+    )
+    clear_request_context()
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["cache_operation"] == "read"
+    assert payload["cache_result"] == "hit"
+    assert set(payload) == {
+        "actor_kind",
+        "cache_operation",
+        "cache_result",
+        "elapsed_ms",
+        "environment",
+        "event_name",
+        "request_id",
+        "schema_version",
+        "severity",
+        "timestamp",
+    }
+
+
 def test_log_exception_emits_json_traceback(capsys: CaptureFixture[str]) -> None:
     configure_observability()
     bind_request_context(request_id="a" * 32)
@@ -179,6 +211,27 @@ def test_log_event_rejects_unknown_fields_before_serialization(
             severity="ERROR",
             dependency="smtp",
             token="sentinel-token",
+        )
+
+    assert capsys.readouterr().out == ""
+
+
+@pytest.mark.parametrize(
+    "field_name", ["cache_key", "cache_value", "redis_url", "user_id"]
+)
+def test_log_event_rejects_sensitive_cache_fields_before_serialization(
+    capsys: CaptureFixture[str], field_name: str
+) -> None:
+    configure_observability()
+    untyped_log_event = cast(Callable[..., None], log_event)
+
+    with pytest.raises(TypeError, match=f"unexpected keyword argument '{field_name}'"):
+        untyped_log_event(
+            event_name="cache.operation",
+            severity="INFO",
+            cache_operation="read",
+            cache_result="hit",
+            **{field_name: "sensitive-value"},
         )
 
     assert capsys.readouterr().out == ""

@@ -11,7 +11,10 @@ import structlog
 
 from app.core.config import settings
 
+CacheOperation = Literal["read", "write", "delete", "reload"]
+CacheResult = Literal["hit", "miss", "success", "error"]
 EventName = Literal[
+    "cache.operation",
     "http.request.completed",
     "http.request.failed",
     "authorization.denied",
@@ -33,6 +36,8 @@ TASK_ID_PATTERN = re.compile(
 )
 TASK_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$")
 DEPENDENCIES = {"postgres", "iam_bootstrap", "smtp"}
+CACHE_OPERATIONS = {"read", "write", "delete", "reload"}
+CACHE_RESULTS = {"hit", "miss", "success", "error"}
 _LOGGER = structlog.get_logger("app.observability")
 
 
@@ -159,8 +164,17 @@ def log_event(
     status_code: int | None = None,
     actor_kind: str | None = None,
     authorization_result: Literal["denied"] | None = None,
+    cache_operation: CacheOperation | None = None,
+    cache_result: CacheResult | None = None,
 ) -> None:
     if dependency is not None and dependency not in DEPENDENCIES:
+        return
+    if (
+        (event_name == "cache.operation")
+        != (cache_operation is not None and cache_result is not None)
+        or (cache_operation is not None and cache_operation not in CACHE_OPERATIONS)
+        or (cache_result is not None and cache_result not in CACHE_RESULTS)
+    ):
         return
     fields = {
         "severity": severity,
@@ -173,6 +187,8 @@ def log_event(
         "status_code": status_code,
         "actor_kind": actor_kind,
         "authorization_result": authorization_result,
+        "cache_operation": cache_operation,
+        "cache_result": cache_result,
     }
     try:
         getattr(_LOGGER, severity.lower())(

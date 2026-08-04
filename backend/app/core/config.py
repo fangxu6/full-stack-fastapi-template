@@ -59,18 +59,24 @@ class Settings(BaseSettings):
     REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str = ""
+    CACHE_REDIS_CONNECT_TIMEOUT_SECONDS: float = Field(default=0.2, gt=0)
+    CACHE_REDIS_SOCKET_TIMEOUT_SECONDS: float = Field(default=0.2, gt=0)
     CELERY_VISIBILITY_TIMEOUT_SECONDS: int = Field(default=3600, gt=0)
     CELERY_RESULT_EXPIRES_SECONDS: int = Field(default=900, gt=0)
 
     @property
     def celery_broker_url(self) -> str:
-        return self._celery_redis_url(database=0)
+        return self._redis_url(database=0)
 
     @property
     def celery_result_backend_url(self) -> str:
-        return self._celery_redis_url(database=1)
+        return self._redis_url(database=1)
 
-    def _celery_redis_url(self, *, database: int) -> str:
+    @property
+    def redis_cache_url(self) -> str:
+        return self._redis_url(database=2)
+
+    def _redis_url(self, *, database: int) -> str:
         credentials = (
             f":{quote(self.REDIS_PASSWORD, safe='')}@" if self.REDIS_PASSWORD else ""
         )
