@@ -4,6 +4,9 @@ from .audit import AuditEvent
 from .email import EmailOutbox, EmailOutboxKind, EmailOutboxStatus
 from .iam import IamPermission, IamRole, IamRolePermission, IamUserRole
 from .inventory import (
+    InventoryCorrectionAttempt,
+    InventoryCorrectionRequest,
+    InventoryCorrectionWorkItem,
     InventoryDailyReport,
     InventoryDailyReportDelivery,
     InventoryDocument,
@@ -26,6 +29,9 @@ __all__ = [
     "EmailOutboxStatus",
     "InventoryDocument",
     "InventoryDocumentLine",
+    "InventoryCorrectionAttempt",
+    "InventoryCorrectionRequest",
+    "InventoryCorrectionWorkItem",
     "InventoryDailyReport",
     "InventoryDailyReportDelivery",
     "InventoryImportBatch",

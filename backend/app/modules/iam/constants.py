@@ -50,6 +50,24 @@ PERMISSIONS: tuple[tuple[str, str, str, str], ...] = (
         "Create, update, delete, and restore inventory documents.",
     ),
     (
+        "inventory.corrections.request",
+        "Inventory",
+        "Request document correction",
+        "Submit inventory document correction requests.",
+    ),
+    (
+        "inventory.corrections.review",
+        "Inventory",
+        "Review document correction",
+        "Approve or reject inventory document correction requests.",
+    ),
+    (
+        "inventory.corrections.recover",
+        "Inventory",
+        "Recover failed correction",
+        "Create a new automatic attempt for a terminal correction failure.",
+    ),
+    (
         "inventory.balances.read",
         "Inventory",
         "View balances",
@@ -82,6 +100,9 @@ PREREQUISITES: Mapping[str, frozenset[str]] = {
     "iam.roles.manage": frozenset({"iam.roles.read"}),
     "inventory.masters.manage": frozenset({"inventory.masters.read"}),
     "inventory.documents.manage": frozenset({"inventory.documents.read"}),
+    "inventory.corrections.request": frozenset({"inventory.documents.read"}),
+    "inventory.corrections.review": frozenset({"inventory.documents.read"}),
+    "inventory.corrections.recover": frozenset({"inventory.documents.read"}),
     "scheduler.jobs.manage": frozenset({"scheduler.jobs.read"}),
 }
 
@@ -94,7 +115,16 @@ BUILTIN_ROLES: Mapping[str, tuple[str, str, frozenset[str]]] = {
     INVENTORY_OPERATOR: (
         "Inventory Operator",
         "Create and manage inventory masters and documents.",
-        frozenset(code for code in PERMISSION_CODES if code.startswith("inventory.")),
+        frozenset(
+            code
+            for code in PERMISSION_CODES
+            if code.startswith("inventory.")
+            and code
+            not in {
+                "inventory.corrections.review",
+                "inventory.corrections.recover",
+            }
+        ),
     ),
     INVENTORY_VIEWER: (
         "Inventory Viewer",

@@ -63,6 +63,12 @@ INVENTORY_BOOTSTRAP_JOBS = (
         "app.modules.inventory.scheduled_tasks.InventoryDailyReportRetryTask",
         "*/15 * * * *",
     ),
+    (
+        "inventory.document_correction.apply",
+        "Inventory document correction application",
+        "app.modules.inventory.scheduled_tasks.InventoryCorrectionApplyTask",
+        "* * * * *",
+    ),
 )
 
 

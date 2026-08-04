@@ -130,6 +130,7 @@ class InventoryDocumentPublic(SQLModel):
     receiving_unit_id: uuid.UUID | None
     document_number: str | None
     remarks: str | None
+    updated_at: datetime
     deleted_at: datetime | None
     lines: list[InventoryLinePublic]
 

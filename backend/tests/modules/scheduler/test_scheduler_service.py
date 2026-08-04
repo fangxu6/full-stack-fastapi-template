@@ -412,6 +412,7 @@ def test_inventory_bootstrap_is_idempotent_and_keeps_edits(db: Session) -> None:
     assert {job.bootstrap_key for job in jobs} == {
         "inventory.daily_report.create",
         "inventory.daily_report.retry",
+        "inventory.document_correction.apply",
     }
     retry_job = next(job for job in jobs if job.bootstrap_key.endswith("retry"))
     retry_job.cron_expression = "0 9 * * *"

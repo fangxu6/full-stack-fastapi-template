@@ -10,6 +10,7 @@ from sqlmodel import Session
 
 from app.core.config import settings
 from app.models import InventoryDocument
+from app.models.base import get_datetime_utc
 from app.schemas.inventory import InventoryLinePublic
 
 INVENTORY_PATH = f"{settings.API_V1_STR}/inventory"
@@ -366,8 +367,8 @@ def test_raw_return_rejects_negative_balance(
     assert response.json()["request_id"]
 
 
-def test_document_update_delete_and_restore_recalculate_balance(
-    client: TestClient, superuser_token_headers: dict[str, str]
+def test_ledger_affected_documents_require_correction(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
     processing_unit = _create_processing_unit(client, superuser_token_headers)
     item_code = f"RF-{uuid.uuid4()}"
@@ -399,37 +400,30 @@ def test_document_update_delete_and_restore_recalculate_balance(
         headers=superuser_token_headers,
         json=document,
     )
-    assert updated.status_code == 200, updated.json()
-
-    response = client.get(
-        f"{INVENTORY_PATH}/balances/raw", headers=superuser_token_headers
-    )
-    balance = next(
-        item for item in response.json()["data"] if item["item_code"] == item_code
-    )
-    assert _decimal(balance["rolls_balance"]) == Decimal("3.25")
+    assert updated.status_code == 409
+    assert updated.json()["detail"] == "INVENTORY_CORRECTION_REQUIRED"
+    assert updated.json()["request_id"]
 
     deleted = client.delete(
         f"{INVENTORY_PATH}/documents/{document_id}", headers=superuser_token_headers
     )
-    assert deleted.status_code == 200
-    response = client.get(
-        f"{INVENTORY_PATH}/balances/raw", headers=superuser_token_headers
-    )
-    assert all(item["item_code"] != item_code for item in response.json()["data"])
+    assert deleted.status_code == 409
+    assert deleted.json()["detail"] == "INVENTORY_CORRECTION_REQUIRED"
+    assert deleted.json()["request_id"]
+
+    stored_document = db.get(InventoryDocument, uuid.UUID(document_id))
+    assert stored_document is not None
+    stored_document.deleted_at = get_datetime_utc()
+    db.add(stored_document)
+    db.commit()
 
     restored = client.post(
         f"{INVENTORY_PATH}/documents/{document_id}/restore",
         headers=superuser_token_headers,
     )
-    assert restored.status_code == 200
-    response = client.get(
-        f"{INVENTORY_PATH}/balances/raw", headers=superuser_token_headers
-    )
-    balance = next(
-        item for item in response.json()["data"] if item["item_code"] == item_code
-    )
-    assert _decimal(balance["rolls_balance"]) == Decimal("3.25")
+    assert restored.status_code == 409
+    assert restored.json()["detail"] == "INVENTORY_CORRECTION_REQUIRED"
+    assert restored.json()["request_id"]
 
 
 def test_finished_shipment_updates_roll_and_meter_balances(
@@ -1002,9 +996,9 @@ def test_excel_ledger_export_applies_document_page_filters(
     )
     assert receiving_filtered.status_code == 200
     receiving_rows = list(
-        load_workbook(
-            BytesIO(receiving_filtered.content), read_only=True
-        )["库存台账"].values
+        load_workbook(BytesIO(receiving_filtered.content), read_only=True)[
+            "库存台账"
+        ].values
     )
     assert len(receiving_rows) == 1
 
@@ -1050,7 +1044,9 @@ def test_excel_document_import_reports_inconsistent_document_groups(
         files={
             "workbook": (
                 "conflict.xlsx",
-                _xlsx_bytes([headers, base_row, [*base_row[:1], "2026-08-02", *base_row[2:]]]),
+                _xlsx_bytes(
+                    [headers, base_row, [*base_row[:1], "2026-08-02", *base_row[2:]]]
+                ),
                 XLSX_MEDIA_TYPE,
             )
         },
@@ -1066,7 +1062,14 @@ def test_excel_legacy_import_and_ledger_export(
     raw_workbook = _xlsx_bytes(
         [
             ["日期", "加工单位", "品名", "品号", "含毛量", "入库"],
-            ["2026-08-01", f"历史加工厂-{uuid.uuid4()}", "历史坯布", "H-001", "100%", 2],
+            [
+                "2026-08-01",
+                f"历史加工厂-{uuid.uuid4()}",
+                "历史坯布",
+                "H-001",
+                "100%",
+                2,
+            ],
         ],
         sheet_name="历史坯布",
     )
@@ -1145,7 +1148,9 @@ def test_excel_legacy_import_and_ledger_export(
     )
     assert finished_export.status_code == 200
     finished_rows = list(
-        load_workbook(BytesIO(finished_export.content), read_only=True)["库存台账"].values
+        load_workbook(BytesIO(finished_export.content), read_only=True)[
+            "库存台账"
+        ].values
     )
     assert any(row[4] == "历史成品" for row in finished_rows[1:])
 

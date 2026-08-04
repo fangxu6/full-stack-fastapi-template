@@ -21,6 +21,7 @@ from app.models import (
 )
 from app.models.base import get_datetime_utc
 from app.models.inventory import (
+    InventoryCorrectionOperation,
     InventoryDocumentType,
     InventoryLedgerKind,
     InventoryMovementType,
@@ -444,10 +445,24 @@ def update_document(
     document = session.get(InventoryDocument, document_id)
     if not document:
         raise NotFoundError("Inventory document not found")
-    if document.deleted_at:
-        raise BadRequestError("Deleted inventory documents must be restored first")
     if document.is_legacy:
         raise BadRequestError("Legacy inventory documents cannot be edited")
+    _ensure_direct_write_allowed(session=session, document=document)
+    if document.deleted_at:
+        raise BadRequestError("Deleted inventory documents must be restored first")
+    return _update_document_impl(
+        session=session,
+        document=document,
+        document_in=document_in,
+    )
+
+
+def _update_document_impl(
+    *,
+    session: Session,
+    document: InventoryDocument,
+    document_in: InventoryDocumentCreate,
+) -> InventoryDocumentPublic:
     if document.document_type != document_in.document_type:
         raise BadRequestError("Document type cannot be changed")
     original_processing_unit_id = document.processing_unit_id
@@ -482,8 +497,13 @@ def delete_document(*, session: Session, document_id: uuid.UUID) -> None:
         raise NotFoundError("Inventory document not found")
     if document.is_legacy:
         raise BadRequestError("Legacy inventory documents cannot be deleted")
+    _ensure_direct_write_allowed(session=session, document=document)
     if document.deleted_at:
         return
+    _delete_document_impl(session=session, document=document)
+
+
+def _delete_document_impl(*, session: Session, document: InventoryDocument) -> None:
     now = get_datetime_utc()
     document.deleted_at = now
     session.add(document)
@@ -497,6 +517,11 @@ def restore_document(*, session: Session, document_id: uuid.UUID) -> None:
         raise NotFoundError("Inventory document not found")
     if document.is_legacy:
         raise BadRequestError("Legacy inventory documents cannot be restored")
+    _ensure_direct_write_allowed(session=session, document=document)
+    _restore_document_impl(session=session, document=document)
+
+
+def _restore_document_impl(*, session: Session, document: InventoryDocument) -> None:
     try:
         document.deleted_at = None
         _set_document_ledger_deleted(
@@ -511,6 +536,52 @@ def restore_document(*, session: Session, document_id: uuid.UUID) -> None:
         session.flush()
     except ConflictError:
         raise
+
+
+def apply_approved_correction(
+    *,
+    session: Session,
+    document: InventoryDocument,
+    operation: InventoryCorrectionOperation,
+    document_in: InventoryDocumentCreate | None,
+) -> InventoryDocumentPublic | None:
+    if operation is InventoryCorrectionOperation.UPDATE_DOCUMENT:
+        if document_in is None:
+            raise BadRequestError("UPDATE_DOCUMENT requires a proposal")
+        return _update_document_impl(
+            session=session,
+            document=document,
+            document_in=document_in,
+        )
+    if document_in is not None:
+        raise BadRequestError("Only UPDATE_DOCUMENT accepts a proposal")
+    if operation is InventoryCorrectionOperation.DELETE_DOCUMENT:
+        _delete_document_impl(session=session, document=document)
+        return None
+    if operation is InventoryCorrectionOperation.RESTORE_DOCUMENT:
+        _restore_document_impl(session=session, document=document)
+        return None
+    raise BadRequestError("Unsupported inventory correction operation")
+
+
+def document_has_ledger_effects(*, session: Session, document_id: uuid.UUID) -> bool:
+    statement = (
+        select(InventoryLedgerEntry.id)
+        .join(
+            InventoryDocumentLine,
+            InventoryDocumentLine.id == InventoryLedgerEntry.document_line_id,  # ty:ignore[invalid-argument-type]
+        )
+        .where(InventoryDocumentLine.document_id == document_id)
+        .limit(1)
+    )
+    return session.exec(statement).first() is not None
+
+
+def _ensure_direct_write_allowed(
+    *, session: Session, document: InventoryDocument
+) -> None:
+    if document_has_ledger_effects(session=session, document_id=document.id):
+        raise ConflictError("INVENTORY_CORRECTION_REQUIRED")
 
 
 def _replace_document_lines(*, session: Session, document: InventoryDocument) -> None:
@@ -581,6 +652,7 @@ def _document_public(
         receiving_unit_id=document.receiving_unit_id,
         document_number=document.document_number,
         remarks=document.remarks,
+        updated_at=document.updated_at,
         deleted_at=document.deleted_at,
         lines=[
             InventoryLinePublic(

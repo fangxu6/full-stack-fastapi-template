@@ -1,6 +1,7 @@
 import {
   Briefcase,
   CalendarClock,
+  ClipboardCheck,
   ClipboardList,
   FileText,
   Home,
@@ -33,6 +34,12 @@ export const baseMenuItems: AppNavigationItem[] = [
     icon: Truck,
     title: "成品出货",
     path: "/inventory/shipments",
+    permission: "inventory.documents.read",
+  },
+  {
+    icon: ClipboardCheck,
+    title: "库存纠错",
+    path: "/inventory/corrections",
     permission: "inventory.documents.read",
   },
   {
