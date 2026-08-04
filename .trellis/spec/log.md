@@ -287,3 +287,11 @@ Clarified that pre-created databases ending in _test or _pytest may isolate a fr
 ## [2026-08-04 12:43:43] update | Require exact IAM audit changed fields
 
 Recorded that mixed role PATCH requests must build changed_fields from values that actually differ, excluding supplied same-value fields from semantic audit evidence.
+
+## [2026-08-04 21:31:30] update | Document inventory correction application work items
+
+Recorded the fixed inventory correction work-item and attempt boundary: direct-write 409 gate, pre-created scheduler attempts, lease-loss terminalization, one-shot recovery, and atomic ledger plus audit application.
+
+## [2026-08-04 21:34:06] fix | Use Node for thin-route quality checks
+
+The frontend component-policy hook now invokes scripts/check-thin-routes.mjs with Node, which matches the script's runtime needs and avoids a false failure when Bun is unavailable on PATH.
