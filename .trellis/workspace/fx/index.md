@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 35
+- **Total Sessions**: 36
 - **Last Active**: 2026-08-04
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1186 | Active |
+| `journal-1.md` | ~1219 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 36 | 2026-08-04 | 缓存基础层与精确失效 | `d1f9a6c` | `master` |
 | 35 | 2026-08-04 | 库存异常纠错 MVP | `53e41c2`, `1669b57`, `840bf95`, `6892aaa` | `master` |
 | 34 | 2026-08-04 | Centralize frontend permission access | `479327a` | `master` |
 | 33 | 2026-08-04 | Fix IAM role audit concurrency and no-op patches | `8f2dcab` | `master` |

@@ -1184,3 +1184,36 @@ Centralized the frontend permission QueryClient and query options for route guar
 ### Next Steps
 
 - None - task complete
+
+
+## Session 36: 缓存基础层与精确失效
+
+**Date**: 2026-08-04
+**Task**: 缓存基础层与精确失效
+**Branch**: `master`
+
+### Summary
+
+新增 opt-in Redis DB 2 JSON 缓存、提交后精确失效和安全遥测；未接入业务端点。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d1f9a6c` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
