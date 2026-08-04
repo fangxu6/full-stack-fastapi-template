@@ -73,7 +73,7 @@ def _thin_route_violations(repo_root: Path, sources: list[Path]) -> list[str]:
     checker = Path(__file__).resolve().parents[2] / "scripts" / "check-thin-routes.mjs"
     try:
         completed = subprocess.run(
-            ["bun", str(checker), *(str(source) for source in sources)],
+            ["node", str(checker), *(str(source) for source in sources)],
             capture_output=True,
             check=True,
             cwd=repo_root,
