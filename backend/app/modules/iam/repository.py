@@ -14,7 +14,12 @@ def get_role_by_code(
     return session.exec(statement).first()
 
 
-def get_role_by_id(*, session: Session, role_id: int) -> IamRole | None:
+def get_role_by_id(
+    *, session: Session, role_id: int, lock: bool = False
+) -> IamRole | None:
+    if lock:
+        statement = select(IamRole).where(col(IamRole.id) == role_id).with_for_update()
+        return session.exec(statement).first()
     return session.get(IamRole, role_id)
 
 

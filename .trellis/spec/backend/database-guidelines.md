@@ -836,6 +836,129 @@ Unit of Work owns the one final commit.
 
 ---
 
+## Scenario: Serializing IAM Role Semantic Mutations
+
+### 1. Scope / Trigger
+
+Apply this when an existing IAM role is mutated and the service needs its
+current row or permission links to build semantic audit evidence. Concurrent
+requests must not both read the same pre-mutation state and then interleave a
+delete-and-replace of that role's permission links. This applies to role PATCH,
+permission replacement, and deletion; it does not make ordinary role reads
+locking reads.
+
+### 2. Signatures
+
+```python
+def get_role_by_id(
+    *, session: Session, role_id: int, lock: bool = False
+) -> IamRole | None: ...
+
+role = repository.get_role_by_id(session=session, role_id=role_id, lock=True)
+```
+
+With `lock=True`, the repository executes the PostgreSQL equivalent of:
+
+```sql
+SELECT * FROM iam_role WHERE id = :role_id FOR UPDATE;
+```
+
+The transaction keeps this row lock until the request Unit of Work commits or
+rolls back. After acquiring it, the service may read permission codes, validate
+the command, write the role/links, and append its audit event in that same
+transaction.
+
+### 3. Contracts
+
+- `get_role_by_id(..., lock=False)` remains the default for read-only callers;
+  it uses the ordinary identity lookup and must not take a row lock.
+- Every mutation of an existing IAM role requests `lock=True` before inspecting
+  role state, permission links, assignment/deletion eligibility, timestamps,
+  or audit `before` values. Do not acquire the lock after reading a snapshot.
+- A second mutation of the same role waits for the first request to commit or
+  roll back, then reads the now-current committed state. Its audit `before`
+  value describes that transition, and its permission replacement becomes the
+  complete final set rather than a merged residual set.
+- `PATCH /api/v1/iam/roles/{role_id}` computes supplied fields with
+  `model_dump(exclude_unset=True)` and updates only values that differ from the
+  locked row. An empty body or an all-equal body raises `IamValidationError`
+  with the shared 422 `detail` and `request_id` response contract.
+- A no-op PATCH does not update `updated_at`, flush, append an `AuditEvent`, or
+  cause a business mutation. A PATCH with at least one real difference retains
+  the normal response and writes exactly one allowlisted semantic event whose
+  `changed_fields` contains only values from the actual-change dictionary.
+- Keep this operation database-scoped. A Python process lock cannot coordinate
+  separate Uvicorn workers, background processes, or hosts, whereas PostgreSQL
+  row locks coordinate all transactions that share the database.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| Mutation targets an existing role | Acquire `FOR UPDATE` before reading evidence or mutating role-owned links. |
+| Concurrent permission replacement targets the same role | Second transaction waits, reads the first committed set as `before`, and writes only its requested final set. |
+| Role does not exist after the locked lookup | Return the existing not-found error; write no audit event. |
+| PATCH body has no supplied fields | Return shared HTTP 422; preserve role and event count. |
+| Every supplied PATCH value equals the stored value | Return shared HTTP 422; preserve `updated_at` and event count. |
+| PATCH contains one or more changed values | Update those values, refresh the result, and append exactly one corresponding semantic event. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: request A replaces role permissions with `["inventory.ledger.read"]`;
+  request B then acquires the same row lock, records that set as `before`, and
+  replaces it with `["inventory.balances.read"]`. The durable final set is
+  exactly B's list.
+- Base: `PATCH {"is_active": false}` on an active custom role locks the row,
+  changes the boolean, and records exact `before` / `after` values in one
+  `iam.role.deactivated` event.
+- Bad: two sessions read permission links without locking the role, both delete
+  links, and both add their desired links. PostgreSQL then retains a mixed set
+  while the second event claims an obsolete `before` snapshot.
+
+### 6. Tests Required
+
+- Two-session service regression: begin a replacement in one session, prove a
+  second same-role replacement cannot complete until the first commits, then
+  assert its event `before` list is the first request's exact `after` list and
+  the final links equal only the second requested set.
+- API regressions: empty PATCH and same-value PATCH each return 422 with
+  `detail`, `request_id`, and `X-Request-ID`; assert unchanged `updated_at` and
+  audit-event count.
+- Existing real-change PATCH regression: assert the response shape and exactly
+  one event, including precise boolean transition values for `is_active`. A
+  mixed PATCH with an unchanged `is_active` and a changed name must list only
+  `name` in `changed_fields`.
+- Focused IAM/audit suite and backend lint gate must run against an isolated
+  database before commit.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+role = repository.get_role_by_id(session=session, role_id=role_id)
+before = repository.get_role_permission_codes(session=session, role_id=role_id)
+session.exec(delete(IamRolePermission).where(IamRolePermission.role_id == role_id))
+```
+
+The ordinary read permits another transaction to observe and rewrite the same
+links between the snapshot and replacement, so neither the final set nor the
+audit `before` value is reliable.
+
+#### Correct
+
+```python
+role = repository.get_role_by_id(session=session, role_id=role_id, lock=True)
+before = repository.get_role_permission_codes(session=session, role_id=role_id)
+# Validate, replace links, and append the event before this request commits.
+```
+
+The locked role serializes same-role semantic writes across all database
+clients. It provides the ordering needed for correct audit evidence without
+serializing unrelated roles or relying on per-process memory.
+
+---
+
 ## Query and Mutation Patterns
 
 - Compose reads with `select(...)`, `where(...)`, `order_by(...)`, `offset(...)`, and `limit(...)`.

@@ -46,7 +46,7 @@ def _runtime_environment(tmp_path: Path) -> dict[str, str]:
             "POSTGRES_SERVER": settings.POSTGRES_SERVER,
             "POSTGRES_USER": settings.POSTGRES_USER,
             "PROJECT_NAME": settings.PROJECT_NAME,
-            "REDIS_PASSWORD": settings.REDIS_PASSWORD,
+            "REDIS_PASSWORD": "test-redis-password",
         }
     )
     environment.pop("SMTP_HOST", None)

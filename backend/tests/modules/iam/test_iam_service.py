@@ -1,11 +1,15 @@
+import threading
+import uuid
+
 import pytest
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app import crud
 from app.core.audit import ensure_system_actor
 from app.core.config import settings
+from app.core.db import engine
 from app.core.exceptions import ConflictError, NotFoundError, PermissionDeniedError
-from app.models import User
+from app.models import AuditEvent, IamRole, User
 from app.modules.iam import repository, service
 from app.modules.iam.constants import PLATFORM_ADMINISTRATOR
 from app.schemas.iam import RoleCreate, RoleUpdate
@@ -136,3 +140,104 @@ def test_cannot_remove_last_active_platform_administrator(db: Session) -> None:
     assert platform_role.id in repository.get_user_role_ids(
         session=db, user_id=first_superuser.id
     )
+
+
+def test_concurrent_permission_replacements_are_serialized_by_role_lock(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    actor = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
+    assert actor is not None
+    role = service.create_role(
+        session=db,
+        role_in=RoleCreate(
+            code=f"serialized_permissions_{uuid.uuid4().hex[:12]}",
+            name="Serialized permissions",
+            permission_codes=["inventory.documents.read"],
+        ),
+    )
+    db.commit()
+
+    first_request_id = uuid.uuid4().hex
+    second_request_id = uuid.uuid4().hex
+    second_role_read_started = threading.Event()
+    second_completed = threading.Event()
+    second_errors: list[BaseException] = []
+    original_get_role_by_id = repository.get_role_by_id
+
+    def track_second_role_read(
+        *, session: Session, role_id: int, lock: bool = False
+    ) -> IamRole | None:
+        if session is not first_session:
+            second_role_read_started.set()
+        if lock:
+            return original_get_role_by_id(session=session, role_id=role_id, lock=True)
+        return original_get_role_by_id(session=session, role_id=role_id)
+
+    monkeypatch.setattr(repository, "get_role_by_id", track_second_role_read)
+
+    with Session(engine) as first_session:
+        locked_role = first_session.exec(
+            select(IamRole).where(IamRole.id == role.id).with_for_update()
+        ).one()
+        assert locked_role.id == role.id
+        service.replace_role_permissions(
+            session=first_session,
+            role_id=role.id,
+            permission_codes=["inventory.ledger.read"],
+            audit_actor_user_id=actor.id,
+            audit_request_id=first_request_id,
+        )
+
+        def replace_permissions_in_second_session() -> None:
+            try:
+                with Session(engine) as second_session:
+                    service.replace_role_permissions(
+                        session=second_session,
+                        role_id=role.id,
+                        permission_codes=["inventory.balances.read"],
+                        audit_actor_user_id=actor.id,
+                        audit_request_id=second_request_id,
+                    )
+                    second_session.commit()
+            except BaseException as error:
+                second_errors.append(error)
+            finally:
+                second_completed.set()
+
+        worker = threading.Thread(target=replace_permissions_in_second_session)
+        worker.start()
+        assert second_role_read_started.wait(timeout=1)
+        assert not second_completed.wait(timeout=0.1)
+        first_session.commit()
+
+    worker.join(timeout=3)
+    assert not worker.is_alive()
+    assert second_errors == []
+
+    db.expire_all()
+    final_role = repository.get_role_by_id(session=db, role_id=role.id)
+    assert final_role is not None
+    assert repository.get_role_permission_codes(session=db, role_id=role.id) == [
+        "inventory.balances.read"
+    ]
+    events = list(
+        db.exec(
+            select(AuditEvent)
+            .where(AuditEvent.request_id.in_([first_request_id, second_request_id]))
+            .order_by(AuditEvent.id)
+        ).all()
+    )
+    assert [event.changes for event in events] == [
+        {
+            "permission_codes": {
+                "before": ["inventory.documents.read"],
+                "after": ["inventory.ledger.read"],
+            }
+        },
+        {
+            "permission_codes": {
+                "before": ["inventory.ledger.read"],
+                "after": ["inventory.balances.read"],
+            }
+        },
+    ]

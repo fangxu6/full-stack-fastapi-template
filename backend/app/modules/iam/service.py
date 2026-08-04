@@ -2,8 +2,10 @@ import uuid
 
 from sqlalchemy import delete
 from sqlmodel import Session, col, select
+from starlette.status import HTTP_422_UNPROCESSABLE_CONTENT
 
 from app.core.exceptions import (
+    AppError,
     BadRequestError,
     ConflictError,
     NotFoundError,
@@ -44,6 +46,11 @@ _IAM_AUDIT_EVENT_RULES: dict[str, tuple[str, frozenset[str]]] = {
     "iam.user.roles_replaced": ("iam_user", frozenset({"role_ids"})),
 }
 _IAM_AUDIT_STATE_ACTIONS = frozenset({"iam.role.activated", "iam.role.deactivated"})
+
+
+class IamValidationError(AppError):
+    status_code = HTTP_422_UNPROCESSABLE_CONTENT
+    detail = "Role update does not change any fields"
 
 
 def role_summary(role: IamRole) -> RoleSummary:
@@ -248,28 +255,35 @@ def update_role(
     audit_actor_user_id: uuid.UUID | None = None,
     audit_request_id: str | None = None,
 ) -> RolePublic:
-    role = repository.get_role_by_id(session=session, role_id=role_id)
+    role = repository.get_role_by_id(session=session, role_id=role_id, lock=True)
     if role is None:
         raise NotFoundError("Role does not exist")
     _require_custom_role(role)
     role_data = role_in.model_dump(exclude_unset=True)
+    changed_role_data = {
+        field: value
+        for field, value in role_data.items()
+        if getattr(role, field) != value
+    }
+    if not changed_role_data:
+        raise IamValidationError()
     was_active = role.is_active
-    role.sqlmodel_update(role_data)
+    role.sqlmodel_update(changed_role_data)
     role.updated_at = get_datetime_utc()
     session.add(role)
     session.flush()
     session.refresh(role)
     result = role_public(session=session, role=role)
     changes: dict[str, object]
-    non_state_changed_fields = sorted(set(role_data) - {"is_active"})
-    if "is_active" in role_data and was_active != result.is_active:
+    non_state_changed_fields = sorted(set(changed_role_data) - {"is_active"})
+    if "is_active" in changed_role_data and was_active != result.is_active:
         action = "iam.role.activated" if result.is_active else "iam.role.deactivated"
         changes = {"is_active": {"before": was_active, "after": result.is_active}}
         if non_state_changed_fields:
             changes["changed_fields"] = non_state_changed_fields
     else:
         action = "iam.role.updated"
-        changes = {"changed_fields": sorted(role_data)}
+        changes = {"changed_fields": sorted(changed_role_data)}
     _append_audit_event(
         session=session,
         actor_user_id=audit_actor_user_id,
@@ -290,7 +304,7 @@ def replace_role_permissions(
     audit_actor_user_id: uuid.UUID | None = None,
     audit_request_id: str | None = None,
 ) -> RolePublic:
-    role = repository.get_role_by_id(session=session, role_id=role_id)
+    role = repository.get_role_by_id(session=session, role_id=role_id, lock=True)
     if role is None:
         raise NotFoundError("Role does not exist")
     _require_custom_role(role)
@@ -339,7 +353,7 @@ def delete_role(
     audit_actor_user_id: uuid.UUID | None = None,
     audit_request_id: str | None = None,
 ) -> None:
-    role = repository.get_role_by_id(session=session, role_id=role_id)
+    role = repository.get_role_by_id(session=session, role_id=role_id, lock=True)
     if role is None:
         raise NotFoundError("Role does not exist")
     _require_custom_role(role)

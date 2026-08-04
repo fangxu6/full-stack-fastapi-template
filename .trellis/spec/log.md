@@ -275,3 +275,15 @@ boundary for administrator-managed classifications.
 ## [2026-08-03 21:42:19] update | Semantic audit event contract
 
 Documented reusable audit_event storage, atomic IAM semantic events, minimized summaries, guarded downgrade, and direct retention cleanup.
+
+## [2026-08-04 12:30:28] update | Serialize IAM role audit mutations
+
+Documented PostgreSQL FOR UPDATE for role semantic writes, actual-change-only PATCH behavior, and the unified 422 no-op contract so audit snapshots remain correct under concurrency.
+
+## [2026-08-04 12:41:56] update | Document clean backend test database isolation
+
+Clarified that pre-created databases ending in _test or _pytest may isolate a fresh or concurrent full pytest run because the session fixture clears supported tables only after the suite.
+
+## [2026-08-04 12:43:43] update | Require exact IAM audit changed fields
+
+Recorded that mixed role PATCH requests must build changed_fields from values that actually differ, excluding supplied same-value fields from semantic audit evidence.
