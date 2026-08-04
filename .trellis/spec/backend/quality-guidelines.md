@@ -50,7 +50,7 @@ Backend quality in this repo is mostly about preserving architectural direction:
 
 - On Windows, use the Bash flow in [Windows Bash Quality Commands](#scenario-windows-bash-quality-commands). It changes to `backend/` before running a backend script.
 - The preferred non-mutating backend gate is `cd backend && bash scripts/lint.sh`, which runs strict mypy, `ty check app`, Ruff, and Ruff format check. The script requires `backend/` as its current directory because it passes `app` as a relative path.
-- Preferred backend test command from `backend/`: set `POSTGRES_DB=aiadmin_test`, then run a focused `uv run pytest ...` when the full suite is not appropriate. `aiadmin_test` is the required isolated database for destructive backend tests and local API E2E; never point either workflow at the development database.
+- Preferred backend test command from `backend/`: set `POSTGRES_DB=aiadmin_test`, then run a focused `uv run pytest ...` when the full suite is not appropriate. `aiadmin_test` is the default isolated database for destructive backend tests and local API E2E; a pre-created database whose name ends in `_test` or `_pytest` is also valid for a clean or concurrent verification run. Never point either workflow at the development database.
 - If a backend change affects error behavior, verify at least one path that exercises the unified error shape.
 - If auth, permission, or validation behavior changes, verify the relevant `401`, `403`, or `422` contract path.
 - If request/response models change, review frontend generated-client impact before closing the task.
@@ -149,10 +149,14 @@ POSTGRES_DB=aiadmin_test uv run pytest tests/<path>
 
 #### 3. Contracts
 
-- `aiadmin_test` is the project's local isolated PostgreSQL database for
-  destructive backend tests and API E2E.
+- `aiadmin_test` is the default local isolated PostgreSQL database for
+  destructive backend tests and API E2E. A pre-created, non-production name
+  ending in `_test` or `_pytest` is valid when a fresh or concurrent run must
+  avoid session data left by earlier manual verification.
 - The database must exist before pytest runs; the session fixture upgrades it
-  to the Alembic head and clears its supported test tables after the suite.
+  to the Alembic head and clears its supported test tables after the suite. It
+  does not clear them before setup, so a new safe database is the correct way
+  to rule out residue without deleting another test run's records.
 - `POSTGRES_DB=aiadmin` is development data and must never be used for tests.
 
 #### 4. Validation And Error Matrix
@@ -160,6 +164,7 @@ POSTGRES_DB=aiadmin_test uv run pytest tests/<path>
 | Condition | Required behavior |
 | --- | --- |
 | `POSTGRES_DB=aiadmin_test` and the database exists | Run migrations and tests. |
+| A clean or concurrent verification needs separate state | Create and select a pre-created name ending in `_test` or `_pytest`; do not clear another run's database. |
 | Name is `aiadmin`, blank, or a system database | Refuse before destructive test setup. |
 | Name has a safe suffix but the database does not exist | Fail during connection/migration; create the isolated database, never substitute the development database. |
 
@@ -167,6 +172,8 @@ POSTGRES_DB=aiadmin_test uv run pytest tests/<path>
 
 - Good: a focused backend test exports `POSTGRES_DB=aiadmin_test` and leaves
   `aiadmin` untouched.
+- Good: a full verification uses `aiadmin_clean_pytest` so session-scoped
+  fixture data cannot be confused with another local E2E run.
 - Base: the fixture clears its known tables after a successful suite.
 - Bad: pointing pytest at `aiadmin` to avoid creating the test database.
 

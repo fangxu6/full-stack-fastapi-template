@@ -1084,7 +1084,40 @@ Added atomic IAM semantic audit events, guarded audit schema migration, daily re
 - None - task complete
 
 
-## Session 33: Centralize frontend permission access
+## Session 33: Fix IAM role audit concurrency and no-op patches
+
+**Date**: 2026-08-04
+**Task**: Fix IAM role audit concurrency and no-op patches
+**Branch**: `master`
+
+### Summary
+
+Implemented PostgreSQL FOR UPDATE serialization for existing IAM role mutations, unified 422 rejection for empty and same-value role PATCH requests, exact changed-field audit summaries, and regression coverage. Full backend pytest passed 318 tests with 2 skips; lint and spec checks passed.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8f2dcab` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 34: Centralize frontend permission access
 
 **Date**: 2026-08-04
 **Task**: Centralize frontend permission access

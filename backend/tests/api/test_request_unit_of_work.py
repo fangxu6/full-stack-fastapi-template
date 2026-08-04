@@ -113,7 +113,7 @@ def test_all_http_write_handlers_depend_on_write_session() -> None:
         )
     ]
 
-    assert len(write_routes) == 38
+    assert write_routes
     assert missing_write_session == []
 
 

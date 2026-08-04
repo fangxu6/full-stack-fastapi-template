@@ -56,8 +56,9 @@ jobs, external API boundary, and business workflow platform.
   rationale for each dependency.
 - [x] The parent defers child implementation; planning children remain in
   `planning` until their scope is approved.
-- [x] Planning child tasks exist for D-003, D-005, D-007, D-008, and D-009;
-  none has started implementation.
+- [x] Planning child tasks exist for D-003, D-007, D-008, and D-009; none has
+  started implementation. D-005's completed planning artifacts are archived
+  under ADR-0011 and must be restored and revalidated before implementation.
 - [ ] Before a planning child enters `in_progress`, its product owner provides
   the first concrete business use case and testable acceptance criteria.
 

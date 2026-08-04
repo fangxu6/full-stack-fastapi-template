@@ -5,7 +5,7 @@ from sqlmodel import Session, select
 
 from app import crud
 from app.core.config import settings
-from app.models import AuditEvent, User
+from app.models import AuditEvent, IamRole, User
 from app.schemas.user import UserCreate
 from tests.utils.utils import random_email, random_lower_string
 
@@ -174,3 +174,105 @@ def test_failed_iam_mutation_does_not_append_an_event(
     assert response.status_code == 409
     db.expire_all()
     assert len(list(db.exec(select(AuditEvent)).all())) == before
+
+
+def test_empty_role_patch_is_rejected_without_audit_side_effect(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    role = client.post(
+        f"{IAM_PATH}/roles",
+        headers=superuser_token_headers,
+        json=_role_payload(f"audit_{uuid.uuid4().hex[:16]}"),
+    )
+    assert role.status_code == 200, role.json()
+    role_id = role.json()["id"]
+    db.expire_all()
+    role_before = db.get(IamRole, role_id)
+    assert role_before is not None
+    updated_at_before = role_before.updated_at
+    event_count_before = len(list(db.exec(select(AuditEvent)).all()))
+    request_id = uuid.uuid4().hex
+
+    response = client.patch(
+        f"{IAM_PATH}/roles/{role_id}",
+        headers={**superuser_token_headers, "X-Request-ID": request_id},
+        json={},
+    )
+
+    assert response.status_code == 422, response.json()
+    assert response.headers["X-Request-ID"] == request_id
+    assert response.json() == {
+        "detail": "Role update does not change any fields",
+        "request_id": request_id,
+    }
+    db.expire_all()
+    role_after = db.get(IamRole, role_id)
+    assert role_after is not None
+    assert role_after.updated_at == updated_at_before
+    assert len(list(db.exec(select(AuditEvent)).all())) == event_count_before
+
+
+def test_same_value_role_patch_is_rejected_without_audit_side_effect(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    role = client.post(
+        f"{IAM_PATH}/roles",
+        headers=superuser_token_headers,
+        json=_role_payload(f"audit_{uuid.uuid4().hex[:16]}"),
+    )
+    assert role.status_code == 200, role.json()
+    role_id = role.json()["id"]
+    db.expire_all()
+    role_before = db.get(IamRole, role_id)
+    assert role_before is not None
+    updated_at_before = role_before.updated_at
+    event_count_before = len(list(db.exec(select(AuditEvent)).all()))
+    request_id = uuid.uuid4().hex
+
+    response = client.patch(
+        f"{IAM_PATH}/roles/{role_id}",
+        headers={**superuser_token_headers, "X-Request-ID": request_id},
+        json={"name": role_before.name},
+    )
+
+    assert response.status_code == 422, response.json()
+    assert response.headers["X-Request-ID"] == request_id
+    assert response.json() == {
+        "detail": "Role update does not change any fields",
+        "request_id": request_id,
+    }
+    db.expire_all()
+    role_after = db.get(IamRole, role_id)
+    assert role_after is not None
+    assert role_after.updated_at == updated_at_before
+    assert len(list(db.exec(select(AuditEvent)).all())) == event_count_before
+
+
+def test_role_patch_audit_lists_only_actual_changed_fields(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    role = client.post(
+        f"{IAM_PATH}/roles",
+        headers=superuser_token_headers,
+        json=_role_payload(f"audit_{uuid.uuid4().hex[:16]}"),
+    )
+    assert role.status_code == 200, role.json()
+    request_id = uuid.uuid4().hex
+
+    response = client.patch(
+        f"{IAM_PATH}/roles/{role.json()['id']}",
+        headers={**superuser_token_headers, "X-Request-ID": request_id},
+        json={"is_active": True, "name": "Audit role renamed"},
+    )
+
+    assert response.status_code == 200, response.json()
+    db.expire_all()
+    event = db.exec(select(AuditEvent).where(AuditEvent.request_id == request_id)).one()
+    assert event.action == "iam.role.updated"
+    assert event.changes == {"changed_fields": ["name"]}

@@ -3,7 +3,7 @@
   "name": "external-consumer-api-boundary",
   "title": "External consumer API boundary",
   "description": "D-005: plan a managed API surface for the first approved external consumer.",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "fx",
   "assignee": "fx",
   "createdAt": "2026-08-03",
-  "completedAt": null,
+  "completedAt": "2026-08-04",
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": "07-22-enterprise-platform-capability-backlog",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Deferred without implementation by ADR-0011. Restore this archived planning task and revalidate its artifacts only when a concrete external-consumer need is approved.",
   "meta": {}
 }

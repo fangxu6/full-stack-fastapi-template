@@ -247,7 +247,9 @@ def test_import_rejects_an_inactive_human_without_creating_a_batch(
     )
     db.add(actor)
     db.commit()
-    batch_count_before = db.exec(select(func.count()).select_from(InventoryImportBatch)).one()
+    batch_count_before = db.exec(
+        select(func.count()).select_from(InventoryImportBatch)
+    ).one()
 
     with pytest.raises(BadRequestError, match="must be active"):
         import_workbooks(
@@ -257,7 +259,10 @@ def test_import_rejects_an_inactive_human_without_creating_a_batch(
             finished_workbook=tmp_path / "not-read-finished.xlsx",
         )
 
-    assert db.exec(select(func.count()).select_from(InventoryImportBatch)).one() == batch_count_before
+    assert (
+        db.exec(select(func.count()).select_from(InventoryImportBatch)).one()
+        == batch_count_before
+    )
     db.delete(actor)
     db.commit()
 
@@ -390,6 +395,7 @@ def test_import_preserves_the_compound_color_column(
     finished_workbook = tmp_path / "finished-color.xlsx"
     _write_raw_workbook(raw_workbook, 0)
     _write_finished_workbook(finished_workbook)
+    existing_import_batch_ids = set(db.exec(select(InventoryImportBatch.id)).all())
 
     import_workbooks(
         session=db,
@@ -398,8 +404,15 @@ def test_import_preserves_the_compound_color_column(
         finished_workbook=finished_workbook,
     )
 
+    new_import_batch_ids = set(db.exec(select(InventoryImportBatch.id)).all())
+    new_import_batch_ids -= existing_import_batch_ids
+    assert len(new_import_batch_ids) == 1
+    import_batch_id = new_import_batch_ids.pop()
     ledger = db.exec(
-        select(InventoryLedgerEntry).where(InventoryLedgerEntry.color_code == "焦糖")
+        select(InventoryLedgerEntry).where(
+            InventoryLedgerEntry.color_code == "焦糖",
+            InventoryLedgerEntry.import_batch_id == import_batch_id,
+        )
     ).one()
     assert ledger is not None
     assert ledger.color_code == "焦糖"
