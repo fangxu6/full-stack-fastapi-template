@@ -212,6 +212,490 @@ export const InventoryBalancesPublicSchema = {
     title: 'InventoryBalancesPublic'
 } as const;
 
+export const InventoryCorrectionAttemptOriginSchema = {
+    type: 'string',
+    enum: ['INITIAL', 'RECOVERY'],
+    title: 'InventoryCorrectionAttemptOrigin'
+} as const;
+
+export const InventoryCorrectionAttemptPublicSchema = {
+    properties: {
+        id: {
+            type: 'integer',
+            title: 'Id'
+        },
+        sequence: {
+            type: 'integer',
+            title: 'Sequence'
+        },
+        origin: {
+            '$ref': '#/components/schemas/InventoryCorrectionAttemptOrigin'
+        },
+        status: {
+            '$ref': '#/components/schemas/InventoryCorrectionAttemptStatus'
+        },
+        scheduler_run_id: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Scheduler Run Id'
+        },
+        started_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Started At'
+        },
+        finished_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Finished At'
+        },
+        failure_category: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/InventoryCorrectionFailureCategory'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        }
+    },
+    type: 'object',
+    required: ['id', 'sequence', 'origin', 'status', 'scheduler_run_id', 'started_at', 'finished_at', 'failure_category'],
+    title: 'InventoryCorrectionAttemptPublic'
+} as const;
+
+export const InventoryCorrectionAttemptStatusSchema = {
+    type: 'string',
+    enum: ['PENDING', 'RUNNING', 'SUCCEEDED', 'TERMINAL_FAILED'],
+    title: 'InventoryCorrectionAttemptStatus'
+} as const;
+
+export const InventoryCorrectionDocumentProposalSchema = {
+    properties: {
+        document_type: {
+            '$ref': '#/components/schemas/InventoryDocumentType'
+        },
+        business_date: {
+            type: 'string',
+            format: 'date',
+            title: 'Business Date'
+        },
+        processing_unit_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Processing Unit Id'
+        },
+        receiving_unit_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Receiving Unit Id'
+        },
+        document_number: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 1,
+            title: 'Document Number'
+        },
+        remarks: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Remarks'
+        },
+        lines: {
+            items: {
+                '$ref': '#/components/schemas/InventoryCorrectionLineProposal'
+            },
+            type: 'array',
+            minItems: 1,
+            title: 'Lines'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['document_type', 'business_date', 'processing_unit_id', 'document_number', 'lines'],
+    title: 'InventoryCorrectionDocumentProposal'
+} as const;
+
+export const InventoryCorrectionFailureCategorySchema = {
+    type: 'string',
+    enum: ['STALE_TARGET', 'NEGATIVE_BALANCE', 'EXECUTION_LOST', 'EXECUTION_FAILED'],
+    title: 'InventoryCorrectionFailureCategory'
+} as const;
+
+export const InventoryCorrectionLineProposalSchema = {
+    properties: {
+        item_name: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Item Name'
+        },
+        item_code: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Item Code'
+        },
+        wool_content: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Wool Content'
+        },
+        color_code: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Color Code'
+        },
+        dye_lot_no: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Dye Lot No'
+        },
+        quantity_meters: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Quantity Meters'
+        },
+        quantity_rolls: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)'
+                }
+            ],
+            title: 'Quantity Rolls'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['item_name', 'wool_content', 'quantity_rolls'],
+    title: 'InventoryCorrectionLineProposal'
+} as const;
+
+export const InventoryCorrectionOperationSchema = {
+    type: 'string',
+    enum: ['UPDATE_DOCUMENT', 'DELETE_DOCUMENT', 'RESTORE_DOCUMENT'],
+    title: 'InventoryCorrectionOperation'
+} as const;
+
+export const InventoryCorrectionRequestCreateSchema = {
+    properties: {
+        document_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Document Id'
+        },
+        operation: {
+            '$ref': '#/components/schemas/InventoryCorrectionOperation'
+        },
+        expected_updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Expected Updated At'
+        },
+        proposal: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/InventoryCorrectionDocumentProposal'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        reason: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 1,
+            title: 'Reason'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['document_id', 'operation', 'expected_updated_at', 'reason'],
+    title: 'InventoryCorrectionRequestCreate'
+} as const;
+
+export const InventoryCorrectionRequestPublicSchema = {
+    properties: {
+        id: {
+            type: 'integer',
+            title: 'Id'
+        },
+        document_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Document Id'
+        },
+        operation: {
+            '$ref': '#/components/schemas/InventoryCorrectionOperation'
+        },
+        expected_updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Expected Updated At'
+        },
+        proposal: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Proposal'
+        },
+        proposal_hash: {
+            type: 'string',
+            title: 'Proposal Hash'
+        },
+        reason: {
+            type: 'string',
+            title: 'Reason'
+        },
+        status: {
+            '$ref': '#/components/schemas/InventoryCorrectionRequestStatus'
+        },
+        reviewer_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reviewer Id'
+        },
+        decided_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Decided At'
+        },
+        work_item: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/InventoryCorrectionWorkItemPublic'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'document_id', 'operation', 'expected_updated_at', 'proposal', 'proposal_hash', 'reason', 'status', 'reviewer_id', 'decided_at', 'created_at', 'updated_at'],
+    title: 'InventoryCorrectionRequestPublic'
+} as const;
+
+export const InventoryCorrectionRequestStatusSchema = {
+    type: 'string',
+    enum: ['PENDING_REVIEW', 'APPROVED', 'REJECTED', 'WITHDRAWN', 'STALE', 'APPLIED', 'APPLICATION_FAILED'],
+    title: 'InventoryCorrectionRequestStatus'
+} as const;
+
+export const InventoryCorrectionRequestsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/InventoryCorrectionRequestPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'InventoryCorrectionRequestsPublic'
+} as const;
+
+export const InventoryCorrectionWorkItemPublicSchema = {
+    properties: {
+        id: {
+            type: 'integer',
+            title: 'Id'
+        },
+        request_id: {
+            type: 'integer',
+            title: 'Request Id'
+        },
+        document_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Document Id'
+        },
+        expected_updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Expected Updated At'
+        },
+        proposal_hash: {
+            type: 'string',
+            title: 'Proposal Hash'
+        },
+        handler_type: {
+            type: 'string',
+            title: 'Handler Type'
+        },
+        status: {
+            '$ref': '#/components/schemas/InventoryCorrectionWorkItemStatus'
+        },
+        current_attempt_sequence: {
+            type: 'integer',
+            title: 'Current Attempt Sequence'
+        },
+        terminal_failure_category: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/InventoryCorrectionFailureCategory'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        attempts: {
+            items: {
+                '$ref': '#/components/schemas/InventoryCorrectionAttemptPublic'
+            },
+            type: 'array',
+            title: 'Attempts'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'request_id', 'document_id', 'expected_updated_at', 'proposal_hash', 'handler_type', 'status', 'current_attempt_sequence', 'terminal_failure_category', 'attempts', 'created_at', 'updated_at'],
+    title: 'InventoryCorrectionWorkItemPublic'
+} as const;
+
+export const InventoryCorrectionWorkItemStatusSchema = {
+    type: 'string',
+    enum: ['APPROVED_PENDING_APPLY', 'RUNNING', 'SUCCEEDED', 'TERMINAL_FAILED'],
+    title: 'InventoryCorrectionWorkItemStatus'
+} as const;
+
+export const InventoryCorrectionWorkItemsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/InventoryCorrectionWorkItemPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'InventoryCorrectionWorkItemsPublic'
+} as const;
+
 export const InventoryDocumentCreateSchema = {
     properties: {
         document_type: {
@@ -324,6 +808,11 @@ export const InventoryDocumentPublicSchema = {
             ],
             title: 'Remarks'
         },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        },
         deleted_at: {
             anyOf: [
                 {
@@ -345,7 +834,7 @@ export const InventoryDocumentPublicSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'document_type', 'business_date', 'processing_unit_id', 'receiving_unit_id', 'document_number', 'remarks', 'deleted_at', 'lines'],
+    required: ['id', 'document_type', 'business_date', 'processing_unit_id', 'receiving_unit_id', 'document_number', 'remarks', 'updated_at', 'deleted_at', 'lines'],
     title: 'InventoryDocumentPublic'
 } as const;
 

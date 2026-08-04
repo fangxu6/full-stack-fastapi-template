@@ -44,6 +44,100 @@ export type InventoryBalancesPublic = {
     count: number;
 };
 
+export type InventoryCorrectionAttemptOrigin = 'INITIAL' | 'RECOVERY';
+
+export type InventoryCorrectionAttemptPublic = {
+    id: number;
+    sequence: number;
+    origin: InventoryCorrectionAttemptOrigin;
+    status: InventoryCorrectionAttemptStatus;
+    scheduler_run_id: (number | null);
+    started_at: (string | null);
+    finished_at: (string | null);
+    failure_category: (InventoryCorrectionFailureCategory | null);
+};
+
+export type InventoryCorrectionAttemptStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'TERMINAL_FAILED';
+
+export type InventoryCorrectionDocumentProposal = {
+    document_type: InventoryDocumentType;
+    business_date: string;
+    processing_unit_id: string;
+    receiving_unit_id?: (string | null);
+    document_number: string;
+    remarks?: (string | null);
+    lines: Array<InventoryCorrectionLineProposal>;
+};
+
+export type InventoryCorrectionFailureCategory = 'STALE_TARGET' | 'NEGATIVE_BALANCE' | 'EXECUTION_LOST' | 'EXECUTION_FAILED';
+
+export type InventoryCorrectionLineProposal = {
+    item_name: string;
+    item_code?: (string | null);
+    wool_content: string;
+    color_code?: (string | null);
+    dye_lot_no?: (string | null);
+    quantity_meters?: (number | string | null);
+    quantity_rolls: (number | string);
+};
+
+export type InventoryCorrectionOperation = 'UPDATE_DOCUMENT' | 'DELETE_DOCUMENT' | 'RESTORE_DOCUMENT';
+
+export type InventoryCorrectionRequestCreate = {
+    document_id: string;
+    operation: InventoryCorrectionOperation;
+    expected_updated_at: string;
+    proposal?: (InventoryCorrectionDocumentProposal | null);
+    reason: string;
+};
+
+export type InventoryCorrectionRequestPublic = {
+    id: number;
+    document_id: string;
+    operation: InventoryCorrectionOperation;
+    expected_updated_at: string;
+    proposal: ({
+    [key: string]: unknown;
+} | null);
+    proposal_hash: string;
+    reason: string;
+    status: InventoryCorrectionRequestStatus;
+    reviewer_id: (string | null);
+    decided_at: (string | null);
+    work_item?: (InventoryCorrectionWorkItemPublic | null);
+    created_at: string;
+    updated_at: string;
+};
+
+export type InventoryCorrectionRequestsPublic = {
+    data: Array<InventoryCorrectionRequestPublic>;
+    count: number;
+};
+
+export type InventoryCorrectionRequestStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN' | 'STALE' | 'APPLIED' | 'APPLICATION_FAILED';
+
+export type InventoryCorrectionWorkItemPublic = {
+    id: number;
+    request_id: number;
+    document_id: string;
+    expected_updated_at: string;
+    proposal_hash: string;
+    handler_type: string;
+    status: InventoryCorrectionWorkItemStatus;
+    current_attempt_sequence: number;
+    terminal_failure_category: (InventoryCorrectionFailureCategory | null);
+    attempts: Array<InventoryCorrectionAttemptPublic>;
+    created_at: string;
+    updated_at: string;
+};
+
+export type InventoryCorrectionWorkItemsPublic = {
+    data: Array<InventoryCorrectionWorkItemPublic>;
+    count: number;
+};
+
+export type InventoryCorrectionWorkItemStatus = 'APPROVED_PENDING_APPLY' | 'RUNNING' | 'SUCCEEDED' | 'TERMINAL_FAILED';
+
 export type InventoryDocumentCreate = {
     document_type: InventoryDocumentType;
     business_date: string;
@@ -62,6 +156,7 @@ export type InventoryDocumentPublic = {
     receiving_unit_id: (string | null);
     document_number: (string | null);
     remarks: (string | null);
+    updated_at: string;
     deleted_at: (string | null);
     lines: Array<InventoryLinePublic>;
 };
@@ -633,6 +728,63 @@ export type InventoryReadInventorySuggestionsData = {
 };
 
 export type InventoryReadInventorySuggestionsResponse = (InventorySuggestionsPublic);
+
+export type InventoryCorrectionsCreateCorrectionRequestData = {
+    requestBody: InventoryCorrectionRequestCreate;
+};
+
+export type InventoryCorrectionsCreateCorrectionRequestResponse = (InventoryCorrectionRequestPublic);
+
+export type InventoryCorrectionsReadMyCorrectionRequestsData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type InventoryCorrectionsReadMyCorrectionRequestsResponse = (InventoryCorrectionRequestsPublic);
+
+export type InventoryCorrectionsReadCorrectionReviewQueueData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type InventoryCorrectionsReadCorrectionReviewQueueResponse = (InventoryCorrectionRequestsPublic);
+
+export type InventoryCorrectionsReadCorrectionRequestData = {
+    correctionRequestId: number;
+};
+
+export type InventoryCorrectionsReadCorrectionRequestResponse = (InventoryCorrectionRequestPublic);
+
+export type InventoryCorrectionsApproveCorrectionRequestData = {
+    correctionRequestId: number;
+};
+
+export type InventoryCorrectionsApproveCorrectionRequestResponse = (InventoryCorrectionRequestPublic);
+
+export type InventoryCorrectionsRejectCorrectionRequestData = {
+    correctionRequestId: number;
+};
+
+export type InventoryCorrectionsRejectCorrectionRequestResponse = (InventoryCorrectionRequestPublic);
+
+export type InventoryCorrectionsWithdrawCorrectionRequestData = {
+    correctionRequestId: number;
+};
+
+export type InventoryCorrectionsWithdrawCorrectionRequestResponse = (InventoryCorrectionRequestPublic);
+
+export type InventoryCorrectionsReadCorrectionRecoveryQueueData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type InventoryCorrectionsReadCorrectionRecoveryQueueResponse = (InventoryCorrectionWorkItemsPublic);
+
+export type InventoryCorrectionsRecoverCorrectionWorkItemData = {
+    workItemId: number;
+};
+
+export type InventoryCorrectionsRecoverCorrectionWorkItemResponse = (InventoryCorrectionWorkItemPublic);
 
 export type ItemsReadItemsData = {
     limit?: number;
