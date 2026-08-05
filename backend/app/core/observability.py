@@ -78,6 +78,7 @@ def configure_observability() -> None:
             _add_environment,
             _normalize_event_name,
             structlog.processors.format_exc_info,
+            _prioritize_log_fields,
             structlog.processors.JSONRenderer(),
         ],
         logger_factory=structlog.PrintLoggerFactory(file=sys.stdout),
@@ -100,6 +101,18 @@ def _normalize_event_name(
 ) -> MutableMapping[str, Any]:
     event_dict["event_name"] = event_dict.pop("event")
     return event_dict
+
+
+def _prioritize_log_fields(
+    _: Any, __: str, event_dict: MutableMapping[str, Any]
+) -> MutableMapping[str, Any]:
+    prioritized = {
+        key: event_dict[key] for key in ("timestamp", "severity") if key in event_dict
+    }
+    prioritized.update(
+        {key: value for key, value in event_dict.items() if key not in prioritized}
+    )
+    return prioritized
 
 
 def bind_request_context(*, request_id: str, actor_kind: str = "anonymous") -> None:

@@ -102,6 +102,7 @@ def test_log_event_emits_only_allowlisted_json(capsys: CaptureFixture[str]) -> N
 
     captured = capsys.readouterr().out
     payload = json.loads(captured)
+    assert list(payload)[:2] == ["timestamp", "severity"]
     assert payload["event_name"] == "dependency.failed"
     assert payload["severity"] == "ERROR"
     assert payload["request_id"] == "a" * 32
@@ -190,6 +191,7 @@ def test_log_exception_emits_json_traceback(capsys: CaptureFixture[str]) -> None
         clear_request_context()
 
     payload = json.loads(capsys.readouterr().out)
+    assert list(payload)[:2] == ["timestamp", "severity"]
     assert payload["event_name"] == "http.request.failed"
     assert payload["severity"] == "ERROR"
     assert payload["request_id"] == "a" * 32
