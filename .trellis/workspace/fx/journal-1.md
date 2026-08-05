@@ -1251,3 +1251,36 @@ Implemented 24-hour sid-bound access JWTs, server-side AuthSession revocation, i
 ### Next Steps
 
 - None - task complete
+
+
+## Session 38: Centralize auth-session authority
+
+**Date**: 2026-08-05
+**Task**: Centralize auth-session authority
+**Branch**: `master`
+
+### Summary
+
+Added the auth session module, migrated validation issuance logout and revocation callers, added focused session tests and API E2E planning, and verified the full backend suite with 351 passed and 2 skipped.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e8c9216` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
