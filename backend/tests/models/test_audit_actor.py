@@ -500,7 +500,9 @@ def test_all_audited_models_track_update_delete_restore_and_reject_creator_tampe
         session.rollback()
 
 
-def test_audit_update_preserves_creator_and_soft_delete_restore_tracks_updater() -> None:
+def test_audit_update_preserves_creator_and_soft_delete_restore_tracks_updater() -> (
+    None
+):
     with Session(engine) as session:
         creator = User(email="audit-creator@example.com", hashed_password="not-used")
         updater = User(email="audit-updater@example.com", hashed_password="not-used")
@@ -542,7 +544,9 @@ def test_audit_binding_rejects_nonexistent_or_deleted_actor_before_a_write() -> 
         with pytest.raises(AuditActorError, match="does not exist"):
             bind_audit_actor(session=session, actor_id=uuid.uuid4())
 
-        actor = User(email="deleted-audit-actor@example.com", hashed_password="not-used")
+        actor = User(
+            email="deleted-audit-actor@example.com", hashed_password="not-used"
+        )
         session.add(actor)
         session.flush()
         session.delete(actor)
@@ -587,7 +591,9 @@ def test_models_outside_audit_hook_persist_without_an_actor() -> None:
         )
         session.add_all((user, item, report))
         session.flush()
-        delivery = InventoryDailyReportDelivery(report_id=report.id, email="ops@example.com")
+        delivery = InventoryDailyReportDelivery(
+            report_id=report.id, email="ops@example.com"
+        )
         run = SchedulerRun(
             job_id=scheduler_job.id or 0,
             status=SchedulerRunStatus.SUCCEEDED,
@@ -628,19 +634,22 @@ class _MigrationResult:
 
 
 class _MigrationConnection:
-    def __init__(self, *, system_actor_id: uuid.UUID | None, audit_reference_table: str | None) -> None:
+    def __init__(
+        self, *, system_actor_id: uuid.UUID | None, audit_reference_table: str | None
+    ) -> None:
         self.system_actor_id = system_actor_id
         self.audit_reference_table = audit_reference_table
         self.audit_checks: list[str] = []
 
-    def execute(self, statement: object, _parameters: object = None) -> _MigrationResult:
+    def execute(
+        self, statement: object, _parameters: object = None
+    ) -> _MigrationResult:
         sql = str(statement)
         if 'SELECT id FROM "user"' in sql:
             return _MigrationResult(self.system_actor_id)
         self.audit_checks.append(sql)
         return _MigrationResult(
-            self.audit_reference_table is not None
-            and self.audit_reference_table in sql
+            self.audit_reference_table is not None and self.audit_reference_table in sql
         )
 
 
@@ -652,7 +661,9 @@ def _load_system_actor_migration() -> ModuleType:
         / "versions"
         / "f2a8c7d1e6b4_add_system_actor_marker.py"
     )
-    spec = importlib.util.spec_from_file_location("system_actor_migration", migration_path)
+    spec = importlib.util.spec_from_file_location(
+        "system_actor_migration", migration_path
+    )
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -724,7 +735,9 @@ def test_system_actor_key_migration_downgrade_is_allowed_before_audit_references
     created: list[str] = []
     monkeypatch.setattr(migration.op, "get_bind", lambda: connection)
     monkeypatch.setattr(
-        migration.op, "drop_constraint", lambda name, *_args, **_kwargs: dropped.append(name)
+        migration.op,
+        "drop_constraint",
+        lambda name, *_args, **_kwargs: dropped.append(name),
     )
     monkeypatch.setattr(
         migration.op, "drop_index", lambda name, **_: dropped.append(name)
@@ -733,7 +746,9 @@ def test_system_actor_key_migration_downgrade_is_allowed_before_audit_references
         migration.op, "drop_column", lambda _table, name: dropped.append(name)
     )
     monkeypatch.setattr(
-        migration.op, "create_index", lambda name, *_args, **_kwargs: created.append(name)
+        migration.op,
+        "create_index",
+        lambda name, *_args, **_kwargs: created.append(name),
     )
 
     migration.downgrade()
