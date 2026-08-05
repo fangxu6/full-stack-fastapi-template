@@ -78,6 +78,7 @@ The existing frontend route-permission-navigation contract is the local example:
 ## Spec File Inventory
 
 - [Async Task Runtime Guidelines](./backend/async-task-guidelines.md)
+- [Cache Guidelines](./backend/cache-guidelines.md)
 - [Database Guidelines](./backend/database-guidelines.md)
 - [Directory Structure](./backend/directory-structure.md)
 - [Error Handling](./backend/error-handling.md)

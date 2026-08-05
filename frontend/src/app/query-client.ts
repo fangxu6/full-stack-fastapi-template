@@ -2,6 +2,12 @@ import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query"
 import { queryRetryDelay, shouldRetryQuery } from "@/app/query-retry"
 import { ApiError } from "@/client"
 
+export const clearAuthState = () => {
+  localStorage.removeItem("access_token")
+  queryClient.removeQueries({ queryKey: ["currentUser"] })
+  queryClient.removeQueries({ queryKey: ["iam", "permissions"] })
+}
+
 const handleApiError = (error: Error) => {
   const isInvalidSession =
     error instanceof ApiError &&
@@ -12,7 +18,7 @@ const handleApiError = (error: Error) => {
         "detail" in error.body &&
         error.body.detail === "Could not validate credentials"))
   if (isInvalidSession) {
-    localStorage.removeItem("access_token")
+    clearAuthState()
     window.location.href = "/login"
   }
 }

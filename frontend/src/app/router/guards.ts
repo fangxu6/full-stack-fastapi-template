@@ -5,6 +5,7 @@ import {
   type MyPermissions,
   readMyPermissionsForRoute,
 } from "@/app/permissions"
+import { clearAuthState } from "@/app/query-client"
 import { isLoggedIn } from "@/hooks/useAuth"
 import {
   hasPermission,
@@ -33,7 +34,7 @@ export function requirePermission(permission: PermissionCode) {
     } catch (error) {
       const outcome = classifyPermissionQueryError(error)
       if (outcome === "login") {
-        localStorage.removeItem("access_token")
+        clearAuthState()
         throw redirect({ to: "/login" })
       }
       if (outcome === "configuration") {

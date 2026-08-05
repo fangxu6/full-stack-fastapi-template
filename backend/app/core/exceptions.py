@@ -8,6 +8,7 @@ from starlette.datastructures import Headers, MutableHeaders
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.status import (
     HTTP_400_BAD_REQUEST,
+    HTTP_401_UNAUTHORIZED,
     HTTP_403_FORBIDDEN,
     HTTP_404_NOT_FOUND,
     HTTP_409_CONFLICT,
@@ -51,7 +52,7 @@ class PermissionDeniedError(AppError):
 
 
 class AuthenticationError(AppError):
-    status_code = HTTP_403_FORBIDDEN
+    status_code = HTTP_401_UNAUTHORIZED
     detail = "Could not validate credentials"
 
 

@@ -55,6 +55,21 @@ Hooks in this repo should stay focused. The most important current hook is `useA
 - Extracting page-local query logic into hooks too early, which can hide ownership instead of clarifying it.
 - Forgetting to invalidate the query keys that feed list or current-user views after mutations.
 
+### Auth Session Cleanup Contract
+
+- `useAuth.logout()` calls the generated `LoginService.logout()` while the
+  access token is present, then always removes `access_token` and cached
+  `currentUser`/`iam/permissions` state before navigating to `/login`.
+- Shared `401` handling must perform the same cleanup and redirect. Do not
+  leave a revoked token in localStorage or retain permission data after the
+  session is invalid.
+
+### Tests Required
+
+- Verify logout still clears local state when the API returns `401` or is
+  unreachable, and verify a protected-query `401` clears token, identity, and
+  permission caches before redirecting.
+
 ---
 
 ## Code Anchors

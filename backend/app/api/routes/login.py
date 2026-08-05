@@ -5,7 +5,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app import services
-from app.api.deps import CurrentUser, SystemAuditedWriteSessionDep, WriteSessionDep
+from app.api.deps import (
+    CurrentUser,
+    SystemAuditedWriteSessionDep,
+    TokenDep,
+    WriteSessionDep,
+)
 from app.modules.iam.dependencies import permission_required
 from app.schemas.security import Message, NewPassword, Token
 from app.schemas.user import UserPublic
@@ -23,6 +28,11 @@ def login_access_token(
     return services.auth.login_access_token(
         session=session, username=form_data.username, password=form_data.password
     )
+
+
+@router.post("/login/logout", response_model=Message)
+def logout(session: WriteSessionDep, token: TokenDep) -> Message:
+    return services.auth.logout(session=session, token=token)
 
 
 @router.post("/login/test-token", response_model=UserPublic)

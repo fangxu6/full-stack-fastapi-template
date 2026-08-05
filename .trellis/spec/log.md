@@ -299,3 +299,7 @@ The frontend component-policy hook now invokes scripts/check-thin-routes.mjs wit
 ## [2026-08-04 21:45:03] fix | Restore Bun thin-route quality runtime
 
 Restored Bun as the thin-route AST checker runtime. The hook resolves Bun from PATH first and falls back to Bun's standard user-local installation path for non-interactive Git hook processes.
+
+## [2026-08-05 16:17:11] update | Document revocable JWT session and password-link contracts
+
+Recorded access claims, server-side session revocation, versioned password-link outbox migration behavior, and frontend auth cleanup contracts.

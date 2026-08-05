@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.tasks import deliver_outbox_email
 from app.models import EmailOutbox, EmailOutboxStatus, User
 from app.services import email_outbox
+from app.utils import verify_password_reset_token
 from tests.utils.user import create_random_user
 
 
@@ -117,3 +118,38 @@ def test_claiming_expired_lease_only_recovers_it(db: Session) -> None:
     assert persisted is not None
     assert persisted.status is EmailOutboxStatus.RETRY_WAIT
     assert persisted.last_error_category == "DELIVERY_LEASE_EXPIRED"
+
+
+def test_link_retry_reuses_the_outbox_password_version(db: Session) -> None:
+    user = create_random_user(db)
+    outbox = email_outbox.queue_password_recovery_email(session=db, user=user)
+    db.commit()
+    initial_version = outbox.password_reset_version
+    now = datetime.now(UTC)
+
+    first = email_outbox.claim_delivery(session=db, outbox_id=outbox.id or 0, now=now)
+    assert first is not None
+    first_token = first.html_content.split("?token=", 1)[1].split('"', 1)[0]
+    email_outbox.fail_delivery(
+        session=db,
+        payload=first,
+        category="SMTP_DELIVERY_FAILED",
+        now=now,
+    )
+    db.commit()
+
+    second = email_outbox.claim_delivery(
+        session=db,
+        outbox_id=outbox.id or 0,
+        now=now + email_outbox.RETRY_DELAY,
+    )
+    assert second is not None
+    second_token = second.html_content.split("?token=", 1)[1].split('"', 1)[0]
+    first_data = verify_password_reset_token(first_token)
+    second_data = verify_password_reset_token(second_token)
+    assert first_data is not None
+    assert second_data is not None
+    assert first_data.version == initial_version
+    assert second_data.version == initial_version
+    db.refresh(user)
+    assert user.password_reset_version == initial_version

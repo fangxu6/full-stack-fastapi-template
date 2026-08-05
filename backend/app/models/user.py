@@ -17,6 +17,11 @@ if TYPE_CHECKING:
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
+    password_reset_version: int = Field(
+        default=0,
+        nullable=False,
+        sa_column_kwargs={"comment": "密码重置版本"},
+    )
     # Compatibility marker for template Items and AI only. RBAC owns new access checks.
     is_superuser: bool = Field(default=False)
     is_system_actor: bool = Field(default=False, nullable=False)

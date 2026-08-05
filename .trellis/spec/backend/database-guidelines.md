@@ -1313,3 +1313,87 @@ write validation.
 - Service transformations: [`backend/app/services/user.py`](../../../backend/app/services/user.py), [`backend/app/services/item.py`](../../../backend/app/services/item.py)
 - Item persistence flow: [`backend/app/services/item.py`](../../../backend/app/services/item.py), [`backend/app/crud/item.py`](../../../backend/app/crud/item.py)
 - Client regeneration script: [`scripts/generate-client.sh`](../../../scripts/generate-client.sh)
+
+## Scenario: Revocable JWT Sessions And Versioned Password Links
+
+### 1. Scope / Trigger
+
+- Trigger: authentication changes cross the FastAPI dependency, SQLModel
+  session table, password-link outbox, Alembic migration, and generated
+  frontend client.
+
+### 2. Signatures
+
+- `POST /api/v1/login/access-token` returns the existing bearer response and
+  creates one `auth_session` row.
+- `POST /api/v1/login/logout` accepts the bearer token and revokes only its
+  `sid`; it is idempotent for an already revoked or expired session.
+- `AuthSession`: `id`, `user_id`, `created_at`, `expires_at`, `revoked_at`.
+- `User.password_reset_version` is a non-null integer; link outbox rows keep
+  only `password_reset_version`, never reset-token plaintext.
+
+### 3. Contracts
+
+- Access tokens require `sub`, `sid`, `typ=access`, `iss`, `aud`, `iat`, `nbf`,
+  and `exp`, use the dedicated access secret, and are checked against an
+  active, unexpired `auth_session` on every protected request.
+- Password links use the separate password-token secret, `typ` equal to
+  `password_reset` or `password_setup`, the user UUID as `sub`, and the
+  issuance version. Issuance uses `UPDATE ... SET version = version + 1
+  RETURNING version`; consumption conditionally updates the matching version
+  and increments it in the same transaction as the password change.
+- Password-link outbox retries render from their stored version snapshot.
+  Migration-time non-terminal legacy link rows become
+  `FAILED/TOKEN_SUPERSEDED`; terminal legacy rows may retain a null version and
+  must never be rendered.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| Missing, malformed, legacy, wrong issuer/audience/type, revoked, expired, or user-missing access token | `401` with the standard credential error and no write mutation |
+| Logout with a valid signed token whose session is missing, expired, or already revoked | `200` no-op |
+| Password link version is stale, consumed, expired, or signed for another purpose/secret | `400 Invalid token` and no password/session mutation |
+| Password change, reset/setup success, deactivation, or deletion | Revoke all user sessions in the same write transaction |
+
+### 5. Good / Base / Bad Cases
+
+- Good: two logins create two sessions; logout revokes one while the other
+  remains usable.
+- Base: a migration upgrades a delivered legacy link row without failing, and
+  cancels a pending legacy link before delivery can render it.
+- Bad: persist an access token, accept a legacy claim shape, or generate a new
+  token during a deferred outbox retry.
+
+### 6. Tests Required
+
+- API tests assert required claims, legacy/wrong-claim `401`, single-session
+  logout, repeated logout, multi-device behavior, password/account transition
+  revocation, and reset/setup single-use/latest-only behavior.
+- Outbox tests decode first and retry renderings and assert the same version;
+  migration tests cover both terminal legacy rows and
+  `TOKEN_SUPERSEDED` cancellation.
+- Run focused and full backend tests only against a database ending in
+  `_test` or `_pytest`, plus local HTTP login/logout checks.
+
+### 7. Wrong Vs Correct
+
+#### Wrong
+
+```python
+payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+return session.get(User, payload["sub"])
+```
+
+This accepts legacy tokens and never observes server-side session revocation.
+
+#### Correct
+
+```python
+payload = security.decode_access_token(token)
+user = session.get(User, payload.sub)
+auth_session = session.get(AuthSession, payload.sid)
+```
+
+Require the complete claim contract, then reject missing, inactive, expired, or
+revoked user/session state before returning the user.

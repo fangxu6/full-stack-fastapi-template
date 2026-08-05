@@ -1,6 +1,7 @@
 from sqlmodel import SQLModel
 
 from .audit import AuditEvent
+from .auth_session import AuthSession
 from .email import EmailOutbox, EmailOutboxKind, EmailOutboxStatus
 from .iam import IamPermission, IamRole, IamRolePermission, IamUserRole
 from .inventory import (
@@ -24,6 +25,7 @@ from .user import User
 __all__ = [
     "SQLModel",
     "AuditEvent",
+    "AuthSession",
     "EmailOutbox",
     "EmailOutboxKind",
     "EmailOutboxStatus",

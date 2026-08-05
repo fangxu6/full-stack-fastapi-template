@@ -1,6 +1,6 @@
+from datetime import UTC, datetime
 from typing import Annotated
 
-import jwt
 from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
@@ -11,13 +11,10 @@ from app.core import security
 from app.core.config import settings
 from app.core.exceptions import (
     AuthenticationError,
-    BadRequestError,
     PermissionDeniedError,
-    UserNotFoundError,
 )
 from app.core.observability import set_actor_kind_authenticated
-from app.models import User
-from app.schemas.security import TokenPayload
+from app.models import AuthSession, User
 
 from .database import get_db
 
@@ -31,19 +28,24 @@ TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 def get_current_user(session: SessionDep, token: TokenDep, request: Request) -> User:
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
-        )
-        token_data = TokenPayload(**payload)
+        token_data = security.decode_access_token(token)
     except InvalidTokenError, ValidationError:
         raise AuthenticationError()
     user = session.get(User, token_data.sub)
     if not user:
-        raise UserNotFoundError()
+        raise AuthenticationError()
     if user.is_system_actor:
         raise AuthenticationError()
     if not user.is_active:
-        raise BadRequestError("Inactive user")
+        raise AuthenticationError()
+    auth_session = session.get(AuthSession, token_data.sid)
+    if (
+        auth_session is None
+        or auth_session.user_id != user.id
+        or auth_session.revoked_at is not None
+        or auth_session.expires_at <= datetime.now(UTC)
+    ):
+        raise AuthenticationError()
     request.state.actor_kind = "authenticated"
     set_actor_kind_authenticated()
     return user

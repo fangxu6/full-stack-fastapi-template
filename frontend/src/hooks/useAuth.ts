@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 
+import { clearAuthState } from "@/app/query-client"
 import {
   type Body_login_login_access_token as AccessToken,
   LoginService,
@@ -53,9 +54,15 @@ const useAuth = () => {
     onError: handleError.bind(showErrorToast),
   })
 
-  const logout = () => {
-    localStorage.removeItem("access_token")
-    navigate({ to: "/login" })
+  const logout = async () => {
+    try {
+      if (isLoggedIn()) await LoginService.logout()
+    } catch {
+      // Local cleanup is still required when the session is already invalid.
+    } finally {
+      clearAuthState()
+      await navigate({ to: "/login" })
+    }
   }
 
   return {

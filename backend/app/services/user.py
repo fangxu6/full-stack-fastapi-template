@@ -21,6 +21,7 @@ from app.schemas.user import (
     UserUpdate,
     UserUpdateMe,
 )
+from app.services.auth import revoke_all_user_sessions
 from app.services.email_outbox import queue_account_set_password_email
 
 
@@ -115,6 +116,7 @@ def update_password_me(
     current_user.hashed_password = hashed_password
     session.add(current_user)
     session.flush()
+    revoke_all_user_sessions(session=session, user_id=current_user.id)
     return Message(message="Password updated successfully")
 
 
@@ -139,16 +141,20 @@ def update_user(*, session: Session, user_id: uuid.UUID, user_in: UserUpdate) ->
             raise ConflictError("User with this email already exists")
 
     was_active = db_user.is_active
+    password_changed = user_in.password is not None
     if was_active and user_in.is_active is False:
         iam_service.ensure_user_deactivation_is_safe(session=session, user=db_user)
     db_user = crud.update_user(session=session, db_user=db_user, user_in=user_in)
     session.refresh(db_user)
+    if password_changed or (was_active and user_in.is_active is False):
+        revoke_all_user_sessions(session=session, user_id=db_user.id)
     return db_user
 
 
 def delete_user(*, session: Session, user_id: uuid.UUID) -> Message:
     user = _get_required_user(session=session, user_id=user_id)
     iam_service.ensure_user_deactivation_is_safe(session=session, user=user)
+    revoke_all_user_sessions(session=session, user_id=user.id)
     crud.delete_items_by_owner(session=session, owner_id=user_id)
     crud.delete_user(session=session, db_user=user)
     return Message(message="User deleted successfully")

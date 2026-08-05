@@ -1,6 +1,7 @@
 import uuid
 
-from sqlmodel import Session, select
+from sqlalchemy import update
+from sqlmodel import Session, col, select
 
 from app.core.security import get_password_hash, verify_password
 from app.models import User
@@ -30,6 +31,16 @@ def update_user(*, session: Session, db_user: User, user_in: UserUpdate) -> User
     session.add(db_user)
     session.flush()
     return db_user
+
+
+def increment_password_reset_version(*, session: Session, user: User) -> int:
+    statement = (
+        update(User)
+        .where(col(User.id) == user.id)
+        .values(password_reset_version=User.password_reset_version + 1)
+        .returning(col(User.password_reset_version))
+    )
+    return int(session.exec(statement).scalar_one())
 
 
 def get_user_by_id(*, session: Session, user_id: uuid.UUID) -> User | None:

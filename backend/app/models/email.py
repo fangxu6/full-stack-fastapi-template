@@ -55,7 +55,7 @@ class EmailOutbox(AuditFields, table=True):
             "last_error_category IS NULL OR last_error_category IN "
             "('SMTP_NOT_CONFIGURED', 'SMTP_DELIVERY_FAILED', "
             "'DELIVERY_LEASE_EXPIRED', 'RECIPIENT_INVALID', "
-            "'MAX_ATTEMPTS_EXCEEDED')",
+            "'MAX_ATTEMPTS_EXCEEDED', 'TOKEN_SUPERSEDED')",
             name="ck_email_outbox_error_category",
         ),
         CheckConstraint(
@@ -69,6 +69,11 @@ class EmailOutbox(AuditFields, table=True):
         CheckConstraint(
             "status <> 'FAILED' OR failed_at IS NOT NULL",
             name="ck_email_outbox_failed_at",
+        ),
+        CheckConstraint(
+            "kind = 'RENDERED' OR password_reset_version IS NOT NULL "
+            "OR status IN ('FAILED', 'DELIVERED')",
+            name="ck_email_outbox_password_reset_version",
         ),
         Index(
             "ix_email_outbox_due",
@@ -103,6 +108,10 @@ class EmailOutbox(AuditFields, table=True):
             ),
             nullable=True,
         ),
+    )
+    password_reset_version: int | None = Field(
+        default=None,
+        sa_column_kwargs={"comment": "密码链接版本快照"},
     )
     subject: str | None = Field(default=None, max_length=255)
     html_content: str | None = Field(

@@ -1,11 +1,13 @@
+import jwt
 from fastapi.testclient import TestClient
 from pwdlib.hashers.bcrypt import BcryptHasher
 from sqlmodel import Session, select
 
+from app.core import security
 from app.core.config import settings
-from app.core.security import create_access_token, get_password_hash, verify_password
+from app.core.security import get_password_hash, verify_password
 from app.crud import create_user
-from app.models import EmailOutbox, EmailOutboxKind, User
+from app.models import AuthSession, EmailOutbox, EmailOutboxKind, User
 from app.schemas.user import UserCreate
 from app.utils import generate_password_reset_token
 from tests.utils.user import user_authentication_headers
@@ -39,8 +41,6 @@ def test_get_access_token_incorrect_password(client: TestClient) -> None:
 def test_system_actor_cannot_log_in_or_use_an_existing_token(
     client: TestClient, db: Session
 ) -> None:
-    from datetime import timedelta
-
     from app.core.audit import ensure_system_actor
 
     password = "system-actor-password"
@@ -56,12 +56,16 @@ def test_system_actor_cannot_log_in_or_use_an_existing_token(
     assert login.status_code == 400
     assert login.json()["detail"] == "Incorrect email or password"
 
-    token = create_access_token(system_actor.id, expires_delta=timedelta(minutes=5))
+    token = jwt.encode(
+        {"sub": str(system_actor.id)},
+        settings.SECRET_KEY,
+        algorithm=security.ALGORITHM,
+    )
     token_response = client.post(
         f"{settings.API_V1_STR}/login/test-token",
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert token_response.status_code == 403
+    assert token_response.status_code == 401
     assert token_response.json()["detail"] == "Could not validate credentials"
 
 
@@ -75,6 +79,112 @@ def test_use_access_token(
     result = r.json()
     assert r.status_code == 200
     assert "email" in result
+
+
+def test_login_issues_session_bound_access_token(
+    client: TestClient, db: Session
+) -> None:
+    response = client.post(
+        f"{settings.API_V1_STR}/login/access-token",
+        data={
+            "username": settings.FIRST_SUPERUSER,
+            "password": settings.FIRST_SUPERUSER_PASSWORD,
+        },
+    )
+    token = response.json()["access_token"]
+    payload = jwt.decode(
+        token,
+        settings.ACCESS_TOKEN_SECRET_KEY,
+        algorithms=[security.ALGORITHM],
+        audience=settings.JWT_AUDIENCE,
+        issuer=settings.JWT_ISSUER,
+    )
+
+    assert response.status_code == 200
+    assert {
+        "sub",
+        "sid",
+        "typ",
+        "iss",
+        "aud",
+        "iat",
+        "nbf",
+        "exp",
+    } <= payload.keys()
+    auth_session = db.get(AuthSession, payload["sid"])
+    assert auth_session is not None
+    assert str(auth_session.user_id) == payload["sub"]
+
+
+def test_logout_revokes_only_the_current_session(
+    client: TestClient, db: Session
+) -> None:
+    email = random_email()
+    password = random_lower_string()
+    user = create_user(
+        session=db,
+        user_create=UserCreate(email=email, password=password, is_active=True),
+    )
+    db.commit()
+    first = user_authentication_headers(client=client, email=email, password=password)
+    second = user_authentication_headers(client=client, email=email, password=password)
+
+    first_logout = client.post(f"{settings.API_V1_STR}/login/logout", headers=first)
+    repeated_logout = client.post(f"{settings.API_V1_STR}/login/logout", headers=first)
+
+    assert first_logout.status_code == 200
+    assert repeated_logout.status_code == 200
+    assert (
+        client.post(
+            f"{settings.API_V1_STR}/login/test-token", headers=first
+        ).status_code
+        == 401
+    )
+    assert (
+        client.post(
+            f"{settings.API_V1_STR}/login/test-token", headers=second
+        ).status_code
+        == 200
+    )
+    sessions = db.exec(select(AuthSession).where(AuthSession.user_id == user.id)).all()
+    assert len(sessions) == 2
+    assert sum(session.revoked_at is not None for session in sessions) == 1
+
+
+def test_access_token_rejects_missing_or_wrong_claims_without_new_sessions(
+    client: TestClient, db: Session
+) -> None:
+    login = client.post(
+        f"{settings.API_V1_STR}/login/access-token",
+        data={
+            "username": settings.FIRST_SUPERUSER,
+            "password": settings.FIRST_SUPERUSER_PASSWORD,
+        },
+    )
+    assert login.status_code == 200
+    valid_token = login.json()["access_token"]
+    payload = jwt.decode(valid_token, options={"verify_signature": False})
+    session_count = len(db.exec(select(AuthSession)).all())
+
+    invalid_payloads = (
+        {key: value for key, value in payload.items() if key != "sid"},
+        payload | {"iss": "wrong-issuer"},
+        payload | {"aud": "wrong-audience"},
+        payload | {"typ": "password_reset"},
+    )
+    for invalid_payload in invalid_payloads:
+        token = jwt.encode(
+            invalid_payload,
+            settings.ACCESS_TOKEN_SECRET_KEY,
+            algorithm=security.ALGORITHM,
+        )
+        response = client.post(
+            f"{settings.API_V1_STR}/login/test-token",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 401
+
+    assert len(db.exec(select(AuthSession)).all()) == session_count
 
 
 def test_recovery_password(
@@ -159,7 +269,11 @@ def test_reset_password(client: TestClient, db: Session) -> None:
     )
     user = create_user(session=db, user_create=user_create)
     db.commit()
-    token = generate_password_reset_token(email=email)
+    token = generate_password_reset_token(
+        user_id=user.id,
+        purpose="password_reset",
+        version=user.password_reset_version,
+    )
     headers = user_authentication_headers(client=client, email=email, password=password)
     data = {"new_password": new_password, "token": token}
 
@@ -172,9 +286,24 @@ def test_reset_password(client: TestClient, db: Session) -> None:
     assert r.status_code == 200
     assert r.json() == {"message": "Password updated successfully"}
 
+    assert (
+        client.post(
+            f"{settings.API_V1_STR}/login/test-token", headers=headers
+        ).status_code
+        == 401
+    )
+
     db.refresh(user)
     verified, _ = verify_password(new_password, user.hashed_password)
     assert verified
+
+    reused = client.post(
+        f"{settings.API_V1_STR}/reset-password/",
+        headers=headers,
+        json=data,
+    )
+    assert reused.status_code == 400
+    assert reused.json()["detail"] == "Invalid token"
 
 
 def test_reset_password_invalid_token(
@@ -202,7 +331,11 @@ def test_system_actor_password_reset_and_html_preview_are_unavailable(
     system_actor = ensure_system_actor(session=db)
     original_hash = system_actor.hashed_password
     db.commit()
-    token = generate_password_reset_token(email=system_actor.email)
+    token = generate_password_reset_token(
+        user_id=system_actor.id,
+        purpose="password_reset",
+        version=system_actor.password_reset_version,
+    )
 
     reset = client.post(
         f"{settings.API_V1_STR}/reset-password/",
@@ -230,7 +363,7 @@ def test_use_access_token_invalid_token_returns_request_id(client: TestClient) -
         headers={"Authorization": "Bearer invalid-token"},
     )
 
-    assert r.status_code == 403
+    assert r.status_code == 401
     payload = r.json()
     assert payload["detail"] == "Could not validate credentials"
     assert payload["request_id"]

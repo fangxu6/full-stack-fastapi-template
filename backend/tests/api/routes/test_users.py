@@ -1,14 +1,16 @@
 import uuid
 
+import jwt
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app import crud
+from app.core import security
 from app.core.config import settings
-from app.core.security import create_access_token, verify_password
+from app.core.security import verify_password
 from app.models import EmailOutbox, EmailOutboxKind, User
 from app.schemas.user import UserCreate
-from tests.utils.user import create_random_user
+from tests.utils.user import create_random_user, user_authentication_headers
 from tests.utils.utils import random_email, random_lower_string
 
 
@@ -304,9 +306,14 @@ def test_update_password_me(
         "current_password": new_password,
         "new_password": settings.FIRST_SUPERUSER_PASSWORD,
     }
+    fresh_headers = user_authentication_headers(
+        client=client,
+        email=settings.FIRST_SUPERUSER,
+        password=new_password,
+    )
     r = client.patch(
         f"{settings.API_V1_STR}/users/me/password",
-        headers=superuser_token_headers,
+        headers=fresh_headers,
         json=old_data,
     )
     db.refresh(user_db)
@@ -443,6 +450,69 @@ def test_update_user(
     assert user_db.full_name == "Updated_full_name"
 
 
+def test_admin_password_change_revokes_all_user_sessions(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    email = random_email()
+    password = random_lower_string()
+    user = crud.create_user(
+        session=db,
+        user_create=UserCreate(email=email, password=password),
+    )
+    db.commit()
+    first_headers = user_authentication_headers(
+        client=client, email=email, password=password
+    )
+    second_headers = user_authentication_headers(
+        client=client, email=email, password=password
+    )
+
+    response = client.patch(
+        f"{settings.API_V1_STR}/users/{user.id}",
+        headers=superuser_token_headers,
+        json={"password": random_lower_string()},
+    )
+
+    assert response.status_code == 200
+    for headers in (first_headers, second_headers):
+        assert (
+            client.post(
+                f"{settings.API_V1_STR}/login/test-token", headers=headers
+            ).status_code
+            == 401
+        )
+
+
+def test_user_deactivation_revokes_existing_session(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    email = random_email()
+    password = random_lower_string()
+    user = crud.create_user(
+        session=db,
+        user_create=UserCreate(email=email, password=password),
+    )
+    db.commit()
+    headers = user_authentication_headers(client=client, email=email, password=password)
+
+    response = client.patch(
+        f"{settings.API_V1_STR}/users/{user.id}",
+        headers=superuser_token_headers,
+        json={"is_active": False},
+    )
+
+    assert response.status_code == 200
+    revoked = client.post(
+        f"{settings.API_V1_STR}/login/test-token",
+        headers=headers,
+    )
+    assert revoked.status_code == 401
+
+
 def test_update_user_not_exists(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
@@ -493,13 +563,15 @@ def test_system_actor_is_hidden_and_cannot_be_managed(
 def test_system_actor_token_cannot_access_self_service_user_routes(
     client: TestClient, db: Session
 ) -> None:
-    from datetime import timedelta
-
     from app.core.audit import ensure_system_actor
 
     system_actor = ensure_system_actor(session=db)
     db.commit()
-    token = create_access_token(system_actor.id, expires_delta=timedelta(minutes=5))
+    token = jwt.encode(
+        {"sub": str(system_actor.id)},
+        settings.SECRET_KEY,
+        algorithm=security.ALGORITHM,
+    )
     headers = {"Authorization": f"Bearer {token}"}
 
     responses = (
@@ -513,7 +585,7 @@ def test_system_actor_token_cannot_access_self_service_user_routes(
     )
 
     for response in responses:
-        assert response.status_code == 403
+        assert response.status_code == 401
         assert response.json()["detail"] == "Could not validate credentials"
 
 
@@ -576,6 +648,13 @@ def test_delete_user_me(client: TestClient, db: Session) -> None:
     assert deleted_user["message"] == "User deleted successfully"
     result = db.exec(select(User).where(User.id == user_id)).first()
     assert result is None
+
+    revoked_response = client.post(
+        f"{settings.API_V1_STR}/login/test-token",
+        headers=headers,
+    )
+    assert revoked_response.status_code == 401
+    assert revoked_response.json()["detail"] == "Could not validate credentials"
 
     user_query = select(User).where(User.id == user_id)
     user_db = db.execute(user_query).first()

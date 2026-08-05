@@ -1,11 +1,13 @@
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 
 from sqlmodel import Session, col, select
 
 from app.core.audit import bind_audit_actor, require_system_actor
 from app.core.config import settings
+from app.crud.user import increment_password_reset_version
 from app.models import EmailOutbox, EmailOutboxKind, EmailOutboxStatus, User
 from app.utils import (
     generate_password_reset_token,
@@ -68,10 +70,14 @@ def queue_password_recovery_email(*, session: Session, user: User) -> EmailOutbo
 def _queue_link_email(
     *, session: Session, user: User, kind: EmailOutboxKind
 ) -> EmailOutbox:
+    password_reset_version = increment_password_reset_version(
+        session=session, user=user
+    )
     outbox = EmailOutbox(
         kind=kind,
         recipient=user.email,
         user_id=user.id,
+        password_reset_version=password_reset_version,
         next_attempt_at=utc_now(),
     )
     session.add(outbox)
@@ -285,7 +291,18 @@ def _render_delivery(*, session: Session, outbox: EmailOutbox) -> _RenderedEmail
         or user.email != outbox.recipient
     ):
         return None
-    token = generate_password_reset_token(email=user.email)
+    if outbox.password_reset_version is None:
+        return None
+    purpose: Literal["password_reset", "password_setup"] = (
+        "password_setup"
+        if outbox.kind is EmailOutboxKind.ACCOUNT_SET_PASSWORD
+        else "password_reset"
+    )
+    token = generate_password_reset_token(
+        user_id=user.id,
+        purpose=purpose,
+        version=outbox.password_reset_version,
+    )
     if outbox.kind is EmailOutboxKind.ACCOUNT_SET_PASSWORD:
         email_data = generate_set_password_email(
             email_to=user.email, email=user.email, token=token
