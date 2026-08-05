@@ -1317,3 +1317,36 @@ Created an architecture review report, selected the frontend permission access c
 ### Next Steps
 
 - None - task complete
+
+
+## Session 40: 统一日志前缀时间与等级
+
+**Date**: 2026-08-05
+**Task**: 统一日志前缀时间与等级
+**Branch**: `master`
+
+### Summary
+
+确认后端日志为 stdout 单行 NDJSON；调整 structlog processor，使 timestamp 和 severity 成为前两个 JSON 字段，保留现有事件内容与采集契约。新增普通和异常日志顺序断言，运行 37 个日志相关测试及完整 backend lint/type/Ruff 检查通过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dcbc5c6` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
