@@ -1350,3 +1350,36 @@ Created an architecture review report, selected the frontend permission access c
 ### Next Steps
 
 - None - task complete
+
+
+## Session 41: 为 NDJSON 日志追加调用位置
+
+**Date**: 2026-08-05
+**Task**: 为 NDJSON 日志追加调用位置
+**Branch**: `master`
+
+### Summary
+
+在 structlog 共享 processor 中追加实际调用者的 source 与 line 字段，并将 timestamp、severity、source、line 固定排在 NDJSON 开头；保持 PM2 与 stdout sink 不变。新增类方法调用位置测试，38 个 observability/Celery 测试及完整 backend lint/type/Ruff 检查通过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6390342` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
