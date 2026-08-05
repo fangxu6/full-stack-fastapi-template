@@ -3,6 +3,7 @@ import { expect, type Page, test } from "@playwright/test"
 test.use({ storageState: { cookies: [], origins: [] } })
 
 const protectedPath = "/inventory/balances"
+const correctionsPath = "/inventory/corrections"
 const permissionsPath = "**/api/v1/iam/me/permissions"
 
 async function prepareProtectedNavigation(page: Page) {
@@ -137,5 +138,27 @@ test("permission data is shared between the route guard and page", async ({
 
   await page.goto(protectedPath)
   await expect(page).toHaveURL(new RegExp(`${protectedPath}$`))
+  expect(permissionChecks).toBe(1)
+})
+
+test("corrections page shares permission data with its route guard", async ({
+  page,
+}) => {
+  await prepareProtectedNavigation(page)
+  let permissionChecks = 0
+  await page.route(permissionsPath, (route) => {
+    permissionChecks += 1
+    return route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        permissions: ["inventory.documents.read"],
+        roles: [],
+      }),
+      status: 200,
+    })
+  })
+
+  await page.goto(correctionsPath)
+  await expect(page).toHaveURL(new RegExp(`${correctionsPath}$`))
   expect(permissionChecks).toBe(1)
 })

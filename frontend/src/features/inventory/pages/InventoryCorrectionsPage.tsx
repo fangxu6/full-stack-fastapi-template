@@ -23,8 +23,8 @@ import type { ColumnsType, TableProps } from "antd/es/table"
 import { Check, Eye, FilePenLine, RotateCcw, X } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import { myPermissionsQueryOptions } from "@/app/permissions"
 import {
-  IamService,
   type InventoryCorrectionDocumentProposal,
   type InventoryCorrectionOperation,
   type InventoryCorrectionRequestPublic,
@@ -89,10 +89,7 @@ export function InventoryCorrectionsPage() {
     useState<InventoryCorrectionOperation>("UPDATE_DOCUMENT")
   const [editorOpen, setEditorOpen] = useState(false)
   const [selectedRequestId, setSelectedRequestId] = useState<number>()
-  const permissionsQuery = useQuery({
-    queryFn: IamService.readMyPermissions,
-    queryKey: ["iam", "permissions"],
-  })
+  const permissionsQuery = useQuery(myPermissionsQueryOptions)
   const canRequest =
     permissionsQuery.data?.permissions.includes(
       "inventory.corrections.request",
