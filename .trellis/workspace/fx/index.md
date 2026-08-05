@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 38
+- **Total Sessions**: 39
 - **Last Active**: 2026-08-05
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1286 | Active |
+| `journal-1.md` | ~1319 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 39 | 2026-08-05 | Restore frontend permission query seam | `daeaf7a` | `master` |
 | 38 | 2026-08-05 | Centralize auth-session authority | `e8c9216` | `master` |
 | 37 | 2026-08-05 | JWT session revocation implementation | `9c543ce`, `2e4cea7` | `master` |
 | 36 | 2026-08-04 | 缓存基础层与精确失效 | `d1f9a6c` | `master` |

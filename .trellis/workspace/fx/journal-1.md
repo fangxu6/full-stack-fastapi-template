@@ -1284,3 +1284,36 @@ Added the auth session module, migrated validation issuance logout and revocatio
 ### Next Steps
 
 - None - task complete
+
+
+## Session 39: Restore frontend permission query seam
+
+**Date**: 2026-08-05
+**Task**: Restore frontend permission query seam
+**Branch**: `master`
+
+### Summary
+
+Created an architecture review report, selected the frontend permission access candidate, migrated InventoryCorrectionsPage to the shared myPermissionsQueryOptions, added the corrections-route one-request Playwright regression, passed unit tests, isolated permission E2E, build, lint, and quality hooks, then committed and archived the task.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `daeaf7a` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
