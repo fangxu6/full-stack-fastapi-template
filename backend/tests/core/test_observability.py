@@ -27,6 +27,11 @@ from app.initial_data import init as init_initial_data
 from app.utils import send_email
 
 
+class _LogEmitter:
+    def emit(self) -> None:
+        log_event(event_name="task.started", severity="INFO")
+
+
 def test_request_id_normalization_accepts_only_lowercase_hex() -> None:
     request_id = "a" * 32
 
@@ -102,7 +107,11 @@ def test_log_event_emits_only_allowlisted_json(capsys: CaptureFixture[str]) -> N
 
     captured = capsys.readouterr().out
     payload = json.loads(captured)
-    assert list(payload)[:2] == ["timestamp", "severity"]
+    assert list(payload)[:4] == ["timestamp", "severity", "source", "line"]
+    assert payload["source"].endswith(
+        "test_observability.test_log_event_emits_only_allowlisted_json"
+    )
+    assert isinstance(payload["line"], int)
     assert payload["event_name"] == "dependency.failed"
     assert payload["severity"] == "ERROR"
     assert payload["request_id"] == "a" * 32
@@ -110,6 +119,19 @@ def test_log_event_emits_only_allowlisted_json(capsys: CaptureFixture[str]) -> N
     assert payload["dependency"] == "smtp"
     assert "exception" not in payload
     assert "token" not in payload
+
+
+def test_log_event_records_qualified_class_and_line(
+    capsys: CaptureFixture[str],
+) -> None:
+    configure_observability()
+
+    _LogEmitter().emit()
+
+    payload = json.loads(capsys.readouterr().out)
+    assert list(payload)[:4] == ["timestamp", "severity", "source", "line"]
+    assert payload["source"].endswith("test_observability._LogEmitter.emit")
+    assert payload["line"] == _LogEmitter.emit.__code__.co_firstlineno + 1
 
 
 def test_task_log_event_emits_only_safe_task_context(
@@ -132,8 +154,10 @@ def test_task_log_event_emits_only_safe_task_context(
     assert set(payload) == {
         "environment",
         "event_name",
+        "line",
         "schema_version",
         "severity",
+        "source",
         "task_id",
         "task_name",
         "timestamp",
@@ -165,9 +189,11 @@ def test_cache_log_event_emits_only_allowlisted_fields(
         "elapsed_ms",
         "environment",
         "event_name",
+        "line",
         "request_id",
         "schema_version",
         "severity",
+        "source",
         "timestamp",
     }
 
@@ -191,7 +217,11 @@ def test_log_exception_emits_json_traceback(capsys: CaptureFixture[str]) -> None
         clear_request_context()
 
     payload = json.loads(capsys.readouterr().out)
-    assert list(payload)[:2] == ["timestamp", "severity"]
+    assert list(payload)[:4] == ["timestamp", "severity", "source", "line"]
+    assert payload["source"].endswith(
+        "test_observability.test_log_exception_emits_json_traceback"
+    )
+    assert isinstance(payload["line"], int)
     assert payload["event_name"] == "http.request.failed"
     assert payload["severity"] == "ERROR"
     assert payload["request_id"] == "a" * 32

@@ -78,6 +78,15 @@ def configure_observability() -> None:
             _add_environment,
             _normalize_event_name,
             structlog.processors.format_exc_info,
+            structlog.processors.CallsiteParameterAdder(
+                parameters=(
+                    structlog.processors.CallsiteParameter.QUAL_MODULE,
+                    structlog.processors.CallsiteParameter.QUAL_NAME,
+                    structlog.processors.CallsiteParameter.LINENO,
+                ),
+                additional_ignores=["app.core.observability"],
+            ),
+            _normalize_callsite_fields,
             _prioritize_log_fields,
             structlog.processors.JSONRenderer(),
         ],
@@ -103,11 +112,23 @@ def _normalize_event_name(
     return event_dict
 
 
+def _normalize_callsite_fields(
+    _: Any, __: str, event_dict: MutableMapping[str, Any]
+) -> MutableMapping[str, Any]:
+    event_dict["source"] = (
+        f"{event_dict.pop('qual_module')}.{event_dict.pop('qual_name')}"
+    )
+    event_dict["line"] = event_dict.pop("lineno")
+    return event_dict
+
+
 def _prioritize_log_fields(
     _: Any, __: str, event_dict: MutableMapping[str, Any]
 ) -> MutableMapping[str, Any]:
     prioritized = {
-        key: event_dict[key] for key in ("timestamp", "severity") if key in event_dict
+        key: event_dict[key]
+        for key in ("timestamp", "severity", "source", "line")
+        if key in event_dict
     }
     prioritized.update(
         {key: value for key, value in event_dict.items() if key not in prioritized}

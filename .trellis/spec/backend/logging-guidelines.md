@@ -18,8 +18,8 @@ traceback for operations: unhandled HTTP 5xx and Celery task failure.
 
 - `structlog>=25,<27` writes one newline-delimited JSON event per line to
   stdout through [`backend/app/core/observability.py`](../../../backend/app/core/observability.py).
-  The JSON object's first two fields are `timestamp` and `severity`; no text
-  prefix is added outside the JSON object.
+  The JSON object's first four fields are `timestamp`, `severity`, `source`,
+  and `line`; no text prefix is added outside the JSON object.
 - Request middleware binds a normalized request ID and emits the required HTTP
   outcome event without logging raw URLs, headers, or query parameters. Its
   unhandled-exception boundary emits one detailed `http.request.failed` event.
@@ -133,9 +133,12 @@ log_event(
 - Application code only writes JSON to stdout. The runtime owns collection and
   external export; application code has no collector credential, buffer,
   persistence, or retry behavior.
-- `timestamp` and `severity` are serialized before the remaining event fields
-  so operators can see the time and level at the start of each JSON line while
-  collectors continue to parse the complete line as NDJSON.
+- `timestamp`, `severity`, `source`, and `line` are serialized before the
+  remaining event fields so operators can see the time, level, callsite, and
+  line at the start of each JSON line while collectors continue to parse the
+  complete line as NDJSON. `source` is the fully qualified module/callable
+  path of the actual caller, excluding the logging facade; `line` is its
+  source line number.
 - Uvicorn's default textual access log is disabled. Its server/error loggers
   must use the same safe structured handler or be suppressed; no default raw
   path, exception message, or traceback may share the stdout collector stream.
