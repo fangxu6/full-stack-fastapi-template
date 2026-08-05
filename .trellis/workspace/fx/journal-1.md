@@ -1383,3 +1383,36 @@ Created an architecture review report, selected the frontend permission access c
 ### Next Steps
 
 - None - task complete
+
+
+## Session 42: 格式化 PM2 结构化日志前缀
+
+**Date**: 2026-08-05
+**Task**: 格式化 PM2 结构化日志前缀
+**Branch**: `master`
+
+### Summary
+
+新增 Node 标准库 PM2 stdout 包装器，对 backend/Celery 的 JSON 行在原始 JSON 前追加前七个值的竖线分隔展示；stderr、非 JSON 行和退出码透传，frontend 保持不变。重建并保存 PM2 进程，四个进程 online，健康检查返回 200，包装器测试和配置检查通过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `38a4331` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
