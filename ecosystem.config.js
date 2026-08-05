@@ -1,11 +1,35 @@
+const path = require("node:path")
+
+const projectRoot = __dirname.replaceAll("\\", "/")
+const pm2JsonPrefix = path
+  .join(projectRoot, "scripts", "pm2-json-prefix.cjs")
+  .replaceAll("\\", "/")
+const python = path
+  .join(projectRoot, ".venv", "Scripts", "python.exe")
+  .replaceAll("\\", "/")
+const celery = path
+  .join(projectRoot, ".venv", "Scripts", "celery.exe")
+  .replaceAll("\\", "/")
+
+const quoteArg = (value) => `"${value.replaceAll('"', '\\"')}"`
+const wrappedArgs = (command, args) =>
+  ["--", command, ...args].map(quoteArg).join(" ")
+
 module.exports = {
   apps: [
     {
       name: "fsft-backend",
       cwd: "D:/Workspace/full-stack-fastapi-template/backend",
-      script: "D:/Workspace/full-stack-fastapi-template/.venv/Scripts/python.exe",
-      args: "-m uvicorn app.main:app --reload --port 8000",
-      interpreter: "none",
+      script: pm2JsonPrefix,
+      args: wrappedArgs(python, [
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--reload",
+        "--port",
+        "8000",
+      ]),
+      interpreter: process.execPath,
       min_uptime: 5000,
       max_restarts: 3,
       restart_delay: 3000,
@@ -34,9 +58,16 @@ module.exports = {
     {
       name: "fsft-celery-worker",
       cwd: "D:/Workspace/full-stack-fastapi-template/backend",
-      script: "D:/Workspace/full-stack-fastapi-template/.venv/Scripts/celery.exe",
-      args: "-q -A app.core.celery:celery_app worker --pool=solo --concurrency=1",
-      interpreter: "none",
+      script: pm2JsonPrefix,
+      args: wrappedArgs(celery, [
+        "-q",
+        "-A",
+        "app.core.celery:celery_app",
+        "worker",
+        "--pool=solo",
+        "--concurrency=1",
+      ]),
+      interpreter: process.execPath,
       min_uptime: 5000,
       max_restarts: 3,
       restart_delay: 3000,
@@ -51,9 +82,9 @@ module.exports = {
     {
       name: "fsft-celery-beat",
       cwd: "D:/Workspace/full-stack-fastapi-template/backend",
-      script: "D:/Workspace/full-stack-fastapi-template/.venv/Scripts/celery.exe",
-      args: "-q -A app.core.celery:celery_app beat",
-      interpreter: "none",
+      script: pm2JsonPrefix,
+      args: wrappedArgs(celery, ["-q", "-A", "app.core.celery:celery_app", "beat"]),
+      interpreter: process.execPath,
       min_uptime: 5000,
       max_restarts: 3,
       restart_delay: 3000,

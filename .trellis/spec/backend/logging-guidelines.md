@@ -28,11 +28,13 @@ traceback for operations: unhandled HTTP 5xx and Celery task failure.
 - Dependency and startup paths call the constrained `log_event()` facade;
   HTTP and Celery failure boundaries call the restricted `log_exception()`
   facade.
-- PM2 starts the backend Python executable and Celery worker/beat executables
-  directly. On Windows, `cmd /c` captures shell-builtins but not the Python
-  child output required by this collector contract.
-- PM2 `time` is disabled for backend, worker, and beat. A PM2 timestamp prefix
-  makes a JSON event line invalid NDJSON; event timestamps come from structlog.
+- PM2 starts `scripts/pm2-json-prefix.cjs`, which directly spawns the backend
+  Python executable or Celery worker/beat executable. On Windows, it avoids
+  `cmd /c`, which captures shell-builtins but not the Python child output.
+- PM2 `time` is disabled for backend, worker, and beat. The wrapper prefixes
+  the first seven JSON values with ` | ` in PM2-managed display/output lines;
+  the child application stream remains NDJSON and event timestamps come from
+  structlog.
 
 ---
 
@@ -130,15 +132,16 @@ log_event(
   values, or arbitrary resource/business identifiers. The restricted
   `log_exception()` path may render the original exception and traceback in
   its `exception` field for unhandled HTTP 5xx and Celery task failure only.
-- Application code only writes JSON to stdout. The runtime owns collection and
-  external export; application code has no collector credential, buffer,
-  persistence, or retry behavior.
+- Application code only writes JSON to its child stdout. The PM2 wrapper owns
+  presentation-only prefixing; application code has no collector credential,
+  buffer, persistence, or retry behavior.
 - `timestamp`, `severity`, `source`, and `line` are serialized before the
   remaining event fields so operators can see the time, level, callsite, and
   line at the start of each JSON line while collectors continue to parse the
-  complete line as NDJSON. `source` is the fully qualified module/callable
-  path of the actual caller, excluding the logging facade; `line` is its
-  source line number.
+  complete child line as NDJSON. PM2-managed lines contain the original JSON
+  after the display prefix and are not themselves raw NDJSON. `source` is the
+  fully qualified module/callable path of the actual caller, excluding the
+  logging facade; `line` is its source line number.
 - Uvicorn's default textual access log is disabled. Its server/error loggers
   must use the same safe structured handler or be suppressed; no default raw
   path, exception message, or traceback may share the stdout collector stream.
@@ -360,7 +363,7 @@ def log_exception(
 | A caller supplies an unknown/forbidden `log_event()` keyword | Treat it as a programming error: the closed signature rejects it before serialization. Fix the caller; do not add `**kwargs` to silently filter it. |
 | Event contains a dependency/source name not in the registry | Treat as code-contract failure in unit tests/review; do not ship an ad hoc source. |
 | Structlog renderer or stdout write fails | Swallow the telemetry failure; preserve response/startup control flow. |
-| Uvicorn emits default access/error output | Disable or suppress it; stdout must not contain a textual line. |
+| Uvicorn emits default access/error output | Disable or suppress it; child stdout must not contain an additional textual line. |
 | A direct structlog bind appears in application code | Reject in review/tests because it bypasses the allowlist. |
 
 ### 5. Good / Base / Bad Cases
@@ -401,8 +404,8 @@ def log_exception(
   line or raw URL reaches stdout; an unhandled exception must instead produce
   one parseable `http.request.failed` JSON record with `exception`.
 - Runtime-test a PM2-managed `runtime.ping` task after process recreation and
-  assert `task.started` and `task.completed` are raw JSON lines in its out log,
-  without new stderr output or Celery text prefixes.
+  assert `task.started` and `task.completed` retain their complete JSON suffix
+  in the formatted out log, without new stderr output or Celery text prefixes.
 - Keep the dependency, task-lifecycle, and startup fail-closed tests specified
   in the D-002 E2E plan.
 
