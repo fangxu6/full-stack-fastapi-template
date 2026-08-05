@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 36
-- **Last Active**: 2026-08-04
+- **Total Sessions**: 37
+- **Last Active**: 2026-08-05
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1219 | Active |
+| `journal-1.md` | ~1253 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 37 | 2026-08-05 | JWT session revocation implementation | `9c543ce`, `2e4cea7` | `master` |
 | 36 | 2026-08-04 | 缓存基础层与精确失效 | `d1f9a6c` | `master` |
 | 35 | 2026-08-04 | 库存异常纠错 MVP | `53e41c2`, `1669b57`, `840bf95`, `6892aaa` | `master` |
 | 34 | 2026-08-04 | Centralize frontend permission access | `479327a` | `master` |

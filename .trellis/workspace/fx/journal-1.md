@@ -1217,3 +1217,37 @@ Centralized the frontend permission QueryClient and query options for route guar
 ### Next Steps
 
 - None - task complete
+
+
+## Session 37: JWT session revocation implementation
+
+**Date**: 2026-08-05
+**Task**: JWT session revocation implementation
+**Branch**: `master`
+
+### Summary
+
+Implemented 24-hour sid-bound access JWTs, server-side AuthSession revocation, idempotent logout, password-token versioning, migration compatibility, frontend 401/logout cleanup, and regenerated client. Backend full suite passed 347 tests with 2 skips; backend lint/type checks, frontend Biome, migration round-trip, and local HTTP auth E2E passed. Playwright browser tests were blocked because Chromium is not installed.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9c543ce` | (see git log) |
+| `2e4cea7` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
