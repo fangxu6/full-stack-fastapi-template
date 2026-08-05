@@ -5,10 +5,10 @@ const path = require("node:path")
 
 const wrapperPath = path.join(__dirname, "pm2-json-prefix.cjs")
 
-test("formats the first seven JSON values before the original line", () => {
+test("formats a compact display line without repeating metadata", () => {
   const line = JSON.stringify({
-    timestamp: "2026-08-05T00:00:00Z",
-    severity: "ERROR",
+    timestamp: "2026-08-05T00:00:00.123456Z",
+    severity: "WARNING",
     source: "app.jobs.Report.run",
     line: 123,
     event_name: "task.failed",
@@ -19,7 +19,7 @@ test("formats the first seven JSON values before the original line", () => {
 
   assert.equal(
     require("./pm2-json-prefix.cjs").formatJsonLine(line),
-    `2026-08-05T00:00:00Z | ERROR | app.jobs.Report.run | 123 | task.failed | local | 1 | ${line}`,
+    '2026-08-05 00:00:00 | WARN | app.jobs.Report.run:123 | task.failed | {"request_id":"request-id"}',
   )
 })
 

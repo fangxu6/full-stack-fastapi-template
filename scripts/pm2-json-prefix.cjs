@@ -1,12 +1,23 @@
 const { spawn } = require("node:child_process")
 const readline = require("node:readline")
 
-const PREFIX_FIELD_COUNT = 7
+const DISPLAY_FIELDS = new Set([
+  "timestamp",
+  "severity",
+  "source",
+  "line",
+  "event_name",
+])
+const LEVEL_ALIASES = { WARNING: "WARN", CRITICAL: "FATAL" }
 
-function formatValue(value) {
-  if (typeof value === "string") return value
-  if (value === null) return ""
-  return JSON.stringify(value)
+function formatSeverity(value) {
+  return LEVEL_ALIASES[value] ?? value
+}
+
+function formatTimestamp(value) {
+  if (typeof value !== "string") return value
+  const match = value.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})/)
+  return match ? `${match[1]} ${match[2]}` : value
 }
 
 function formatJsonLine(line) {
@@ -23,10 +34,33 @@ function formatJsonLine(line) {
       return line
     }
 
-    const values = Object.values(payload).slice(0, PREFIX_FIELD_COUNT)
-    if (values.length < PREFIX_FIELD_COUNT) return line
+    const requiredFields = [
+      payload.timestamp,
+      payload.severity,
+      payload.source,
+      payload.line,
+      payload.event_name,
+    ]
+    if (requiredFields.some((value) => value === undefined)) return line
 
-    return `${values.map(formatValue).join(" | ")} | ${line}`
+    const source = `${payload.source}:${payload.line}`
+    const details = Object.fromEntries(
+      Object.entries(payload).filter(
+        ([key]) =>
+          !DISPLAY_FIELDS.has(key) &&
+          key !== "environment" &&
+          key !== "schema_version",
+      ),
+    )
+    const fields = [
+      formatTimestamp(payload.timestamp),
+      formatSeverity(payload.severity),
+      source,
+      payload.event_name,
+    ]
+    if (Object.keys(details).length > 0) fields.push(JSON.stringify(details))
+
+    return fields.join(" | ")
   } catch {
     return line
   }

@@ -28,11 +28,12 @@ traceback for operations: unhandled HTTP 5xx and Celery task failure.
 - Dependency and startup paths call the constrained `log_event()` facade;
   HTTP and Celery failure boundaries call the restricted `log_exception()`
   facade.
-- PM2 starts `scripts/pm2-json-prefix.cjs`, which directly spawns the backend
-  Python executable or Celery worker/beat executable. On Windows, it avoids
-  `cmd /c`, which captures shell-builtins but not the Python child output.
-- PM2 `time` is disabled for backend, worker, and beat. The wrapper prefixes
-  the first seven JSON values with ` | ` in PM2-managed display/output lines;
+- PM2 starts `cmd /c` with the Node
+  `scripts/pm2-json-prefix.cjs` wrapper, which directly spawns the backend
+  Python executable or Celery worker/beat executable. The wrapper forwards
+  the child output so the `cmd` launch layer does not lose structured lines.
+- PM2 `time` is disabled for backend, worker, and beat. The wrapper renders
+  `timestamp | level | source:line | event | details` in PM2-managed output;
   the child application stream remains NDJSON and event timestamps come from
   structlog.
 

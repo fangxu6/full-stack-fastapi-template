@@ -12,16 +12,18 @@ const celery = path
   .replaceAll("\\", "/")
 
 const quoteArg = (value) => `"${value.replaceAll('"', '\\"')}"`
-const wrappedArgs = (command, args) =>
-  ["--", command, ...args].map(quoteArg).join(" ")
+const cmdArgs = (command, args) =>
+  `/c ${[process.execPath, pm2JsonPrefix, "--", command, ...args]
+    .map(quoteArg)
+    .join(" ")}`
 
 module.exports = {
   apps: [
     {
       name: "fsft-backend",
       cwd: "D:/Workspace/full-stack-fastapi-template/backend",
-      script: pm2JsonPrefix,
-      args: wrappedArgs(python, [
+      script: "cmd",
+      args: cmdArgs(python, [
         "-m",
         "uvicorn",
         "app.main:app",
@@ -29,7 +31,7 @@ module.exports = {
         "--port",
         "8000",
       ]),
-      interpreter: process.execPath,
+      interpreter: "none",
       min_uptime: 5000,
       max_restarts: 3,
       restart_delay: 3000,
@@ -58,8 +60,8 @@ module.exports = {
     {
       name: "fsft-celery-worker",
       cwd: "D:/Workspace/full-stack-fastapi-template/backend",
-      script: pm2JsonPrefix,
-      args: wrappedArgs(celery, [
+      script: "cmd",
+      args: cmdArgs(celery, [
         "-q",
         "-A",
         "app.core.celery:celery_app",
@@ -67,7 +69,7 @@ module.exports = {
         "--pool=solo",
         "--concurrency=1",
       ]),
-      interpreter: process.execPath,
+      interpreter: "none",
       min_uptime: 5000,
       max_restarts: 3,
       restart_delay: 3000,
@@ -82,9 +84,9 @@ module.exports = {
     {
       name: "fsft-celery-beat",
       cwd: "D:/Workspace/full-stack-fastapi-template/backend",
-      script: pm2JsonPrefix,
-      args: wrappedArgs(celery, ["-q", "-A", "app.core.celery:celery_app", "beat"]),
-      interpreter: process.execPath,
+      script: "cmd",
+      args: cmdArgs(celery, ["-q", "-A", "app.core.celery:celery_app", "beat"]),
+      interpreter: "none",
       min_uptime: 5000,
       max_restarts: 3,
       restart_delay: 3000,
