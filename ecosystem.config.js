@@ -12,18 +12,16 @@ const celery = path
   .replaceAll("\\", "/")
 
 const quoteArg = (value) => `"${value.replaceAll('"', '\\"')}"`
-const cmdArgs = (command, args) =>
-  `/c ${[process.execPath, pm2JsonPrefix, "--", command, ...args]
-    .map(quoteArg)
-    .join(" ")}`
+const wrappedArgs = (command, args) =>
+  ["--", command, ...args].map(quoteArg).join(" ")
 
 module.exports = {
   apps: [
     {
       name: "fsft-backend",
       cwd: "D:/Workspace/full-stack-fastapi-template/backend",
-      script: "cmd",
-      args: cmdArgs(python, [
+      script: pm2JsonPrefix,
+      args: wrappedArgs(python, [
         "-m",
         "uvicorn",
         "app.main:app",
@@ -31,7 +29,7 @@ module.exports = {
         "--port",
         "8000",
       ]),
-      interpreter: "none",
+      interpreter: process.execPath,
       min_uptime: 5000,
       max_restarts: 3,
       restart_delay: 3000,
@@ -46,9 +44,9 @@ module.exports = {
     {
       name: "fsft-frontend-dev",
       cwd: "D:/Workspace/full-stack-fastapi-template/frontend",
-      script: "cmd",
-      args: "/c bun run dev --host 0.0.0.0",
-      interpreter: "none",
+      script: pm2JsonPrefix,
+      args: wrappedArgs("bun", ["run", "dev", "--host", "0.0.0.0"]),
+      interpreter: process.execPath,
       min_uptime: 5000,
       max_restarts: 3,
       restart_delay: 3000,
@@ -60,8 +58,8 @@ module.exports = {
     {
       name: "fsft-celery-worker",
       cwd: "D:/Workspace/full-stack-fastapi-template/backend",
-      script: "cmd",
-      args: cmdArgs(celery, [
+      script: pm2JsonPrefix,
+      args: wrappedArgs(celery, [
         "-q",
         "-A",
         "app.core.celery:celery_app",
@@ -69,7 +67,7 @@ module.exports = {
         "--pool=solo",
         "--concurrency=1",
       ]),
-      interpreter: "none",
+      interpreter: process.execPath,
       min_uptime: 5000,
       max_restarts: 3,
       restart_delay: 3000,
@@ -84,9 +82,9 @@ module.exports = {
     {
       name: "fsft-celery-beat",
       cwd: "D:/Workspace/full-stack-fastapi-template/backend",
-      script: "cmd",
-      args: cmdArgs(celery, ["-q", "-A", "app.core.celery:celery_app", "beat"]),
-      interpreter: "none",
+      script: pm2JsonPrefix,
+      args: wrappedArgs(celery, ["-q", "-A", "app.core.celery:celery_app", "beat"]),
+      interpreter: process.execPath,
       min_uptime: 5000,
       max_restarts: 3,
       restart_delay: 3000,
