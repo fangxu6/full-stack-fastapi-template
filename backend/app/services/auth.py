@@ -1,22 +1,13 @@
-import uuid
-from datetime import UTC, datetime, timedelta
-
 from fastapi.responses import HTMLResponse
-from jwt.exceptions import InvalidTokenError
-from pydantic import ValidationError
 from sqlalchemy import update
 from sqlmodel import Session, col
 
 from app import crud
 from app.core import security
-from app.core.config import settings
-from app.core.exceptions import (
-    AuthenticationError,
-    BadRequestError,
-    UserNotFoundError,
-)
+from app.core.exceptions import BadRequestError, UserNotFoundError
 from app.crud.user import increment_password_reset_version
-from app.models import AuthSession, User
+from app.models import User
+from app.modules.auth import session as auth_session
 from app.schemas.security import Message, NewPassword, Token
 from app.services.email_outbox import queue_password_recovery_email
 from app.utils import (
@@ -31,47 +22,13 @@ def login_access_token(*, session: Session, username: str, password: str) -> Tok
         raise BadRequestError("Incorrect email or password")
     if not user.is_active:
         raise BadRequestError("Inactive user")
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    auth_session = AuthSession(
-        user_id=user.id,
-        expires_at=datetime.now(UTC) + access_token_expires,
-    )
-    session.add(auth_session)
-    session.flush()
     return Token(
-        access_token=security.create_access_token(
-            subject=user.id,
-            session_id=auth_session.id,
-            expires_delta=access_token_expires,
-        )
-    )
-
-
-def revoke_all_user_sessions(*, session: Session, user_id: uuid.UUID) -> None:
-    session.exec(
-        update(AuthSession)
-        .where(
-            col(AuthSession.user_id) == user_id,
-            col(AuthSession.revoked_at).is_(None),
-        )
-        .values(revoked_at=datetime.now(UTC))
+        access_token=auth_session.issue_access_token(session=session, user_id=user.id)
     )
 
 
 def logout(*, session: Session, token: str) -> Message:
-    try:
-        token_data = security.decode_access_token(token, allow_expired=True)
-    except InvalidTokenError, ValidationError:
-        raise AuthenticationError()
-    session.exec(
-        update(AuthSession)
-        .where(
-            col(AuthSession.id) == token_data.sid,
-            col(AuthSession.user_id) == token_data.sub,
-            col(AuthSession.revoked_at).is_(None),
-        )
-        .values(revoked_at=datetime.now(UTC))
-    )
+    auth_session.logout(session=session, token=token)
     return Message(message="Logged out successfully")
 
 
@@ -110,7 +67,7 @@ def reset_password(*, session: Session, body: NewPassword) -> Message:
     )
     if result.rowcount != 1:
         raise BadRequestError("Invalid token")
-    revoke_all_user_sessions(session=session, user_id=user.id)
+    auth_session.revoke_all_user_sessions(session=session, user_id=user.id)
     return Message(message="Password updated successfully")
 
 

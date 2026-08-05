@@ -10,6 +10,7 @@ from app.core.exceptions import (
 )
 from app.core.security import get_password_hash, verify_password
 from app.models import User
+from app.modules.auth import session as auth_session
 from app.modules.iam import service as iam_service
 from app.schemas.security import Message
 from app.schemas.user import (
@@ -21,7 +22,6 @@ from app.schemas.user import (
     UserUpdate,
     UserUpdateMe,
 )
-from app.services.auth import revoke_all_user_sessions
 from app.services.email_outbox import queue_account_set_password_email
 
 
@@ -116,7 +116,7 @@ def update_password_me(
     current_user.hashed_password = hashed_password
     session.add(current_user)
     session.flush()
-    revoke_all_user_sessions(session=session, user_id=current_user.id)
+    auth_session.revoke_all_user_sessions(session=session, user_id=current_user.id)
     return Message(message="Password updated successfully")
 
 
@@ -147,14 +147,14 @@ def update_user(*, session: Session, user_id: uuid.UUID, user_in: UserUpdate) ->
     db_user = crud.update_user(session=session, db_user=db_user, user_in=user_in)
     session.refresh(db_user)
     if password_changed or (was_active and user_in.is_active is False):
-        revoke_all_user_sessions(session=session, user_id=db_user.id)
+        auth_session.revoke_all_user_sessions(session=session, user_id=db_user.id)
     return db_user
 
 
 def delete_user(*, session: Session, user_id: uuid.UUID) -> Message:
     user = _get_required_user(session=session, user_id=user_id)
     iam_service.ensure_user_deactivation_is_safe(session=session, user=user)
-    revoke_all_user_sessions(session=session, user_id=user.id)
+    auth_session.revoke_all_user_sessions(session=session, user_id=user.id)
     crud.delete_items_by_owner(session=session, owner_id=user_id)
     crud.delete_user(session=session, db_user=user)
     return Message(message="User deleted successfully")
