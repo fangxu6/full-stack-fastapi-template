@@ -15,36 +15,13 @@ from app.models.scheduler import (
 )
 from app.modules.scheduler import run_lifecycle, scheduler_alerts, service, tasks
 from app.modules.scheduler.config import scheduler_settings
-from app.modules.scheduler.contracts import ScheduledTask, ScheduledTaskConfig
+from app.modules.scheduler.contracts import SchedulerRunOutcome
 from app.schemas.scheduler import SchedulerJobCreate
 from tests.utils.user import create_random_user
 
 INVENTORY_RETRY_CLASS = (
     "app.modules.inventory.scheduled_tasks.InventoryDailyReportRetryTask"
 )
-
-
-class SuccessfulTask(ScheduledTask):
-    config_model = ScheduledTaskConfig
-
-    def run(self, *, context: object, config: ScheduledTaskConfig) -> None:
-        del context, config
-
-
-class FailingTask(ScheduledTask):
-    config_model = ScheduledTaskConfig
-
-    def run(self, *, context: object, config: ScheduledTaskConfig) -> None:
-        del context, config
-        raise RuntimeError("business failure")
-
-
-class ValueErrorTask(ScheduledTask):
-    config_model = ScheduledTaskConfig
-
-    def run(self, *, context: object, config: ScheduledTaskConfig) -> None:
-        del context, config
-        raise ValueError("business validation failure")
 
 
 def create_job(*, session: Session, now: datetime) -> SchedulerJob:
@@ -90,10 +67,14 @@ def test_run_lifecycle_owns_claim_and_terminal_persistence(db: Session) -> None:
     assert claimed.status is SchedulerRunStatus.RUNNING
     db.commit()
 
-    finished = run_lifecycle.finish_run(
+    finished = run_lifecycle.finish_outcome(
         session=db,
         run_id=run.id,
-        status=SchedulerRunStatus.SUCCEEDED,
+        outcome=SchedulerRunOutcome(
+            status=SchedulerRunStatus.SUCCEEDED,
+            error_category=None,
+            error_summary=None,
+        ),
         finished_at=now,
     )
     assert finished is not None
@@ -204,49 +185,7 @@ def test_scan_skips_missed_time_and_records_overlap(
     assert skipped.error_category == "OVERLAPPING_ACTIVE_RUN"
 
 
-@pytest.mark.parametrize(
-    ("task_class", "expected_status", "expected_category"),
-    [
-        (SuccessfulTask, SchedulerRunStatus.SUCCEEDED, None),
-        (FailingTask, SchedulerRunStatus.FAILED, "EXECUTION_FAILED"),
-        (ValueErrorTask, SchedulerRunStatus.FAILED, "EXECUTION_FAILED"),
-    ],
-)
-def test_execute_run_records_safe_terminal_state(
-    db: Session,
-    monkeypatch: pytest.MonkeyPatch,
-    task_class: type[ScheduledTask],
-    expected_status: SchedulerRunStatus,
-    expected_category: str | None,
-) -> None:
-    now = datetime(2026, 7, 26, 0, 0, tzinfo=UTC)
-    job = create_job(session=db, now=now)
-    run = service.create_run(
-        session=db,
-        job=job,
-        trigger=SchedulerRunTrigger.MANUAL_NOW,
-        planned_at=now,
-        requested_by=job.created_by,
-        now=now,
-    )
-    assert run.id is not None
-    db.commit()
-    monkeypatch.setattr(tasks, "resolve_task_class", lambda _: task_class)
-    monkeypatch.setattr(tasks, "_send_alert", lambda **_: None)
-
-    tasks.execute_run(run.id)
-    tasks.execute_run(run.id)
-
-    db.expire_all()
-    persisted = db.get(SchedulerRun, run.id)
-    assert persisted is not None
-    assert persisted.status is expected_status
-    assert persisted.error_category == expected_category
-    assert persisted.attempt_count == 1
-    assert persisted.finished_at is not None
-
-
-def test_execute_run_marks_frozen_config_failure_as_configuration_invalid(
+def test_execute_run_persists_outcome_and_skips_duplicate_execution(
     db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     now = datetime(2026, 7, 26, 0, 0, tzinfo=UTC)
@@ -261,20 +200,38 @@ def test_execute_run_marks_frozen_config_failure_as_configuration_invalid(
     )
     assert run.id is not None
     db.commit()
+    outcome = SchedulerRunOutcome(
+        status=SchedulerRunStatus.FAILED,
+        error_category="EXECUTION_FAILED",
+        error_summary="Scheduled task execution failed",
+    )
+    execute_calls: list[dict[str, object]] = []
+    alert_calls: list[dict[str, object]] = []
+
+    def fake_execute(**kwargs: object) -> SchedulerRunOutcome:
+        execute_calls.append(kwargs)
+        return outcome
+
+    monkeypatch.setattr(tasks.execution, "execute", fake_execute)
     monkeypatch.setattr(
         tasks,
-        "resolve_task_class",
-        lambda _: (_ for _ in ()).throw(ValueError("invalid frozen class")),
+        "_send_alert",
+        lambda **kwargs: alert_calls.append(kwargs),
     )
-    monkeypatch.setattr(tasks, "_send_alert", lambda **_: None)
 
+    tasks.execute_run(run.id)
     tasks.execute_run(run.id)
 
     db.expire_all()
     persisted = db.get(SchedulerRun, run.id)
     assert persisted is not None
     assert persisted.status is SchedulerRunStatus.FAILED
-    assert persisted.error_category == "CONFIGURATION_INVALID"
+    assert persisted.error_category == "EXECUTION_FAILED"
+    assert persisted.attempt_count == 1
+    assert persisted.finished_at is not None
+    assert len(execute_calls) == 1
+    assert len(alert_calls) == 1
+    assert alert_calls[0]["kind"] == "FAILURE"
 
 
 def test_manual_execution_updates_the_job_as_the_requesting_actor(
@@ -289,7 +246,15 @@ def test_manual_execution_updates_the_job_as_the_requesting_actor(
     )
     assert run.id is not None
     db.commit()
-    monkeypatch.setattr(tasks, "resolve_task_class", lambda _: SuccessfulTask)
+    monkeypatch.setattr(
+        tasks.execution,
+        "execute",
+        lambda **_: SchedulerRunOutcome(
+            status=SchedulerRunStatus.SUCCEEDED,
+            error_category=None,
+            error_summary=None,
+        ),
+    )
 
     tasks.execute_run(run.id)
 
@@ -297,6 +262,7 @@ def test_manual_execution_updates_the_job_as_the_requesting_actor(
     persisted_job = db.get(SchedulerJob, job.id)
     assert persisted_job is not None
     assert persisted_job.updated_by == run.requested_by
+    assert persisted_job.run_failure_alerted_at is None
 
 
 def test_lease_reclaim_updates_the_job_as_the_original_requesting_actor(
@@ -314,7 +280,15 @@ def test_lease_reclaim_updates_the_job_as_the_original_requesting_actor(
     db.commit()
     assert run.id is not None
     monkeypatch.setattr(tasks, "utc_now", lambda: now)
-    monkeypatch.setattr(tasks, "resolve_task_class", lambda _: SuccessfulTask)
+    monkeypatch.setattr(
+        tasks.execution,
+        "execute",
+        lambda **_: SchedulerRunOutcome(
+            status=SchedulerRunStatus.SUCCEEDED,
+            error_category=None,
+            error_summary=None,
+        ),
+    )
 
     tasks.execute_run(run.id)
 

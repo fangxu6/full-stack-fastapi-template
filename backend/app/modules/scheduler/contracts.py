@@ -5,7 +5,7 @@ from typing import ClassVar
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models.scheduler import SchedulerRunTrigger
+from app.models.scheduler import SchedulerRunStatus, SchedulerRunTrigger
 
 
 class ScheduledTaskConfig(BaseModel):
@@ -19,6 +19,13 @@ class ScheduledTaskContext:
     trigger: SchedulerRunTrigger
     planned_at: datetime
     started_at: datetime
+
+
+@dataclass(frozen=True)
+class SchedulerRunOutcome:
+    status: SchedulerRunStatus
+    error_category: str | None
+    error_summary: str | None
 
 
 class ScheduledTaskSkipped(Exception):

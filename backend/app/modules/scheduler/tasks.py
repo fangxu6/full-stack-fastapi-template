@@ -1,6 +1,5 @@
 from datetime import UTC, datetime
 
-from pydantic import ValidationError
 from sqlmodel import Session, col, select
 
 from app.core.audit import bind_audit_actor, clear_audit_actor, require_system_actor
@@ -13,14 +12,12 @@ from app.models.scheduler import (
     SchedulerRunStatus,
     SchedulerRunTrigger,
 )
-from app.modules.scheduler import run_lifecycle
-from app.modules.scheduler.contracts import ScheduledTaskContext, ScheduledTaskSkipped
+from app.modules.scheduler import execution, run_lifecycle
 from app.modules.scheduler.cron import next_run_at, scheduled_in_current_minute
 from app.modules.scheduler.scheduler_alerts import clear_success_alerts
 from app.modules.scheduler.scheduler_alerts import send_alert as _send_alert
 from app.modules.scheduler.service import (
     LEASE_DURATION,
-    resolve_task_class,
     utc_now,
     validate_definition,
 )
@@ -182,73 +179,47 @@ def execute_run(run_id: int) -> None:
         if run is None:
             return
         class_path = run.class_path
-        config_snapshot = run.config
+        config_snapshot = dict(run.config)
         trigger = run.trigger
         planned_at = run.planned_at
         job_id = run.job_id
         actor_id = run.requested_by or require_system_actor(session=session)
+        started_at = run.started_at or now
         session.commit()
-    status: SchedulerRunStatus
-    category: str | None
-    summary: str | None
-    try:
-        task_class = resolve_task_class(class_path)
-        config = task_class.config_model.model_validate(config_snapshot)
-        task = task_class()
-    except ValidationError, ValueError:
-        status, category, summary = (
-            SchedulerRunStatus.FAILED,
-            "CONFIGURATION_INVALID",
-            "Scheduled task configuration is invalid",
-        )
-    else:
-        try:
-            task.run(
-                context=ScheduledTaskContext(
-                    run_id=run_id,
-                    actor_id=actor_id,
-                    trigger=trigger,
-                    planned_at=planned_at,
-                    started_at=now,
-                ),
-                config=config,
-            )
-            status, category, summary = SchedulerRunStatus.SUCCEEDED, None, None
-        except ScheduledTaskSkipped as skipped:
-            status, category, summary = (
-                SchedulerRunStatus.SKIPPED,
-                skipped.category,
-                skipped.summary,
-            )
-        except Exception:
-            status, category, summary = (
-                SchedulerRunStatus.FAILED,
-                "EXECUTION_FAILED",
-                "Scheduled task execution failed",
-            )
+    outcome = execution.execute(
+        run_id=run_id,
+        class_path=class_path,
+        config_snapshot=config_snapshot,
+        actor_id=actor_id,
+        trigger=trigger,
+        planned_at=planned_at,
+        started_at=started_at,
+    )
     with Session(engine) as session:
         bind_audit_actor(session=session, actor_id=actor_id)
         try:
-            run = run_lifecycle.finish_run(
+            run = run_lifecycle.finish_outcome(
                 session=session,
                 run_id=run_id,
-                status=status,
-                error_category=category,
-                error_summary=summary,
+                outcome=outcome,
             )
             if run is None:
                 return
-            if status is SchedulerRunStatus.SUCCEEDED:
+            if outcome.status is SchedulerRunStatus.SUCCEEDED:
                 clear_success_alerts(session=session, job_id=job_id)
             session.commit()
         finally:
             clear_audit_actor(session=session)
-    if status is SchedulerRunStatus.FAILED:
+    if outcome.status is SchedulerRunStatus.FAILED:
         _send_alert(
             job_id=job_id,
-            kind="CONFIGURATION" if category == "CONFIGURATION_INVALID" else "FAILURE",
-            category=category or "EXECUTION_FAILED",
-            summary=summary or "Scheduled task execution failed",
+            kind=(
+                "CONFIGURATION"
+                if outcome.error_category == "CONFIGURATION_INVALID"
+                else "FAILURE"
+            ),
+            category=outcome.error_category or "EXECUTION_FAILED",
+            summary=outcome.error_summary or "Scheduled task execution failed",
             planned_at=planned_at,
             actor_id=actor_id,
         )

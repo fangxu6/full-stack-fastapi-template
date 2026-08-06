@@ -54,8 +54,15 @@ delegates run persistence to the lifecycle module.
 
 - scanning due jobs;
 - publishing `scheduler.execute_run(run_id)` after a durable lease claim;
-- resolving and invoking the `ScheduledTask` implementation; and
+- delegating frozen task execution and result classification to
+  `scheduler/execution.py`; and
 - handing scheduler alert events to the existing durable email-outbox flow.
+
+`scheduler/execution.py` owns the side-effect-free execution boundary. It
+resolves the frozen task class, validates the frozen configuration, invokes
+`ScheduledTask.run()`, and returns a `SchedulerRunOutcome`. It does not open a
+database session, write run state, or send alerts. `run_lifecycle.py` converts
+that outcome into the durable terminal state through `finish_outcome()`.
 
 The lifecycle module must not publish Celery messages, send SMTP, or own
 business-task execution. It must not introduce a second `ScheduledTask`

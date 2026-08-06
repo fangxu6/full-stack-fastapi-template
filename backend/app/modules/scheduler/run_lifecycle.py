@@ -13,6 +13,7 @@ from app.models.scheduler import (
     SchedulerRunStatus,
     SchedulerRunTrigger,
 )
+from app.modules.scheduler.contracts import SchedulerRunOutcome
 
 LEASE_DURATION = timedelta(seconds=settings.CELERY_VISIBILITY_TIMEOUT_SECONDS)
 RUN_RETENTION = timedelta(days=90)
@@ -172,21 +173,19 @@ def claim_execution(
     return run
 
 
-def finish_run(
+def finish_outcome(
     *,
     session: Session,
     run_id: int,
-    status: SchedulerRunStatus,
-    error_category: str | None = None,
-    error_summary: str | None = None,
+    outcome: SchedulerRunOutcome,
     finished_at: datetime | None = None,
 ) -> SchedulerRun | None:
     run = session.get(SchedulerRun, run_id)
     if run is None:
         return None
-    run.status = status
-    run.error_category = error_category
-    run.error_summary = error_summary
+    run.status = outcome.status
+    run.error_category = outcome.error_category
+    run.error_summary = outcome.error_summary
     run.finished_at = utc_now(finished_at)
     run.lease_expires_at = None
     run.next_dispatch_at = None
