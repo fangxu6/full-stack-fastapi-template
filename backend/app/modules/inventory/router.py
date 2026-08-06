@@ -13,7 +13,7 @@ from app.core.excel import (
 )
 from app.models.inventory import InventoryDocumentType, InventoryLedgerKind
 from app.modules.iam.dependencies import permission_required
-from app.modules.inventory import importer, service
+from app.modules.inventory import documents, importer, service, units
 from app.schemas.inventory import (
     InventoryBalancesPublic,
     InventoryDocumentCreate,
@@ -183,7 +183,7 @@ def read_processing_units(
     limit: int = Query(default=20, ge=1, le=100),
 ) -> Any:
     del current_user
-    return service.list_processing_units(
+    return units.list_processing_units(
         session=session,
         name=name,
         is_active=is_active,
@@ -203,7 +203,7 @@ def create_processing_unit(
     _current_user: CurrentUser,
     unit_in: MasterUnitCreate,
 ) -> Any:
-    return service.create_processing_unit(session=session, unit_in=unit_in)
+    return units.create_processing_unit(session=session, unit_in=unit_in)
 
 
 @router.put(
@@ -218,7 +218,7 @@ def update_processing_unit(
     unit_id: uuid.UUID,
     unit_in: MasterUnitUpdate,
 ) -> Any:
-    return service.update_processing_unit(
+    return units.update_processing_unit(
         session=session,
         unit_id=unit_id,
         unit_in=unit_in,
@@ -239,7 +239,7 @@ def read_receiving_units(
     limit: int = Query(default=20, ge=1, le=100),
 ) -> Any:
     del current_user
-    return service.list_receiving_units(
+    return units.list_receiving_units(
         session=session,
         name=name,
         is_active=is_active,
@@ -259,7 +259,7 @@ def create_receiving_unit(
     _current_user: CurrentUser,
     unit_in: MasterUnitCreate,
 ) -> Any:
-    return service.create_receiving_unit(session=session, unit_in=unit_in)
+    return units.create_receiving_unit(session=session, unit_in=unit_in)
 
 
 @router.put(
@@ -274,7 +274,7 @@ def update_receiving_unit(
     unit_id: uuid.UUID,
     unit_in: MasterUnitUpdate,
 ) -> Any:
-    return service.update_receiving_unit(
+    return units.update_receiving_unit(
         session=session,
         unit_id=unit_id,
         unit_in=unit_in,
@@ -292,7 +292,7 @@ def create_inventory_document(
     _current_user: CurrentUser,
     document_in: InventoryDocumentCreate,
 ) -> Any:
-    return service.create_document(session=session, document_in=document_in)
+    return documents.create_document(session=session, document_in=document_in)
 
 
 @router.get(
@@ -352,7 +352,7 @@ def update_inventory_document(
     document_id: uuid.UUID,
     document_in: InventoryDocumentCreate,
 ) -> Any:
-    return service.update_document(
+    return documents.update_document(
         session=session,
         document_id=document_id,
         document_in=document_in,
@@ -366,7 +366,7 @@ def update_inventory_document(
 def delete_inventory_document(
     document_id: uuid.UUID, session: AuditedWriteSessionDep, _current_user: CurrentUser
 ) -> dict[str, str]:
-    service.delete_document(session=session, document_id=document_id)
+    documents.delete_document(session=session, document_id=document_id)
     return {"message": "Inventory document deleted"}
 
 
@@ -377,7 +377,7 @@ def delete_inventory_document(
 def restore_inventory_document(
     document_id: uuid.UUID, session: AuditedWriteSessionDep, _current_user: CurrentUser
 ) -> dict[str, str]:
-    service.restore_document(session=session, document_id=document_id)
+    documents.restore_document(session=session, document_id=document_id)
     return {"message": "Inventory document restored"}
 
 

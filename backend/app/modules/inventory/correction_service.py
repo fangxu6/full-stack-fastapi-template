@@ -27,7 +27,7 @@ from app.models.inventory import (
 )
 from app.modules.audit import service as audit_service
 from app.modules.iam import service as iam_service
-from app.modules.inventory import service as inventory_service
+from app.modules.inventory import documents
 from app.schemas.inventory import InventoryDocumentCreate
 from app.schemas.inventory_correction import (
     InventoryCorrectionAttemptPublic,
@@ -140,7 +140,7 @@ def _require_correction_target(
         raise NotFoundError("Inventory document not found")
     if document.is_legacy:
         raise BadRequestError("Legacy inventory documents cannot be corrected")
-    if not inventory_service.document_has_ledger_effects(
+    if not documents.document_has_ledger_effects(
         session=session, document_id=document_id
     ):
         raise ConflictError("INVENTORY_CORRECTION_NOT_REQUIRED")
@@ -844,7 +844,7 @@ def apply_claimed_attempt(
                 InventoryCorrectionFailureCategory.EXECUTION_FAILED
             ) from error
     try:
-        inventory_service.apply_approved_correction(
+        documents.apply_approved_correction(
             session=session,
             document=document,
             operation=request.operation,

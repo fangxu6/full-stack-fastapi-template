@@ -44,7 +44,7 @@ from app.models.inventory import (
     InventoryMovementType,
     LegacyWorkbookKind,
 )
-from app.modules.inventory import service
+from app.modules.inventory import documents, units
 from app.schemas.inventory import (
     InventoryDocumentCreate,
     InventoryDocumentExcelRow,
@@ -133,7 +133,7 @@ def import_document_workbook(
     for number, group in groups.items():
         first = cast(InventoryDocumentExcelRow, group[0].value)
         try:
-            processing_unit_id = service.resolve_active_unit_name(
+            processing_unit_id = units.resolve_active_unit_name(
                 session=session,
                 model=ProcessingUnit,
                 name=first.processing_unit_name,
@@ -148,7 +148,7 @@ def import_document_workbook(
         receiving_unit_id = None
         if first.receiving_unit_name:
             try:
-                receiving_unit_id = service.resolve_active_unit_name(
+                receiving_unit_id = units.resolve_active_unit_name(
                     session=session,
                     model=ReceivingUnit,
                     name=first.receiving_unit_name,
@@ -193,7 +193,7 @@ def import_document_workbook(
             continue
         try:
             with session.begin_nested():
-                service.create_document(session=session, document_in=document_in)
+                documents.create_document(session=session, document_in=document_in)
         except (BadRequestError, ConflictError) as error:
             issues.append(
                 _document_issue(
