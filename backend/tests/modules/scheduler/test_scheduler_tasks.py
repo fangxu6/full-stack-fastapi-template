@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from inspect import getsource
 from unittest.mock import patch
 
 import pytest
@@ -121,6 +122,24 @@ def test_scheduler_alerts_reset_job_failure_and_overlap_throttles(
     db.refresh(job)
     assert job.run_failure_alerted_at is None
     assert job.overlap_alerted_at is None
+
+
+def test_scheduler_alert_timestamp_writes_stay_in_alert_module() -> None:
+    assert "configuration_alerted_at" not in getsource(service.update_job)
+
+
+def test_scheduler_alerts_reset_configuration_throttle(db: Session) -> None:
+    now = datetime(2026, 8, 6, 0, 0, tzinfo=UTC)
+    job = create_job(session=db, now=now)
+    job.configuration_alerted_at = now
+    db.add(job)
+    db.commit()
+
+    scheduler_alerts.clear_configuration_alert(session=db, job_id=job.id or 0)
+    db.commit()
+
+    db.refresh(job)
+    assert job.configuration_alerted_at is None
 
 
 def test_scan_creates_only_current_minute_run(

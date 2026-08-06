@@ -5,7 +5,6 @@ from sqlmodel import Session, select
 
 from app.core.audit import bind_audit_actor, clear_audit_actor
 from app.core.config import settings
-from app.core.db import engine
 from app.core.observability import log_event
 from app.models.scheduler import SchedulerJob
 from app.modules.scheduler.config import scheduler_settings
@@ -24,6 +23,14 @@ def clear_success_alerts(*, session: Session, job_id: int) -> None:
     session.add(job)
 
 
+def clear_configuration_alert(*, session: Session, job_id: int) -> None:
+    job = session.get(SchedulerJob, job_id)
+    if job is None:
+        return
+    job.configuration_alerted_at = None
+    session.add(job)
+
+
 def send_alert(
     *,
     job_id: int,
@@ -33,6 +40,8 @@ def send_alert(
     planned_at: datetime,
     actor_id: uuid.UUID,
 ) -> None:
+    from app.core.db import engine
+
     now = utc_now()
     recipients = scheduler_settings.SCHEDULED_TASK_ALERT_RECIPIENTS
     emit_unsent = False

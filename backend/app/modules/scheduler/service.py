@@ -16,7 +16,7 @@ from app.models.scheduler import (
     SchedulerRunStatus,
     SchedulerRunTrigger,
 )
-from app.modules.scheduler import run_lifecycle
+from app.modules.scheduler import run_lifecycle, scheduler_alerts
 from app.modules.scheduler.contracts import ScheduledTask, ScheduledTaskConfig
 from app.modules.scheduler.cron import matches_cron, next_run_at
 from app.modules.scheduler.run_lifecycle import (
@@ -283,7 +283,9 @@ def update_job(
         job.name = cast(str, values["name"]).strip()
     current = utc_now(now)
     job.next_run_at = next_run_at(cron_expression, after=current)
-    job.configuration_alerted_at = None
+    if job.id is None:
+        raise RuntimeError("scheduled task must be persisted")
+    scheduler_alerts.clear_configuration_alert(session=session, job_id=job.id)
     session.add(job)
     session.flush()
     session.refresh(job)
