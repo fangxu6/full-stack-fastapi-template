@@ -50,7 +50,7 @@ Backend quality in this repo is mostly about preserving architectural direction:
 
 - On Windows, use the Bash flow in [Windows Bash Quality Commands](#scenario-windows-bash-quality-commands). It changes to `backend/` before running a backend script.
 - The preferred non-mutating backend gate is `cd backend && bash scripts/lint.sh`, which runs strict mypy, `ty check app`, Ruff, and Ruff format check. The script requires `backend/` as its current directory because it passes `app` as a relative path.
-- Preferred backend test command from `backend/`: set `POSTGRES_DB=aiadmin_test`, then run a focused `uv run pytest ...` when the full suite is not appropriate. `aiadmin_test` is the default isolated database for destructive backend tests and local API E2E; a pre-created database whose name ends in `_test` or `_pytest` is also valid for a clean or concurrent verification run. Never point either workflow at the development database.
+- Preferred backend test command from `backend/`: use the ignored local root `.env_test` with `uv run --env-file ../.env_test pytest ...` when available, or set `POSTGRES_DB=aiadmin_test` explicitly. `aiadmin_test` is the default isolated database for destructive backend tests and local API E2E; a pre-created database whose name ends in `_test` or `_pytest` is also valid for a clean or concurrent verification run. Never point either workflow at the development database.
 - If a backend change affects error behavior, verify at least one path that exercises the unified error shape.
 - If auth, permission, or validation behavior changes, verify the relevant `401`, `403`, or `422` contract path.
 - If request/response models change, review frontend generated-client impact before closing the task.
@@ -147,6 +147,13 @@ POSTGRES_DB=aiadmin_test bash scripts/test.sh
 POSTGRES_DB=aiadmin_test uv run pytest tests/<path>
 ```
 
+For local PowerShell runs from `backend/`, the ignored root `.env_test` may
+provide the test environment without changing the current shell:
+
+```powershell
+uv run --env-file ../.env_test pytest tests/<path>
+```
+
 #### 3. Contracts
 
 - `aiadmin_test` is the default local isolated PostgreSQL database for
@@ -157,6 +164,10 @@ POSTGRES_DB=aiadmin_test uv run pytest tests/<path>
   to the Alembic head and clears its supported test tables after the suite. It
   does not clear them before setup, so a new safe database is the correct way
   to rule out residue without deleting another test run's records.
+- `.env_test` is a developer-local environment file and must remain ignored;
+  it must set `POSTGRES_DB` to `aiadmin_test` or another pre-created database
+  name ending in `_test` or `_pytest`. CI and environments without this file
+  must set `POSTGRES_DB` explicitly.
 - `POSTGRES_DB=aiadmin` is development data and must never be used for tests.
 
 #### 4. Validation And Error Matrix
@@ -172,15 +183,21 @@ POSTGRES_DB=aiadmin_test uv run pytest tests/<path>
 
 - Good: a focused backend test exports `POSTGRES_DB=aiadmin_test` and leaves
   `aiadmin` untouched.
+- Good: a local focused test runs `uv run --env-file ../.env_test pytest ...`
+  from `backend/`, with `.env_test` ignored and `POSTGRES_DB=aiadmin_test`.
 - Good: a full verification uses `aiadmin_clean_pytest` so session-scoped
   fixture data cannot be confused with another local E2E run.
 - Base: the fixture clears its known tables after a successful suite.
 - Bad: pointing pytest at `aiadmin` to avoid creating the test database.
+- Bad: committing `.env_test` or relying on it in CI, where the local file is
+  intentionally unavailable.
 
 #### 6. Tests Required
 
 - Verify the database guard rejects `aiadmin` before migrations run.
 - Verify CI/local test commands set `POSTGRES_DB=aiadmin_test` before pytest.
+- Verify `uv run --env-file ../.env_test python -c ...` exposes the safe
+  `POSTGRES_DB` value before running a destructive test suite.
 
 #### 7. Wrong Vs Correct
 
@@ -194,6 +211,12 @@ POSTGRES_DB=aiadmin uv run pytest tests/core/test_config.py
 
 ```bash
 POSTGRES_DB=aiadmin_test uv run pytest tests/core/test_config.py
+```
+
+For a local PowerShell shortcut, the equivalent is:
+
+```powershell
+uv run --env-file ../.env_test pytest tests/core/test_config.py
 ```
 
 ---
