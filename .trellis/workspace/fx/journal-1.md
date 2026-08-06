@@ -1437,3 +1437,24 @@ Implemented ADR-0012: centralized SchedulerRun persistence in run_lifecycle.py, 
 ### Status
 
 [OK] **Completed**
+
+
+## Session 44: Inventory document ledger deepening
+
+**Date**: 2026-08-06
+**Task**: Inventory document ledger deepening
+**Branch**: `master`
+
+### Summary
+
+Moved inventory unit lifecycle and document ledger writes into focused modules, migrated production callers, added focused coverage, passed inventory regressions and backend quality gates, then archived the task.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8b99ff9` | (see git log) |
+
+### Status
+
+[OK] **Completed**
