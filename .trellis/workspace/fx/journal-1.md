@@ -1458,3 +1458,24 @@ Moved inventory unit lifecycle and document ledger writes into focused modules, 
 ### Status
 
 [OK] **Completed**
+
+
+## Session 45: Separate inventory correction review and attempt execution
+
+**Date**: 2026-08-07
+**Task**: Separate inventory correction review and attempt execution
+**Branch**: `master`
+
+### Summary
+
+Split inventory correction attempt lease, claim, application, and terminal state transitions into correction_attempts.py. Kept request/review/recovery in correction_service.py, document mutation in documents.py, and transaction ownership in route/task callers. Focused correction and scheduler tests and backend lint passed; full inventory module run retained two pre-existing aiadmin_test data-contamination failures.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1d7f4d2` | (see git log) |
+
+### Status
+
+[OK] **Completed**

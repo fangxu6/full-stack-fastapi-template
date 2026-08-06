@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 44
-- **Last Active**: 2026-08-06
+- **Total Sessions**: 45
+- **Last Active**: 2026-08-07
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1460 | Active |
+| `journal-1.md` | ~1481 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 45 | 2026-08-07 | Separate inventory correction review and attempt execution | `1d7f4d2` | `master` |
 | 44 | 2026-08-06 | Inventory document ledger deepening | `8b99ff9` | `master` |
 | 43 | 2026-08-06 | Centralize scheduler run lifecycle | `798aab9` | `master` |
 | 42 | 2026-08-05 | 格式化 PM2 结构化日志前缀 | `38a4331` | `master` |
