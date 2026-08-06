@@ -12,7 +12,7 @@ from app.models.scheduler import (
     SchedulerRunStatus,
     SchedulerRunTrigger,
 )
-from app.modules.scheduler import service, tasks
+from app.modules.scheduler import run_lifecycle, scheduler_alerts, service, tasks
 from app.modules.scheduler.config import scheduler_settings
 from app.modules.scheduler.contracts import ScheduledTask, ScheduledTaskConfig
 from app.schemas.scheduler import SchedulerJobCreate
@@ -65,6 +65,62 @@ def create_job(*, session: Session, now: datetime) -> SchedulerJob:
     session.commit()
     session.refresh(job)
     return job
+
+
+def test_run_lifecycle_owns_claim_and_terminal_persistence(db: Session) -> None:
+    now = datetime(2026, 7, 26, 0, 0, tzinfo=UTC)
+    job = create_job(session=db, now=now)
+    job.enabled = False
+    db.add(job)
+    db.commit()
+    run = run_lifecycle.create_run(
+        session=db,
+        job=job,
+        trigger=SchedulerRunTrigger.MANUAL_NOW,
+        planned_at=now,
+        requested_by=job.created_by,
+        now=now,
+    )
+    assert run.id is not None
+    db.commit()
+
+    claimed = run_lifecycle.claim_execution(session=db, run_id=run.id, now=now)
+    assert claimed is not None
+    assert claimed.status is SchedulerRunStatus.RUNNING
+    db.commit()
+
+    finished = run_lifecycle.finish_run(
+        session=db,
+        run_id=run.id,
+        status=SchedulerRunStatus.SUCCEEDED,
+        finished_at=now,
+    )
+    assert finished is not None
+    db.commit()
+    db.refresh(finished)
+    assert finished.status is SchedulerRunStatus.SUCCEEDED
+    assert finished.lease_expires_at is None
+    assert finished.next_dispatch_at is None
+
+
+def test_scheduler_alerts_reset_job_failure_and_overlap_throttles(
+    db: Session,
+) -> None:
+    now = datetime(2026, 7, 26, 0, 0, tzinfo=UTC)
+    job = create_job(session=db, now=now)
+    job.enabled = False
+    db.add(job)
+    db.commit()
+    job.run_failure_alerted_at = now
+    job.overlap_alerted_at = now
+    db.add(job)
+    db.commit()
+
+    scheduler_alerts.clear_success_alerts(session=db, job_id=job.id or 0)
+    db.commit()
+    db.refresh(job)
+    assert job.run_failure_alerted_at is None
+    assert job.overlap_alerted_at is None
 
 
 def test_scan_creates_only_current_minute_run(

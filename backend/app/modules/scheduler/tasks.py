@@ -1,94 +1,31 @@
-import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from pydantic import ValidationError
 from sqlmodel import Session, col, select
 
 from app.core.audit import bind_audit_actor, clear_audit_actor, require_system_actor
 from app.core.celery import celery_app
-from app.core.config import settings
 from app.core.db import engine
 from app.core.exceptions import ConflictError
 from app.core.observability import log_event
 from app.models.scheduler import (
     SchedulerJob,
-    SchedulerRun,
     SchedulerRunStatus,
     SchedulerRunTrigger,
 )
-from app.modules.scheduler.config import scheduler_settings
+from app.modules.scheduler import run_lifecycle
 from app.modules.scheduler.contracts import ScheduledTaskContext, ScheduledTaskSkipped
 from app.modules.scheduler.cron import next_run_at, scheduled_in_current_minute
+from app.modules.scheduler.scheduler_alerts import clear_success_alerts
+from app.modules.scheduler.scheduler_alerts import send_alert as _send_alert
 from app.modules.scheduler.service import (
     LEASE_DURATION,
-    create_run,
     resolve_task_class,
     utc_now,
     validate_definition,
 )
-from app.services.email_outbox import queue_rendered_email
 
-ALERT_INTERVAL = timedelta(hours=1)
 DISPATCH_BATCH_SIZE = 100
-
-
-def _send_alert(
-    *,
-    job_id: int,
-    kind: str,
-    category: str,
-    summary: str,
-    planned_at: datetime,
-    actor_id: uuid.UUID,
-) -> None:
-    now = utc_now()
-    recipients = scheduler_settings.SCHEDULED_TASK_ALERT_RECIPIENTS
-    emit_unsent = False
-    with Session(engine) as session:
-        bind_audit_actor(session=session, actor_id=actor_id)
-        try:
-            job = session.exec(
-                select(SchedulerJob).where(SchedulerJob.id == job_id).with_for_update()
-            ).one_or_none()
-            if job is None:
-                return
-            if kind == "OVERLAP":
-                alerted_at = job.overlap_alerted_at
-            elif kind == "CONFIGURATION":
-                alerted_at = job.configuration_alerted_at
-            else:
-                alerted_at = job.run_failure_alerted_at
-            if alerted_at is not None and now - alerted_at < ALERT_INTERVAL:
-                return
-            if kind == "OVERLAP":
-                job.overlap_alerted_at = now
-            elif kind == "CONFIGURATION":
-                job.configuration_alerted_at = now
-            else:
-                job.run_failure_alerted_at = now
-            session.add(job)
-            if recipients:
-                subject = f"{settings.PROJECT_NAME} - Scheduled task alert"
-                content = (
-                    f"<p>Task: {job.name} (#{job_id})</p>"
-                    f"<p>Category: {category}</p>"
-                    f"<p>Planned at: {planned_at}</p>"
-                    f"<p>Summary: {summary}</p>"
-                )
-                for recipient in recipients:
-                    queue_rendered_email(
-                        session=session,
-                        recipient=str(recipient),
-                        subject=subject,
-                        html_content=content,
-                    )
-            else:
-                emit_unsent = True
-            session.commit()
-        finally:
-            clear_audit_actor(session=session)
-    if emit_unsent:
-        log_event(event_name="scheduler.alert.unsent", severity="WARNING")
 
 
 def _dispatch_now(now: datetime | None = None) -> datetime:
@@ -99,19 +36,9 @@ def _dispatch_now(now: datetime | None = None) -> datetime:
     return now.astimezone(UTC)
 
 
-def _next_scan_at(now: datetime) -> datetime:
-    return now.replace(second=0, microsecond=0) + timedelta(minutes=1)
-
-
 def _retry_dispatch_on_next_scan(*, run_id: int, now: datetime) -> None:
     with Session(engine) as session:
-        run = session.exec(
-            select(SchedulerRun).where(SchedulerRun.id == run_id).with_for_update()
-        ).first()
-        if run is None or run.status is not SchedulerRunStatus.QUEUED:
-            return
-        run.next_dispatch_at = _next_scan_at(now)
-        session.add(run)
+        run_lifecycle.release_dispatch(session=session, run_id=run_id, now=now)
         session.commit()
 
 
@@ -122,27 +49,13 @@ def dispatch_queued_runs(
     if run_ids is not None and not run_ids:
         return
     with Session(engine) as session:
-        query = (
-            select(SchedulerRun)
-            .where(
-                SchedulerRun.status == SchedulerRunStatus.QUEUED,
-                col(SchedulerRun.next_dispatch_at).is_not(None),
-                col(SchedulerRun.next_dispatch_at) <= current,
-            )
-            .order_by(col(SchedulerRun.created_at), col(SchedulerRun.id))
-            .limit(DISPATCH_BATCH_SIZE)
-            .with_for_update(skip_locked=True)
+        dispatch_ids = run_lifecycle.claim_dispatchable_runs(
+            session=session,
+            now=current,
+            run_ids=run_ids,
+            lease_duration=LEASE_DURATION,
+            limit=DISPATCH_BATCH_SIZE,
         )
-        if run_ids is not None:
-            query = query.where(col(SchedulerRun.id).in_(run_ids))
-        runs = list(session.exec(query).all())
-        dispatch_ids: list[int] = []
-        for run in runs:
-            if run.id is None:
-                raise RuntimeError("scheduled task run must be persisted")
-            run.next_dispatch_at = current + LEASE_DURATION
-            session.add(run)
-            dispatch_ids.append(run.id)
         session.commit()
     for run_id in dispatch_ids:
         try:
@@ -186,7 +99,7 @@ def scan_due_jobs() -> None:
                         cron_expression=job.cron_expression,
                         config=job.config,
                     )
-                    create_run(
+                    run_lifecycle.create_run(
                         session=session,
                         job=job,
                         trigger=SchedulerRunTrigger.SCHEDULED,
@@ -195,7 +108,7 @@ def scan_due_jobs() -> None:
                         now=now,
                     )
                 except ValueError:
-                    create_run(
+                    run_lifecycle.create_run(
                         session=session,
                         job=job,
                         trigger=SchedulerRunTrigger.SCHEDULED,
@@ -218,7 +131,7 @@ def scan_due_jobs() -> None:
                     )
                     continue
                 except ConflictError:
-                    create_run(
+                    run_lifecycle.create_run(
                         session=session,
                         job=job,
                         trigger=SchedulerRunTrigger.SCHEDULED,
@@ -259,32 +172,22 @@ def execute_run(run_id: int) -> None:
     if not isinstance(run_id, int):
         raise ValueError("scheduler run id must be an integer")
     with Session(engine) as session:
-        run = session.exec(
-            select(SchedulerRun).where(SchedulerRun.id == run_id).with_for_update()
-        ).first()
-        if run is None or run.status is SchedulerRunStatus.CANCELLED:
-            return
         now = utc_now()
-        if run.status is SchedulerRunStatus.RUNNING and (
-            run.lease_expires_at is None or run.lease_expires_at > now
-        ):
+        run = run_lifecycle.claim_execution(
+            session=session,
+            run_id=run_id,
+            now=now,
+            lease_duration=LEASE_DURATION,
+        )
+        if run is None:
             return
-        if run.status not in {SchedulerRunStatus.QUEUED, SchedulerRunStatus.RUNNING}:
-            return
-        run.status = SchedulerRunStatus.RUNNING
-        run.started_at = now
-        run.lease_expires_at = now + LEASE_DURATION
-        run.next_dispatch_at = None
-        run.attempt_count += 1
-        session.add(run)
-        session.commit()
-        session.refresh(run)
         class_path = run.class_path
         config_snapshot = run.config
         trigger = run.trigger
         planned_at = run.planned_at
         job_id = run.job_id
         actor_id = run.requested_by or require_system_actor(session=session)
+        session.commit()
     status: SchedulerRunStatus
     category: str | None
     summary: str | None
@@ -325,22 +228,18 @@ def execute_run(run_id: int) -> None:
             )
     with Session(engine) as session:
         bind_audit_actor(session=session, actor_id=actor_id)
-        run = session.get(SchedulerRun, run_id)
         try:
+            run = run_lifecycle.finish_run(
+                session=session,
+                run_id=run_id,
+                status=status,
+                error_category=category,
+                error_summary=summary,
+            )
             if run is None:
                 return
-            run.status = status
-            run.error_category = category
-            run.error_summary = summary
-            run.finished_at = utc_now()
-            run.lease_expires_at = None
-            run.next_dispatch_at = None
-            session.add(run)
-            job = session.get(SchedulerJob, job_id)
-            if job is not None and status is SchedulerRunStatus.SUCCEEDED:
-                job.run_failure_alerted_at = None
-                job.overlap_alerted_at = None
-                session.add(job)
+            if status is SchedulerRunStatus.SUCCEEDED:
+                clear_success_alerts(session=session, job_id=job_id)
             session.commit()
         finally:
             clear_audit_actor(session=session)
@@ -356,10 +255,8 @@ def execute_run(run_id: int) -> None:
 
 
 def cleanup_scheduled_runs() -> None:
-    from app.modules.scheduler.service import cleanup_runs
-
     with Session(engine) as session:
-        cleanup_runs(session=session)
+        run_lifecycle.cleanup_runs(session=session)
         session.commit()
 
 

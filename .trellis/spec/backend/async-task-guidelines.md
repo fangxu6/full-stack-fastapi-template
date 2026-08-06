@@ -203,6 +203,33 @@ celery_app.tasks["scheduler.execute_run"].delay(run.id)
 Claim and persist the dispatch lease before broker send, then let the durable
 record become eligible again only after the defined retry boundary.
 
+### Scheduler Run Lifecycle Ownership
+
+`backend/app/modules/scheduler/run_lifecycle.py` is the only module allowed to
+assign `SchedulerRun` status, lease, dispatch, execution, terminal, retry, and
+retention fields. `service.py` may validate jobs and delegate run creation,
+queued cancellation, active-run reads, and cleanup. `tasks.py` may scan,
+publish, resolve, and execute, but must call lifecycle helpers for every run
+write. `scheduler_alerts.py` owns `SchedulerJob` alert timestamps and
+`EmailOutbox` writes; it must not update `SchedulerRun`.
+
+Lifecycle helpers accept a caller-owned `Session`, flush when a caller needs
+database-generated values, and never commit or rollback. HTTP, Beat, Worker,
+and cleanup callers commit their own short durable phase before broker,
+business-task, or email work. The Worker flow is therefore:
+
+```python
+run = run_lifecycle.claim_execution(session=session, run_id=run_id, now=now)
+session.commit()
+execute_frozen_task(run)
+run_lifecycle.finish_run(session=session, run_id=run_id, status=status)
+session.commit()
+```
+
+Do not merge Beat dispatch and Worker execution into one function or add a
+generic state-machine abstraction. The database enum, partial active-run
+index, dispatch lease, and execution lease remain the lifecycle invariants.
+
 ## Scenario: Scheduler Manual Operation Capabilities
 
 ### 1. Scope / Trigger

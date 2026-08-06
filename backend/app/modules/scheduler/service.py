@@ -6,11 +6,9 @@ from typing import cast
 
 from pydantic import ValidationError
 from sqlalchemy import func
-from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, select
 
-from app.core.config import settings
-from app.core.exceptions import AppError, ConflictError, NotFoundError
+from app.core.exceptions import AppError, ConflictError
 from app.models.base import get_datetime_utc
 from app.models.scheduler import (
     SchedulerJob,
@@ -18,8 +16,12 @@ from app.models.scheduler import (
     SchedulerRunStatus,
     SchedulerRunTrigger,
 )
+from app.modules.scheduler import run_lifecycle
 from app.modules.scheduler.contracts import ScheduledTask, ScheduledTaskConfig
 from app.modules.scheduler.cron import matches_cron, next_run_at
+from app.modules.scheduler.run_lifecycle import (
+    SchedulerJobNotFoundError,
+)
 from app.schemas.scheduler import SchedulerJobCreate, SchedulerJobUpdate
 
 CLASS_PATH = re.compile(
@@ -47,7 +49,7 @@ SENSITIVE_KEY_SEGMENTS = frozenset(
 SENSITIVE_KEY_COMPOUNDS = frozenset(
     {"api_key", "access_key", "private_key", "connection_string"}
 )
-LEASE_DURATION = timedelta(seconds=settings.CELERY_VISIBILITY_TIMEOUT_SECONDS)
+LEASE_DURATION: timedelta = run_lifecycle.LEASE_DURATION
 CRON_PREVIEW_COUNT = 5
 BACKFILL_MAX_AGE = timedelta(days=365)
 INVENTORY_BOOTSTRAP_JOBS = (
@@ -70,10 +72,6 @@ INVENTORY_BOOTSTRAP_JOBS = (
         "* * * * *",
     ),
 )
-
-
-class SchedulerJobNotFoundError(NotFoundError):
-    detail = "Scheduled task not found"
 
 
 class SchedulerValidationError(AppError):
@@ -101,12 +99,6 @@ def preview_cron(
     except ValueError as error:
         raise SchedulerValidationError(str(error)) from error
     return base_at, next_run_ats
-
-
-def _job_id(job: SchedulerJob) -> int:
-    if job.id is None:
-        raise RuntimeError("scheduled task must be persisted")
-    return job.id
 
 
 def _normalized_key(key: str) -> str:
@@ -299,14 +291,7 @@ def update_job(
 
 
 def _active_run(*, session: Session, job_id: int) -> SchedulerRun | None:
-    return session.exec(
-        select(SchedulerRun).where(
-            SchedulerRun.job_id == job_id,
-            col(SchedulerRun.status).in_(
-                (SchedulerRunStatus.QUEUED, SchedulerRunStatus.RUNNING)
-            ),
-        )
-    ).first()
+    return run_lifecycle.active_run(session=session, job_id=job_id)
 
 
 def create_run(
@@ -322,38 +307,18 @@ def create_run(
     require_no_active: bool = True,
     now: datetime | None = None,
 ) -> SchedulerRun:
-    current = utc_now(now)
-    job_id = _job_id(job)
-    locked_job = session.exec(
-        select(SchedulerJob).where(SchedulerJob.id == job_id).with_for_update()
-    ).first()
-    if locked_job is None:
-        raise SchedulerJobNotFoundError()
-    if require_no_active and _active_run(session=session, job_id=job_id) is not None:
-        raise ConflictError("Scheduled task already has an active run")
-    run = SchedulerRun(
-        job_id=job_id,
-        status=status,
+    return run_lifecycle.create_run(
+        session=session,
+        job=job,
         trigger=trigger,
-        planned_at=planned_at.astimezone(UTC),
-        class_path=locked_job.class_path,
-        config=locked_job.config,
+        planned_at=planned_at,
         requested_by=requested_by,
-        created_at=current,
-        next_dispatch_at=current if status is SchedulerRunStatus.QUEUED else None,
-        finished_at=current
-        if status not in {SchedulerRunStatus.QUEUED, SchedulerRunStatus.RUNNING}
-        else None,
+        status=status,
         error_category=error_category,
         error_summary=error_summary,
+        require_no_active=require_no_active,
+        now=now,
     )
-    try:
-        with session.begin_nested():
-            session.add(run)
-            session.flush()
-    except IntegrityError as error:
-        raise ConflictError("Scheduled task already has an active run") from error
-    return run
 
 
 def run_now(
@@ -429,18 +394,7 @@ def set_enabled(
     job.enabled = enabled
     job.next_run_at = next_run_at(job.cron_expression, after=current)
     if not enabled:
-        queued = session.exec(
-            select(SchedulerRun).where(
-                SchedulerRun.job_id == job_id,
-                SchedulerRun.status == SchedulerRunStatus.QUEUED,
-            )
-        ).all()
-        for run in queued:
-            run.status = SchedulerRunStatus.CANCELLED
-            run.finished_at = current
-            run.lease_expires_at = None
-            run.next_dispatch_at = None
-            session.add(run)
+        run_lifecycle.cancel_queued_runs(session=session, job_id=job_id, now=current)
     session.add(job)
     session.flush()
     session.refresh(job)
@@ -448,7 +402,7 @@ def set_enabled(
 
 
 def delete_job(*, session: Session, job_id: int, now: datetime | None = None) -> None:
-    if _active_run(session=session, job_id=job_id) is not None:
+    if run_lifecycle.active_run(session=session, job_id=job_id) is not None:
         raise ConflictError(
             "Disable the scheduled task and wait for active runs before deletion"
         )
@@ -498,17 +452,7 @@ def list_runs(
 
 
 def cleanup_runs(*, session: Session, now: datetime | None = None) -> int:
-    cutoff = utc_now(now) - timedelta(days=90)
-    runs = session.exec(
-        select(SchedulerRun).where(
-            col(SchedulerRun.finished_at).is_not(None),
-            col(SchedulerRun.finished_at) < cutoff,
-        )
-    ).all()
-    for run in runs:
-        session.delete(run)
-    session.flush()
-    return len(runs)
+    return run_lifecycle.cleanup_runs(session=session, now=now)
 
 
 def bootstrap_inventory_jobs(*, session: Session) -> None:
