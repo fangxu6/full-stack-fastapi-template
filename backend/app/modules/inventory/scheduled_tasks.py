@@ -5,7 +5,7 @@ from app.core.celery import celery_app
 from app.core.db import engine
 from app.models.base import get_datetime_utc
 from app.models.inventory import InventoryCorrectionFailureCategory
-from app.modules.inventory import correction_service
+from app.modules.inventory import correction_attempts
 from app.modules.inventory.daily_report import (
     create_daily_reports,
     queue_due_daily_report_deliveries,
@@ -69,10 +69,10 @@ class InventoryCorrectionApplyTask(ScheduledTask):
         with Session(engine) as session:
             bind_audit_actor(session=session, actor_id=context.actor_id)
             try:
-                correction_service.mark_expired_attempts_terminal(
+                correction_attempts.mark_expired_attempts_terminal(
                     session=session, now=now
                 )
-                claimed_attempts = correction_service.claim_pending_attempts(
+                claimed_attempts = correction_attempts.claim_pending_attempts(
                     session=session,
                     scheduler_run_id=context.run_id,
                     now=now,
@@ -96,7 +96,7 @@ class InventoryCorrectionApplyTask(ScheduledTask):
             bind_audit_actor(session=session, actor_id=context.actor_id)
             try:
                 try:
-                    correction_service.apply_claimed_attempt(
+                    correction_attempts.apply_claimed_attempt(
                         session=session,
                         work_item_id=work_item_id,
                         attempt_id=attempt_id,
@@ -105,9 +105,9 @@ class InventoryCorrectionApplyTask(ScheduledTask):
                         now=get_datetime_utc(),
                     )
                     session.commit()
-                except correction_service.CorrectionApplicationError as error:
+                except correction_attempts.CorrectionApplicationError as error:
                     session.rollback()
-                    correction_service.finalize_failed_attempt(
+                    correction_attempts.finalize_failed_attempt(
                         session=session,
                         work_item_id=work_item_id,
                         attempt_id=attempt_id,
@@ -117,7 +117,7 @@ class InventoryCorrectionApplyTask(ScheduledTask):
                     session.commit()
                 except Exception:
                     session.rollback()
-                    correction_service.finalize_failed_attempt(
+                    correction_attempts.finalize_failed_attempt(
                         session=session,
                         work_item_id=work_item_id,
                         attempt_id=attempt_id,
