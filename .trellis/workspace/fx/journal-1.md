@@ -1416,3 +1416,24 @@ Created an architecture review report, selected the frontend permission access c
 ### Next Steps
 
 - None - task complete
+
+
+## Session 43: Centralize scheduler run lifecycle
+
+**Date**: 2026-08-06
+**Task**: Centralize scheduler run lifecycle
+**Branch**: `master`
+
+### Summary
+
+Implemented ADR-0012: centralized SchedulerRun persistence in run_lifecycle.py, moved alert/outbox writes to scheduler_alerts.py, preserved Beat/Worker orchestration, added focused coverage, updated async-task spec, and passed scheduler/API tests plus backend lint.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `798aab9` | (see git log) |
+
+### Status
+
+[OK] **Completed**

@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 42
-- **Last Active**: 2026-08-05
+- **Total Sessions**: 43
+- **Last Active**: 2026-08-06
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1418 | Active |
+| `journal-1.md` | ~1439 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 43 | 2026-08-06 | Centralize scheduler run lifecycle | `798aab9` | `master` |
 | 42 | 2026-08-05 | 格式化 PM2 结构化日志前缀 | `38a4331` | `master` |
 | 41 | 2026-08-05 | 为 NDJSON 日志追加调用位置 | `6390342` | `master` |
 | 40 | 2026-08-05 | 统一日志前缀时间与等级 | `dcbc5c6` | `master` |
