@@ -1479,3 +1479,24 @@ Split inventory correction attempt lease, claim, application, and terminal state
 ### Status
 
 [OK] **Completed**
+
+
+## Session 46: Split inventory workbook adapters
+
+**Date**: 2026-08-07
+**Task**: Split inventory workbook adapters
+**Branch**: `master`
+
+### Summary
+
+Extracted modern document and legacy workbook adapters from importer.py; preserved inventory persistence, audit actor, savepoints, CLI transactions, and API contracts. Focused tests: 57 passed, 2 skipped for unavailable hongxia fixtures; backend lint/type checks passed.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4542874` | (see git log) |
+
+### Status
+
+[OK] **Completed**
