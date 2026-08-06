@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review - full-stack-fastapi-template</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 4 4; }
+      .leak { stroke: #dc2626; }
+      .deep { background: #0f172a; color: #f8fafc; }
+      .diagram { min-height: 300px; }
+      .mermaid svg { max-width: 100%; height: auto; }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <main class="max-w-6xl mx-auto px-6 py-12 space-y-12">
+      <header class="border-b border-slate-200 pb-8">
+        <p class="text-xs uppercase tracking-wider text-emerald-700">Architecture review / 2026-08-05</p>
+        <h1 class="mt-3 text-4xl font-serif tracking-tight">full-stack-fastapi-template</h1>
+        <p class="mt-4 text-sm text-slate-600">Three evidence-backed opportunities to deepen existing modules. This review is analysis-only.</p>
+        <div class="mt-6 flex flex-wrap gap-4 text-xs text-slate-600">
+          <span class="inline-flex items-center gap-2"><span class="h-3 w-3 border border-slate-500 bg-white"></span> module</span>
+          <span class="inline-flex items-center gap-2"><span class="w-5 border-t-2 border-dashed border-slate-500"></span> seam</span>
+          <span class="inline-flex items-center gap-2"><span class="w-5 border-t-2 border-red-600"></span> leakage</span>
+          <span class="inline-flex items-center gap-2"><span class="h-3 w-3 bg-slate-900"></span> deep module</span>
+        </div>
+      </header>
+
+      <section id="candidates" class="space-y-10">
+        <article id="candidate-permissions" class="rounded-lg border border-slate-200 bg-white p-7 shadow-sm space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-2xl font-serif">1. Restore the permission access module as the only query seam</h2>
+            <div class="flex gap-2 text-xs uppercase tracking-wider">
+              <span class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">Strong</span>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-700">local-substitutable</span>
+            </div>
+          </div>
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500">Files</p>
+            <p class="mt-2 font-mono text-sm text-slate-700">frontend/src/app/permissions.ts<br />frontend/src/app/router/guards.ts<br />frontend/src/app/navigation/AppSidebar.tsx<br />frontend/src/features/inventory/pages/InventoryCorrectionsPage.tsx:92-105<br />frontend/tests/permission-guards.spec.ts</p>
+          </div>
+          <div class="grid gap-5 lg:grid-cols-2">
+            <div>
+              <p class="mb-2 text-xs uppercase tracking-wider text-slate-500">Before</p>
+              <div class="diagram rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <pre class="mermaid">flowchart LR
+  G["route guard"] --> P["app permission access"]
+  S["sidebar"] --> P
+  C["correction page"] --> Q["raw query + key"]
+  P --> I["generated client"]
+  Q --> I
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class C,Q leak;</pre>
+              </div>
+            </div>
+            <div>
+              <p class="mb-2 text-xs uppercase tracking-wider text-slate-500">After</p>
+              <div class="diagram rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <pre class="mermaid">flowchart LR
+  G["route guard"] --> P["deep app permission access"]
+  S["sidebar"] --> P
+  C["correction page"] --> P
+  P --> I["generated client"]
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a,stroke-width:3px;
+  class P deep;</pre>
+              </div>
+            </div>
+          </div>
+          <div class="grid gap-5 lg:grid-cols-3 text-sm">
+            <div><p class="font-semibold">Problem</p><p class="mt-1 text-slate-600">The new correction page bypasses the existing app module, repeats the raw query key, and skips its 30-second UI freshness and error-classification contract.</p></div>
+            <div><p class="font-semibold">Solution</p><p class="mt-1 text-slate-600">Route the page through the existing permission access module and add one regression check that keeps future callers on that seam.</p></div>
+            <div><p class="font-semibold">Wins</p><ul class="mt-1 list-disc pl-5 text-slate-600"><li>locality: one permission read policy</li><li>leverage: one query contract, all callers</li><li>tests hit the module interface</li></ul></div>
+          </div>
+          <p class="border-l-4 border-emerald-500 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">Deletion test: deleting the page-local query concentrates the behavior in the existing app module; no new abstraction is required.</p>
+        </article>
+
+        <article id="candidate-inventory" class="rounded-lg border border-slate-200 bg-white p-7 shadow-sm space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-2xl font-serif">2. Deepen the inventory document/ledger mutation module</h2>
+            <div class="flex gap-2 text-xs uppercase tracking-wider">
+              <span class="rounded-full bg-amber-100 px-3 py-1 text-amber-800">Worth exploring</span>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-700">in-process</span>
+            </div>
+          </div>
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500">Files</p>
+            <p class="mt-2 font-mono text-sm text-slate-700">backend/app/modules/inventory/service.py:56-975<br />backend/app/modules/inventory/importer.py:74-805<br />backend/app/modules/inventory/correction_service.py:143, 847<br />backend/app/modules/inventory/router.py<br />backend/tests/api/routes/test_inventory.py<br />backend/tests/modules/inventory/test_importer.py</p>
+          </div>
+          <div class="grid gap-5 lg:grid-cols-2">
+            <div>
+              <p class="mb-2 text-xs uppercase tracking-wider text-slate-500">Before</p>
+              <div class="diagram rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <pre class="mermaid">flowchart LR
+  R["inventory router"] --> S["975-line inventory service"]
+  X["XLSX importer"] --> S
+  C["correction module"] --> S
+  S --> U["units"]
+  S --> D["documents + ledgers"]
+  S --> B["balances + exports"]
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class X,C leak;</pre>
+              </div>
+            </div>
+            <div>
+              <p class="mb-2 text-xs uppercase tracking-wider text-slate-500">After</p>
+              <div class="diagram rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <pre class="mermaid">flowchart LR
+  R["router"] --> M["deep document/ledger module"]
+  X["XLSX importer"] --> M
+  C["correction module"] --> M
+  M --> I["document and ledger invariant"]
+  U["master-unit module"] -.read/write.-> R
+  B["balance/read module"] -.projection.-> R
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a,stroke-width:3px;
+  class M deep;</pre>
+              </div>
+            </div>
+          </div>
+          <div class="grid gap-5 lg:grid-cols-3 text-sm">
+            <div><p class="font-semibold">Problem</p><p class="mt-1 text-slate-600">The service carries master units, document commands, ledger effects, balance reads, exports, and suggestions; importer and correction flows cross that broad implementation.</p></div>
+            <div><p class="font-semibold">Solution</p><p class="mt-1 text-slate-600">Concentrate document/ledger mutation and its negative-balance invariant in one deep module, while leaving master-unit and read/export concerns local to their callers.</p></div>
+            <div><p class="font-semibold">Wins</p><ul class="mt-1 list-disc pl-5 text-slate-600"><li>locality: ledger bugs stay together</li><li>leverage: import and correction share invariants</li><li>tests target one mutation surface</li></ul></div>
+          </div>
+          <p class="border-l-4 border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-900">ADR fit: this follows ADR-0002 and ADR-0006 only if the request-scoped transaction owner remains unchanged. The scope must not become a full inventory rewrite.</p>
+        </article>
+
+        <article id="candidate-scheduler" class="rounded-lg border border-slate-200 bg-white p-7 shadow-sm space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-2xl font-serif">3. Deepen the scheduler runtime around the durable run lifecycle</h2>
+            <div class="flex gap-2 text-xs uppercase tracking-wider">
+              <span class="rounded-full bg-slate-200 px-3 py-1 text-slate-800">Worth exploring</span>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-700">ports &amp; adapters</span>
+            </div>
+          </div>
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500">Files</p>
+            <p class="mt-2 font-mono text-sm text-slate-700">backend/app/modules/scheduler/service.py:84-536<br />backend/app/modules/scheduler/tasks.py:35-370<br />backend/app/modules/scheduler/router.py<br />backend/app/modules/scheduler/contracts.py<br />backend/tests/modules/scheduler/test_scheduler_service.py<br />backend/tests/modules/scheduler/test_scheduler_tasks.py</p>
+          </div>
+          <div class="grid gap-5 lg:grid-cols-2">
+            <div>
+              <p class="mb-2 text-xs uppercase tracking-wider text-slate-500">Before</p>
+              <div class="diagram rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <pre class="mermaid">flowchart LR
+  R["HTTP router"] --> S["scheduler service"]
+  S --> D["definition + job CRUD"]
+  S --> L["run lifecycle"]
+  T["Celery tasks"] --> V["scan + dispatch"]
+  T --> E["execute + finalize"]
+  T --> A["alerts"]
+  S -.shared state.-> T
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class S,T leak;</pre>
+              </div>
+            </div>
+            <div>
+              <p class="mb-2 text-xs uppercase tracking-wider text-slate-500">After</p>
+              <div class="diagram rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <pre class="mermaid">flowchart LR
+  R["HTTP router"] --> D["deep scheduler definition module"]
+  D --> L["durable run lifecycle"]
+  L --> A["runtime adapter"]
+  A --> C["Celery numeric run ID"]
+  L --> N["alert outcome"]
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a,stroke-width:3px;
+  class D,L deep;</pre>
+              </div>
+            </div>
+          </div>
+          <div class="grid gap-5 lg:grid-cols-3 text-sm">
+            <div><p class="font-semibold">Problem</p><p class="mt-1 text-slate-600">Definition validation, job CRUD, run creation, lease dispatch, execution, alert persistence, cleanup, and bootstrap span two broad files and cross a durable state seam.</p></div>
+            <div><p class="font-semibold">Solution</p><p class="mt-1 text-slate-600">Group definition/configuration, run lifecycle, and runtime dispatch behind narrower module entry points while keeping PostgreSQL authoritative and Celery transport-only.</p></div>
+            <div><p class="font-semibold">Wins</p><ul class="mt-1 list-disc pl-5 text-slate-600"><li>locality: state transitions have one home</li><li>leverage: runtime tests cover one lifecycle</li><li>seam: broker failure stays at the adapter</li></ul></div>
+          </div>
+          <p class="border-l-4 border-slate-500 bg-slate-100 px-4 py-3 text-sm text-slate-800">ADR fit: preserve the scheduler runtime contract from ADR-0005 and the durable lease rules. This candidate is riskier because moving the seam can alter at-least-once behavior.</p>
+        </article>
+      </section>
+
+      <section id="top-recommendation" class="rounded-lg bg-slate-900 p-8 text-white shadow-sm">
+        <p class="text-xs uppercase tracking-wider text-emerald-300">Top recommendation</p>
+        <h2 class="mt-3 text-3xl font-serif">Candidate 1: permission access module</h2>
+        <p class="mt-4 max-w-3xl text-slate-300">It has the clearest current friction, the smallest credible scope, and the strongest leverage: one new caller is already bypassing a module that the prior review deliberately made deep.</p>
+        <a class="mt-6 inline-block text-sm text-emerald-300 underline" href="#candidate-permissions">Jump to candidate 1</a>
+        <p class="mt-8 border-t border-slate-700 pt-6 text-lg">Which candidate would you like to explore?</p>
+      </section>
+    </main>
+  </body>
+</html>

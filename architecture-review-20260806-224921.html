@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review - full-stack-fastapi-template</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      :root { color-scheme: light; }
+      body { background: #f5f5f4; color: #0f172a; }
+      .seam { border-left: 2px dashed #94a3b8; }
+      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); color: #f8fafc; }
+      .diagram { min-height: 315px; }
+      .box { min-height: 46px; }
+      .arrow { color: #64748b; font: 700 18px/1 monospace; }
+      .tiny { font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; }
+      .grid-paper {
+        background-image: linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+        background-size: 18px 18px;
+      }
+    </style>
+  </head>
+  <body class="font-sans">
+    <main class="mx-auto max-w-6xl space-y-10 px-6 py-10">
+      <header class="space-y-5">
+        <div class="flex flex-wrap items-end justify-between gap-4 border-b border-slate-300 pb-6">
+          <div>
+            <p class="tiny text-emerald-700">Architecture review</p>
+            <h1 class="mt-2 font-serif text-4xl tracking-tight">full-stack-fastapi-template</h1>
+          </div>
+          <p class="font-mono text-sm text-slate-500">2026-08-06 / current hotspots</p>
+        </div>
+        <div class="grid gap-4 md:grid-cols-[1fr_1.4fr]">
+          <div class="rounded-lg border border-slate-200 bg-white p-4">
+            <p class="tiny mb-3 text-slate-500">Legend</p>
+            <div class="grid grid-cols-2 gap-3 text-sm text-slate-600">
+              <span><i class="mr-2 inline-block h-4 w-4 border border-slate-400 bg-white align-middle"></i>module</span>
+              <span><i class="mr-2 inline-block h-4 w-4 border-2 border-dashed border-slate-400 align-middle"></i>seam</span>
+              <span><i class="mr-2 inline-block h-4 w-4 border border-red-300 bg-red-50 align-middle"></i>leakage</span>
+              <span><i class="mr-2 inline-block h-4 w-4 bg-slate-800 align-middle"></i>deep module</span>
+            </div>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-white p-4">
+            <p class="tiny mb-3 text-slate-500">Review scope</p>
+            <div class="mermaid text-sm">
+              flowchart LR
+                C[Correction] --> Q[Request review]
+                C --> A[Attempt execution]
+                S[Scheduler] --> E[Execution outcome]
+                I[Inventory] --> X[Workbook import]
+                O[Operations] --> P[PM2 display]
+                classDef hot fill:#0f172a,color:#fff,stroke:#0f172a;
+                class Q,A,X,P hot;
+            </div>
+          </div>
+        </div>
+        <p class="text-sm text-slate-500">Permission access, scheduler run persistence, and inventory document/ledger modules were recently deepened. This pass follows the remaining scheduler execution seam plus new inventory and operations hotspots.</p>
+      </header>
+
+      <section id="candidates" class="space-y-10">
+        <article id="candidate-scheduler" class="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p class="tiny text-emerald-700">Candidate 01</p>
+              <h2 class="mt-1 text-2xl font-semibold tracking-tight">Deepen scheduler execution outcomes behind the lifecycle seam</h2>
+            </div>
+            <div class="flex gap-2 text-xs font-semibold">
+              <span class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">Strong</span>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">in-process</span>
+            </div>
+          </div>
+          <div class="grid gap-5 lg:grid-cols-[.78fr_1.22fr]">
+            <div class="space-y-4">
+              <div><p class="tiny text-slate-500">Files</p><ul class="mt-2 space-y-1 font-mono text-xs text-slate-600"><li>backend/app/modules/scheduler/run_lifecycle.py:146-195</li><li>backend/app/modules/scheduler/tasks.py:171-254</li><li>backend/app/modules/scheduler/scheduler_alerts.py:1-45</li><li>backend/tests/modules/scheduler/test_scheduler_tasks.py:71-457</li></ul></div>
+              <div><p class="tiny text-slate-500">Problem</p><p class="mt-2 text-sm leading-6 text-slate-700">The durable run lifecycle module owns claim and persistence, but the Celery adapter still resolves the task, classifies configuration/skipped/failed outcomes, chooses terminal fields, clears success alerts, and sends failure alerts. A run's outcome contract crosses the seam that ADR-0012 intentionally concentrated.</p></div>
+              <div><p class="tiny text-slate-500">Solution</p><p class="mt-2 text-sm leading-6 text-slate-700">Deepen the scheduler execution module around outcome classification and terminal transition intent. Keep Celery message delivery, task invocation, and the existing alert module as adapters/orchestration; keep PostgreSQL persistence and the request/background transaction owners unchanged.</p></div>
+              <div><p class="tiny text-slate-500">Wins</p><ul class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-700"><li>locality: outcome rules co-locate</li><li>leverage: task and lifecycle tests narrow</li><li>interface: terminal intent is explicit</li><li>alerts stay behind one seam</li></ul></div>
+              <div class="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs leading-5 text-emerald-900"><strong>Deletion test:</strong> deleting an execution module would force configuration, skipped, failure, and alert-selection rules back into the Celery adapter. Concentrating those rules keeps orchestration thin and preserves depth.</div>
+              <div class="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-700">ADR fit: revisits no decision. It completes ADR-0012's locality goal without merging Beat and Worker or adding a generic workflow framework.</div>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="diagram grid-paper rounded-lg border border-slate-200 p-4"><p class="tiny mb-3 text-slate-500">Before / split outcome seam</p><div class="flex flex-col items-center gap-2 text-center text-xs"><div class="flex flex-wrap justify-center gap-2"><span class="box rounded border border-slate-300 bg-white px-3 py-2">Celery adapter</span><span class="box rounded border border-slate-300 bg-white px-3 py-2">run lifecycle</span></div><span class="arrow">|  |</span><div class="w-full rounded border-2 border-red-300 bg-red-50 p-3 text-left text-red-900"><span class="tiny">tasks.py</span><div class="mt-2 grid grid-cols-2 gap-1 text-[11px]"><span>resolve task</span><span>validate config</span><span>classify outcome</span><span>choose status</span><span>clear alerts</span><span>send alerts</span></div></div><span class="arrow">|</span><div class="rounded border border-slate-300 bg-white px-3 py-2">run_lifecycle.finish_run()</div><p class="mt-2 text-left text-xs text-red-700">execution policy leaks into orchestration</p></div></div>
+              <div class="diagram rounded-lg border border-slate-700 bg-slate-50 p-4"><p class="tiny mb-3 text-slate-500">After / deeper execution module</p><div class="flex flex-col items-center gap-2 text-center text-xs"><div class="flex flex-wrap justify-center gap-2"><span class="box rounded border border-slate-300 bg-white px-3 py-2">Celery adapter</span><span class="box rounded border border-slate-300 bg-white px-3 py-2">alert adapter</span></div><span class="arrow">|  |</span><div class="deep w-full rounded border-2 border-slate-800 p-4 text-left"><span class="tiny text-slate-300">scheduler execution module</span><div class="mt-2 grid grid-cols-2 gap-1 text-[11px] text-slate-200"><span>outcome classification</span><span>terminal intent</span><span>safe summaries</span><span>run transition</span><span>success reset</span><span>failure category</span></div></div><span class="arrow">|</span><div class="rounded border border-slate-300 bg-white px-3 py-2">run lifecycle persistence</div><p class="mt-2 text-left text-xs text-emerald-700">one interface concentrates execution policy</p></div></div>
+            </div>
+          </div>
+        </article>
+
+        <article id="candidate-correction" class="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p class="tiny text-amber-700">Candidate 02</p>
+              <h2 class="mt-1 text-2xl font-semibold tracking-tight">Separate correction request review from attempt execution</h2>
+            </div>
+            <div class="flex gap-2 text-xs font-semibold">
+              <span class="rounded-full bg-amber-100 px-3 py-1 text-amber-800">Worth exploring</span>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">in-process</span>
+            </div>
+          </div>
+          <div class="grid gap-5 lg:grid-cols-[.78fr_1.22fr]">
+            <div class="space-y-4">
+              <div><p class="tiny text-slate-500">Files</p><ul class="mt-2 space-y-1 font-mono text-xs text-slate-600"><li>backend/app/modules/inventory/correction_service.py:230-696</li><li>backend/app/modules/inventory/correction_service.py:697-960</li><li>backend/app/modules/inventory/correction_router.py:1-180</li><li>backend/app/modules/inventory/scheduled_tasks.py:60-127</li><li>backend/tests/api/routes/test_inventory_corrections.py:104-362</li></ul></div>
+              <div><p class="tiny text-slate-500">Problem</p><p class="mt-2 text-sm leading-6 text-slate-700">The 960-line implementation owns two different state families: HTTP request creation, review, recovery, and read projection; then background attempt leases, claims, application, and terminal failure. The route and scheduled-task callers use separate parts of one broad interface, so a status invariant crosses a weak seam.</p></div>
+              <div><p class="tiny text-slate-500">Solution</p><p class="mt-2 text-sm leading-6 text-slate-700">Deepen one request-review module and one attempt-execution module. Keep document mutation in the existing document module, keep explicit transaction ownership in the route/task callers, and let each new module absorb only the state transitions it already owns.</p></div>
+              <div><p class="tiny text-slate-500">Wins</p><ul class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-700"><li>locality: each state family is local</li><li>leverage: route and task callers narrow</li><li>tests hit one interface</li><li>lease rules stop leaking</li></ul></div>
+              <div class="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs leading-5 text-emerald-900"><strong>Deletion test:</strong> deleting an attempt-execution module would push lease and terminal-state rules into scheduled_tasks; deleting a request-review module would push authorization and approval rules into routes. Splitting concentrates complexity instead of moving it.</div>
+              <div class="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-700">ADR fit: aligns with ADR-0002 and ADR-0006. The seam must not own commit or rollback, and it must not introduce a generic state-machine framework.</div>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="diagram grid-paper rounded-lg border border-slate-200 p-4"><p class="tiny mb-3 text-slate-500">Before / shallow seam</p><div class="flex flex-col items-center gap-2 text-center text-xs"><div class="flex flex-wrap justify-center gap-2"><span class="box rounded border border-slate-300 bg-white px-3 py-2">HTTP routes</span><span class="box rounded border border-slate-300 bg-white px-3 py-2">scheduled task</span></div><span class="arrow">|  |</span><div class="w-full rounded border-2 border-red-300 bg-red-50 p-3 text-left text-red-900"><span class="tiny">correction_service.py</span><div class="mt-2 grid grid-cols-2 gap-1 text-[11px]"><span>create/review</span><span>authorization</span><span>recovery</span><span>leases</span><span>claim/apply</span><span>terminal states</span></div></div><span class="arrow">|</span><div class="rounded border border-slate-300 bg-white px-3 py-2">request + work-item rows</div><p class="mt-2 text-left text-xs text-red-700">status rules cross the dashed seam</p></div></div>
+              <div class="diagram rounded-lg border border-slate-700 bg-slate-50 p-4"><p class="tiny mb-3 text-slate-500">After / deeper modules</p><div class="flex flex-col items-center gap-2 text-center text-xs"><div class="flex flex-wrap justify-center gap-2"><span class="box rounded border border-slate-300 bg-white px-3 py-2">HTTP routes</span><span class="box rounded border border-slate-300 bg-white px-3 py-2">scheduled task</span></div><span class="arrow">|  |</span><div class="flex w-full gap-2"><div class="deep flex-1 rounded border-2 border-slate-800 p-3 text-left"><span class="tiny text-slate-300">request module</span><p class="mt-2 text-[11px] text-slate-200">review, access, recovery</p></div><div class="deep flex-1 rounded border-2 border-slate-800 p-3 text-left"><span class="tiny text-slate-300">attempt module</span><p class="mt-2 text-[11px] text-slate-200">lease, apply, terminal state</p></div></div><span class="arrow">|</span><div class="rounded border border-slate-300 bg-white px-3 py-2">document module + rows</div><p class="mt-2 text-left text-xs text-emerald-700">one interface per state family; implementation has depth</p></div></div>
+            </div>
+          </div>
+        </article>
+
+        <article id="candidate-workbook" class="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p class="tiny text-amber-700">Candidate 03</p>
+              <h2 class="mt-1 text-2xl font-semibold tracking-tight">Split workbook adapters from import orchestration</h2>
+            </div>
+            <div class="flex gap-2 text-xs font-semibold">
+              <span class="rounded-full bg-amber-100 px-3 py-1 text-amber-800">Worth exploring</span>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">adapter</span>
+            </div>
+          </div>
+          <div class="grid gap-5 lg:grid-cols-[.78fr_1.22fr]">
+            <div class="space-y-4">
+              <div><p class="tiny text-slate-500">Files</p><ul class="mt-2 space-y-1 font-mono text-xs text-slate-600"><li>backend/app/modules/inventory/importer.py:74-210</li><li>backend/app/modules/inventory/importer.py:212-372, 505-805</li><li>backend/app/modules/inventory/router.py:95-136</li><li>backend/tests/modules/inventory/test_importer.py:56-429</li></ul></div>
+              <div><p class="tiny text-slate-500">Problem</p><p class="mt-2 text-sm leading-6 text-slate-700">The implementation handles the modern document template, legacy workbook header detection, date and quantity normalization, movement inference, issue aggregation, import-batch persistence, audit binding, and explicit commit/rollback. The format seam and transaction seam meet inside one file.</p></div>
+              <div><p class="tiny text-slate-500">Solution</p><p class="mt-2 text-sm leading-6 text-slate-700">Give the modern template and legacy workbook family separate adapters for reading and normalization. Keep one import orchestration module responsible for normalized records, issue aggregation, batch identity, document/ledger writes, and caller-owned transaction behavior. Two adapters make the seam real; no new dependency is needed.</p></div>
+              <div><p class="tiny text-slate-500">Wins</p><ul class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-700"><li>locality: format rules stay local</li><li>leverage: another format reuses orchestration</li><li>parser tests avoid database setup</li><li>transaction policy stays explicit</li></ul></div>
+              <div class="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>Constraint:</strong> the HTTP document import uses the request-scoped transaction, while <code>import_workbooks()</code> is a CLI-style caller that commits or rolls back explicitly. The adapter seam must not take ownership of either transaction.</div>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="diagram grid-paper rounded-lg border border-slate-200 p-4"><p class="tiny mb-3 text-slate-500">Before / shallow seam</p><div class="flex flex-col items-center gap-2 text-center text-xs"><div class="flex gap-2"><span class="box rounded border border-slate-300 bg-white px-3 py-2">document upload</span><span class="box rounded border border-slate-300 bg-white px-3 py-2">legacy upload</span></div><span class="arrow">\  /</span><div class="w-full rounded border-2 border-red-300 bg-red-50 p-4 text-left text-red-900"><span class="tiny">importer.py</span><div class="mt-2 space-y-1 text-[11px]"><div>read + normalize cells</div><div>validate and aggregate issues</div><div>create rows, ledgers, batch</div><div>audit actor + commit/rollback</div></div></div><span class="arrow">|</span><div class="rounded border border-slate-300 bg-white px-3 py-2">database</div><p class="mt-2 text-left text-xs text-red-700">format and transaction seams cross inside one implementation</p></div></div>
+              <div class="diagram rounded-lg border border-slate-700 bg-slate-50 p-4"><p class="tiny mb-3 text-slate-500">After / deeper modules</p><div class="flex flex-col items-center gap-2 text-center text-xs"><div class="rounded border border-slate-300 bg-white px-3 py-2">import orchestration</div><span class="arrow">|</span><div class="flex w-full gap-2"><div class="deep flex-1 rounded border-2 border-slate-800 p-3 text-left"><span class="tiny text-slate-300">template adapter</span><p class="mt-2 text-[11px] text-slate-200">validated document rows</p></div><div class="deep flex-1 rounded border-2 border-slate-800 p-3 text-left"><span class="tiny text-slate-300">legacy adapter</span><p class="mt-2 text-[11px] text-slate-200">normalized movements</p></div></div><span class="arrow">|</span><div class="rounded border border-slate-300 bg-white px-3 py-2">document module + batch persistence</div><p class="mt-2 text-left text-xs text-emerald-700">two adapters justify one seam; tests can choose the interface</p></div></div>
+            </div>
+          </div>
+        </article>
+
+        <article id="candidate-pm2" class="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p class="tiny text-emerald-700">Candidate 04</p>
+              <h2 class="mt-1 text-2xl font-semibold tracking-tight">Keep the PM2 display adapter lossless</h2>
+            </div>
+            <div class="flex gap-2 text-xs font-semibold">
+              <span class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">Strong</span>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">adapter</span>
+            </div>
+          </div>
+          <div class="grid gap-5 lg:grid-cols-[.78fr_1.22fr]">
+            <div class="space-y-4">
+              <div><p class="tiny text-slate-500">Files</p><ul class="mt-2 space-y-1 font-mono text-xs text-slate-600"><li>scripts/pm2-json-prefix.cjs:23-65, 86-89</li><li>scripts/pm2-json-prefix.test.cjs:8-32</li><li>ecosystem.config.js</li><li>.trellis/spec/backend/logging-guidelines.md:135-144</li></ul></div>
+              <div><p class="tiny text-slate-500">Problem</p><p class="mt-2 text-sm leading-6 text-slate-700">The adapter parses a child JSON line and returns only a human-readable prefix plus selected detail fields. The active logging specification requires the original child JSON after that display prefix, but the current implementation discards it. The interface is readable to operators but shallow for collectors.</p></div>
+              <div><p class="tiny text-slate-500">Solution</p><p class="mt-2 text-sm leading-6 text-slate-700">Keep parsing only for deriving the display prefix, then append the exact original JSON line. Preserve non-JSON pass-through and child stderr/exit behavior. Add one assertion that a structured line retains fields omitted from the display prefix.</p></div>
+              <div><p class="tiny text-slate-500">Wins</p><ul class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-700"><li>locality: presentation stays outside logging</li><li>leverage: operators and collectors share one payload</li><li>tests assert payload preservation</li><li>adapter seam becomes deterministic</li></ul></div>
+              <div class="rounded-md border border-red-200 bg-red-50 p-3 text-xs leading-5 text-red-900"><strong>Contract drift:</strong> `.trellis/spec/backend/logging-guidelines.md` says PM2-managed lines contain the original JSON after the display prefix. This is a correctness repair with leverage across collection and diagnosis, not a new logging module.</div>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="diagram grid-paper rounded-lg border border-slate-200 p-4"><p class="tiny mb-3 text-slate-500">Before / broken seam</p><div class="flex flex-col items-center gap-2 text-center text-xs"><div class="rounded border border-slate-300 bg-white px-3 py-2">child stdout NDJSON</div><span class="arrow">|</span><div class="w-full rounded border-2 border-red-300 bg-red-50 p-4 text-left text-red-900"><span class="tiny">PM2 display adapter</span><div class="mt-2 space-y-1 text-[11px]"><div>parse JSON</div><div>format display prefix</div><div>discard original JSON</div></div></div><span class="arrow">|</span><div class="rounded border border-slate-300 bg-white px-3 py-2">out log: text only</div><p class="mt-2 text-left text-xs text-red-700">collector cannot recover omitted fields</p></div></div>
+              <div class="diagram rounded-lg border border-slate-700 bg-slate-50 p-4"><p class="tiny mb-3 text-slate-500">After / deep adapter</p><div class="flex flex-col items-center gap-2 text-center text-xs"><div class="rounded border border-slate-300 bg-white px-3 py-2">child stdout NDJSON</div><span class="arrow">|</span><div class="deep w-full rounded border-2 border-slate-800 p-4 text-left"><span class="tiny text-slate-300">PM2 display adapter</span><div class="mt-2 space-y-1 text-[11px] text-slate-200"><div>derive display prefix</div><div>preserve exact JSON suffix</div><div>pass through other text</div></div></div><span class="arrow">|</span><div class="rounded border border-slate-300 bg-white px-3 py-2">operators + machine collector</div><p class="mt-2 text-left text-xs text-emerald-700">one adapter, two consumers, stable seam</p></div></div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section id="top-recommendation" class="rounded-xl border-2 border-emerald-700 bg-emerald-950 p-7 text-white shadow-lg">
+        <p class="tiny text-emerald-300">Top recommendation</p>
+        <h2 class="mt-2 text-2xl font-semibold">Candidate 01: deepen scheduler execution outcomes</h2>
+        <p class="mt-3 max-w-3xl text-sm leading-6 text-emerald-50">It completes the most recent scheduler deepening with the smallest credible scope: persistence is already local, while task resolution, outcome classification, terminal intent, and alert selection still cross the Celery seam. The leverage is high and ADR-0012 remains intact.</p>
+        <a class="mt-5 inline-block rounded border border-emerald-300 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800" href="#candidate-scheduler">Open Candidate 01</a>
+      </section>
+
+      <footer class="border-t border-slate-300 pt-6 text-sm text-slate-500">Which of these would you like to explore?</footer>
+    </main>
+  </body>
+</html>
