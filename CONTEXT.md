@@ -77,6 +77,21 @@ A non-interactive application-owned User that attributes an automated audited
 write when no human User initiated it.
 _Avoid_: fallback User, administrator account, service login
 
+**Inventory Document**:
+An operational record of an inventory receipt, return, or shipment, including
+the dated document details and its inventory lines.
+_Avoid_: ledger entry, spreadsheet row
+
+**Inventory Ledger**:
+The recorded inventory movement effects derived from Inventory Documents and
+used to determine inventory balances.
+_Avoid_: source document, current balance snapshot
+
+**Inventory Unit**:
+A processing or receiving organization managed only by the inventory domain
+and referenced by Inventory Documents to identify where inventory moves.
+_Avoid_: global organization, user department
+
 ## Relationships
 
 - A **Business Identifier** may identify an operational document to people but
@@ -101,6 +116,10 @@ _Avoid_: fallback User, administrator account, service login
   and preference semantics.
 - An audited action has either its initiating human **User** or the **System
   Actor** as its actor; the latter never represents a human-initiated action.
+- An **Inventory Document** produces the corresponding **Inventory Ledger**
+  effects that determine inventory balances.
+- An **Inventory Unit** belongs to the inventory domain; its lifecycle and
+  lookup rules are part of inventory operations.
 
 ## Example Dialogue
 
