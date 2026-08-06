@@ -1,0 +1,7 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"Check module placement and thin route ownership."}
+{"file":".trellis/spec/backend/type-safety.md","reason":"Check signatures, schema/entity reuse, and unchanged OpenAPI impact."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Check semantic exceptions and request_id preservation."}
+{"file":".trellis/spec/backend/excel-import-export.md","reason":"Check importer rollback, active-unit resolution, and compatibility behavior."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Run the final backend quality, isolated database, and cross-layer checks."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Check that moved logic has one authoritative entrypoint and no stale callers."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Check route/import/correction boundaries and generated artifact scope."}

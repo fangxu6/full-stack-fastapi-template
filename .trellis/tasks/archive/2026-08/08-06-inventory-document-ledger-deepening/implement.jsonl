@@ -1,0 +1,7 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"Place the new inventory modules under the existing bounded backend module and preserve route/module ownership."}
+{"file":".trellis/spec/backend/type-safety.md","reason":"Preserve typed SQLModel/schema/service signatures without changing the public contract."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Keep semantic inventory exceptions and the global detail plus request_id error contract."}
+{"file":".trellis/spec/backend/excel-import-export.md","reason":"Preserve importer DTO, active-unit resolution, savepoint, rollback, and caller-owned transaction behavior."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Apply module-boundary, testing, isolated-database, lint, and generated-client review rules."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Migrate existing helpers and avoid duplicate authoritative write paths."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Verify the route/import/correction data flow and confirm no generated frontend contract changes."}
