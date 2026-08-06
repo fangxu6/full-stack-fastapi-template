@@ -23,7 +23,6 @@ from app.models import (
     InventoryDocument,
     InventoryDocumentLine,
     InventoryImportBatch,
-    InventoryLedgerEntry,
     LegacyImportRow,
     ProcessingUnit,
     ReceivingUnit,
@@ -31,10 +30,9 @@ from app.models import (
 )
 from app.models.inventory import (
     InventoryDocumentType,
-    InventoryLedgerKind,
     InventoryMovementType,
 )
-from app.modules.inventory import documents, units
+from app.modules.inventory import documents, ledger, units
 from app.modules.inventory.document_import_adapter import (
     DOCUMENT_WORKSHEET_NAME as _DOCUMENT_WORKSHEET_NAME,
 )
@@ -189,7 +187,7 @@ def import_legacy_workbooks(
         "requires_cleanup": 0,
         "reconciliation_openings": 0,
     }
-    balances: dict[tuple[object, ...], tuple[Decimal, Decimal]] = {}
+    balances: ledger.LedgerBalances = {}
     records, issues = read_legacy_workbooks(
         raw_content=raw_content,
         raw_filename=raw_filename,
@@ -281,7 +279,7 @@ def _persist_legacy_record(
     batch: InventoryImportBatch,
     record: LegacyImportRecord,
     report: dict[str, int],
-    balances: dict[tuple[object, ...], tuple[Decimal, Decimal]],
+    balances: ledger.LedgerBalances,
 ) -> None:
     unit = cast(
         ProcessingUnit,
@@ -362,20 +360,14 @@ def _write_legacy_movement(
     number: str | None,
     receiving_name: str | None,
     report: dict[str, int],
-    balances: dict[tuple[object, ...], tuple[Decimal, Decimal]],
+    balances: ledger.LedgerBalances,
 ) -> None:
     is_finished = document_type in {
         InventoryDocumentType.FINISHED_RECEIPT,
         InventoryDocumentType.FINISHED_SHIPMENT,
     }
-    direction = (
-        -1
-        if document_type
-        in {
-            InventoryDocumentType.RAW_RETURN,
-            InventoryDocumentType.FINISHED_SHIPMENT,
-        }
-        else 1
+    ledger_kind, movement_type, direction = ledger.movement_for_document_type(
+        document_type, allow_finished_receipt=True
     )
     receiving = (
         _find_or_create_unit(
@@ -409,58 +401,37 @@ def _write_legacy_movement(
     )
     session.add(line)
     session.flush()
-    ledger_kind = (
-        InventoryLedgerKind.FINISHED if is_finished else InventoryLedgerKind.RAW
-    )
     ledger_item_code = item_code if not is_finished else None
     ledger_color = color if is_finished else None
     ledger_lot = lot if is_finished else None
-    meter_delta = direction * (meters or Decimal("0"))
-    rolls_delta = direction * rolls
-    balance_key = (
-        ledger_kind,
-        unit.id,
-        item_name,
-        ledger_item_code,
-        wool,
-        ledger_color,
-        ledger_lot,
+    movement = ledger.LedgerMovement(
+        ledger_kind=ledger_kind,
+        movement_type=movement_type,
+        business_date=business_date,
+        processing_unit_id=unit.id,
+        document_line_id=line.id,
+        legacy_import_row_id=source.id,
+        import_batch_id=batch.id,
+        item_name=item_name,
+        item_code=ledger_item_code,
+        wool_content=wool,
+        color_code=ledger_color,
+        dye_lot_no=ledger_lot,
+        rolls_delta=direction * rolls,
+        meters_delta=direction * (meters or Decimal("0")),
     )
+    balance_key = ledger.balance_key(movement)
     balance_rolls, balance_meters = balances.get(
         balance_key, (Decimal("0"), Decimal("0"))
     )
-    opening_rolls = max(Decimal("0"), -(balance_rolls + rolls_delta))
-    opening_meters = max(Decimal("0"), -(balance_meters + meter_delta))
+    opening_rolls = max(Decimal("0"), -(balance_rolls + movement.rolls_delta))
+    opening_meters = max(Decimal("0"), -(balance_meters + movement.meters_delta))
     if opening_rolls or opening_meters:
-        session.add(
-            InventoryLedgerEntry(
-                ledger_kind=ledger_kind,
-                movement_type=InventoryMovementType.MIGRATION_RECONCILIATION_OPENING,
-                business_date=business_date,
-                processing_unit_id=unit.id,
-                legacy_import_row_id=source.id,
-                import_batch_id=batch.id,
-                item_name=item_name,
-                item_code=ledger_item_code,
-                wool_content=wool,
-                color_code=ledger_color,
-                dye_lot_no=ledger_lot,
-                rolls_delta=opening_rolls,
-                meters_delta=opening_meters,
-                reason="历史迁移对账期初",
-            )
-        )
-        report["ledger_entries"] += 1
-        report["reconciliation_openings"] += 1
-        balance_rolls += opening_rolls
-        balance_meters += opening_meters
-    session.add(
-        InventoryLedgerEntry(
+        opening = ledger.LedgerMovement(
             ledger_kind=ledger_kind,
-            movement_type=InventoryMovementType(document_type),
+            movement_type=InventoryMovementType.MIGRATION_RECONCILIATION_OPENING,
             business_date=business_date,
             processing_unit_id=unit.id,
-            document_line_id=line.id,
             legacy_import_row_id=source.id,
             import_batch_id=batch.id,
             item_name=item_name,
@@ -468,9 +439,14 @@ def _write_legacy_movement(
             wool_content=wool,
             color_code=ledger_color,
             dye_lot_no=ledger_lot,
-            rolls_delta=rolls_delta,
-            meters_delta=meter_delta,
+            rolls_delta=opening_rolls,
+            meters_delta=opening_meters,
+            reason="历史迁移对账期初",
         )
-    )
-    balances[balance_key] = (balance_rolls + rolls_delta, balance_meters + meter_delta)
+        ledger.append_movement(session=session, movement=opening)
+        ledger.apply_balance(balances=balances, movement=opening)
+        report["ledger_entries"] += 1
+        report["reconciliation_openings"] += 1
+    ledger.append_movement(session=session, movement=movement)
+    ledger.apply_balance(balances=balances, movement=movement)
     report["ledger_entries"] += 1

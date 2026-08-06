@@ -35,12 +35,20 @@ import {
 } from "@/client"
 import { DocumentEditorModal } from "@/features/inventory/components/DocumentEditorModal"
 import {
+  type CorrectionTab,
+  correctionQueryKeys,
+  createCorrectionRequest,
+  getCorrectionAccess,
+  getCorrectionTabs,
+  recoverCorrectionWorkItem,
+  resolveCorrectionTab,
+  runCorrectionRequestAction,
+} from "@/features/inventory/correction-workspace"
+import {
   DEFAULT_PAGE_SIZE,
   PAGE_SIZE_OPTIONS,
   toOffset,
 } from "@/features/inventory/pagination"
-
-type CorrectionTab = "mine" | "recovery" | "review"
 
 const operationLabels: Record<InventoryCorrectionOperation, string> = {
   DELETE_DOCUMENT: "删除单据",
@@ -90,23 +98,14 @@ export function InventoryCorrectionsPage() {
   const [editorOpen, setEditorOpen] = useState(false)
   const [selectedRequestId, setSelectedRequestId] = useState<number>()
   const permissionsQuery = useQuery(myPermissionsQueryOptions)
-  const canRequest =
-    permissionsQuery.data?.permissions.includes(
-      "inventory.corrections.request",
-    ) ?? false
-  const canReview =
-    permissionsQuery.data?.permissions.includes(
-      "inventory.corrections.review",
-    ) ?? false
-  const canRecover =
-    permissionsQuery.data?.permissions.includes(
-      "inventory.corrections.recover",
-    ) ?? false
+  const access = getCorrectionAccess(permissionsQuery.data?.permissions)
+  const { canRecover, canRequest, canReview } = access
+  const effectiveTab = resolveCorrectionTab(activeTab, access)
   const targetQuery = useQuery({
     enabled: Boolean(documentId) && canRequest,
     queryFn: () =>
       InventoryService.readInventoryDocument({ documentId: documentId ?? "" }),
-    queryKey: ["inventory", "document", documentId],
+    queryKey: correctionQueryKeys.target(documentId),
   })
   const target = targetQuery.data
 
@@ -118,39 +117,27 @@ export function InventoryCorrectionsPage() {
     }
   }, [target?.deleted_at])
 
-  useEffect(() => {
-    if (!canRequest && activeTab === "mine") {
-      setActiveTab(canReview ? "review" : "recovery")
-    }
-    if (!canReview && activeTab === "review") {
-      setActiveTab(canRequest ? "mine" : "recovery")
-    }
-    if (!canRecover && activeTab === "recovery") {
-      setActiveTab(canRequest ? "mine" : "review")
-    }
-  }, [activeTab, canRecover, canRequest, canReview])
-
   const queryArgs = { limit: pageSize, skip: toOffset(page, pageSize) }
   const mineQuery = useQuery({
-    enabled: canRequest && activeTab === "mine",
+    enabled: canRequest && effectiveTab === "mine",
     queryFn: () =>
       InventoryCorrectionsService.readMyCorrectionRequests(queryArgs),
     placeholderData: keepPreviousData,
-    queryKey: ["inventory", "corrections", "mine", queryArgs],
+    queryKey: correctionQueryKeys.list("mine", queryArgs),
   })
   const reviewQuery = useQuery({
-    enabled: canReview && activeTab === "review",
+    enabled: canReview && effectiveTab === "review",
     queryFn: () =>
       InventoryCorrectionsService.readCorrectionReviewQueue(queryArgs),
     placeholderData: keepPreviousData,
-    queryKey: ["inventory", "corrections", "review", queryArgs],
+    queryKey: correctionQueryKeys.list("review", queryArgs),
   })
   const recoveryQuery = useQuery({
-    enabled: canRecover && activeTab === "recovery",
+    enabled: canRecover && effectiveTab === "recovery",
     queryFn: () =>
       InventoryCorrectionsService.readCorrectionRecoveryQueue(queryArgs),
     placeholderData: keepPreviousData,
-    queryKey: ["inventory", "corrections", "recovery", queryArgs],
+    queryKey: correctionQueryKeys.list("recovery", queryArgs),
   })
   const detailQuery = useQuery({
     enabled: selectedRequestId !== undefined,
@@ -158,11 +145,11 @@ export function InventoryCorrectionsPage() {
       InventoryCorrectionsService.readCorrectionRequest({
         correctionRequestId: selectedRequestId ?? 0,
       }),
-    queryKey: ["inventory", "corrections", "detail", selectedRequestId],
+    queryKey: correctionQueryKeys.detail(selectedRequestId),
   })
   const invalidate = () =>
     void queryClient.invalidateQueries({
-      queryKey: ["inventory", "corrections"],
+      queryKey: correctionQueryKeys.all,
     })
   const createMutation = useMutation({
     mutationFn: ({
@@ -172,17 +159,11 @@ export function InventoryCorrectionsPage() {
       operation: InventoryCorrectionOperation
       proposal: InventoryCorrectionDocumentProposal | null
     }) => {
-      if (!target) {
-        return Promise.reject(new Error("请选择需要纠错的单据"))
-      }
-      return InventoryCorrectionsService.createCorrectionRequest({
-        requestBody: {
-          document_id: target.id,
-          expected_updated_at: target.updated_at,
-          operation: nextOperation,
-          proposal,
-          reason: reason.trim(),
-        },
+      return createCorrectionRequest({
+        operation: nextOperation,
+        proposal,
+        reason,
+        target,
       })
     },
     onError: (error) =>
@@ -205,32 +186,19 @@ export function InventoryCorrectionsPage() {
       action: "approve" | "reject" | "withdraw"
       requestId: number
     }) => {
-      if (action === "approve") {
-        return InventoryCorrectionsService.approveCorrectionRequest({
-          correctionRequestId: requestId,
-        })
-      }
-      if (action === "reject") {
-        return InventoryCorrectionsService.rejectCorrectionRequest({
-          correctionRequestId: requestId,
-        })
-      }
-      return InventoryCorrectionsService.withdrawCorrectionRequest({
-        correctionRequestId: requestId,
-      })
+      return runCorrectionRequestAction(action, requestId)
     },
     onError: () => message.error("操作失败，请刷新后重试。"),
     onSuccess: () => {
       message.success("状态已更新")
       invalidate()
       void queryClient.invalidateQueries({
-        queryKey: ["inventory", "corrections", "detail"],
+        queryKey: correctionQueryKeys.detailRoot(),
       })
     },
   })
   const recoverMutation = useMutation({
-    mutationFn: (workItemId: number) =>
-      InventoryCorrectionsService.recoverCorrectionWorkItem({ workItemId }),
+    mutationFn: (workItemId: number) => recoverCorrectionWorkItem(workItemId),
     onError: () => message.error("恢复申请失败，请刷新后重试。"),
     onSuccess: () => {
       message.success("已加入自动执行队列")
@@ -300,7 +268,7 @@ export function InventoryCorrectionsPage() {
               type="text"
             />
           </Tooltip>
-          {activeTab === "review" && request.status === "PENDING_REVIEW" ? (
+          {effectiveTab === "review" && request.status === "PENDING_REVIEW" ? (
             <>
               <Tooltip title="批准">
                 <Button
@@ -333,7 +301,7 @@ export function InventoryCorrectionsPage() {
               </Tooltip>
             </>
           ) : null}
-          {activeTab === "mine" && request.status === "PENDING_REVIEW" ? (
+          {effectiveTab === "mine" && request.status === "PENDING_REVIEW" ? (
             <Tooltip title="撤回">
               <Button
                 aria-label="撤回"
@@ -396,16 +364,10 @@ export function InventoryCorrectionsPage() {
     },
   ]
   const activeRequests =
-    activeTab === "mine" ? mineQuery.data : reviewQuery.data
+    effectiveTab === "mine" ? mineQuery.data : reviewQuery.data
   const activeRequestLoading =
-    activeTab === "mine" ? mineQuery.isFetching : reviewQuery.isFetching
-  const tabs = [
-    canRequest ? { key: "mine", label: "我的申请" } : null,
-    canReview ? { key: "review", label: "待审核" } : null,
-    canRecover ? { key: "recovery", label: "失败恢复" } : null,
-  ].filter(
-    (item): item is { key: CorrectionTab; label: string } => item !== null,
-  )
+    effectiveTab === "mine" ? mineQuery.isFetching : reviewQuery.isFetching
+  const tabs = getCorrectionTabs(access)
 
   return (
     <div className="flex flex-col gap-5">
@@ -497,14 +459,14 @@ export function InventoryCorrectionsPage() {
         </div>
       ) : null}
       <Tabs
-        activeKey={activeTab}
+        activeKey={effectiveTab}
         items={tabs}
         onChange={(key) => {
           setActiveTab(key as CorrectionTab)
           setPage(1)
         }}
       />
-      {activeTab === "recovery" ? (
+      {effectiveTab === "recovery" ? (
         <Table
           columns={recoveryColumns}
           dataSource={recoveryQuery.data?.data ?? []}

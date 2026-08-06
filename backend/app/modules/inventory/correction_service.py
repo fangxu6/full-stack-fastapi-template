@@ -1,7 +1,7 @@
 import hashlib
 import json
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import cast
 
 from sqlalchemy import func
@@ -24,8 +24,8 @@ from app.models.inventory import (
     InventoryCorrectionRequestStatus,
     InventoryCorrectionWorkItemStatus,
 )
-from app.modules.audit import service as audit_service
 from app.modules.iam import service as iam_service
+from app.modules.inventory import correction_workflow as workflow
 from app.modules.inventory import documents
 from app.schemas.inventory_correction import (
     InventoryCorrectionAttemptPublic,
@@ -45,12 +45,6 @@ CORRECTION_HANDLER_TYPE = "inventory.document_correction"
 MAX_REASON_LENGTH = 500
 
 
-def _utc(value: datetime) -> datetime:
-    if value.tzinfo is None or value.utcoffset() is None:
-        raise ValueError("correction timestamps must be timezone-aware")
-    return value.astimezone(UTC)
-
-
 def _request_hash(
     *,
     document_id: uuid.UUID,
@@ -67,7 +61,9 @@ def _request_hash(
     hash_input: dict[str, object] = {
         "document_id": str(document_id),
         "operation": operation.value,
-        "expected_updated_at": _utc(expected_updated_at).isoformat(),
+        "expected_updated_at": workflow.normalize_timestamp(
+            expected_updated_at
+        ).isoformat(),
         "proposal": normalized_proposal,
         "reason": reason.strip(),
     }
@@ -78,34 +74,6 @@ def _request_hash(
         separators=(",", ":"),
     ).encode("utf-8")
     return normalized_proposal, hashlib.sha256(encoded).hexdigest()
-
-
-def _request_by_id(
-    *, session: Session, request_id: int, lock: bool = False
-) -> InventoryCorrectionRequest:
-    statement = select(InventoryCorrectionRequest).where(
-        InventoryCorrectionRequest.id == request_id
-    )
-    if lock:
-        statement = statement.with_for_update()
-    request = session.exec(statement).one_or_none()
-    if request is None:
-        raise NotFoundError("Inventory correction request not found")
-    return request
-
-
-def _work_item_by_id(
-    *, session: Session, work_item_id: int, lock: bool = False
-) -> InventoryCorrectionWorkItem:
-    statement = select(InventoryCorrectionWorkItem).where(
-        InventoryCorrectionWorkItem.id == work_item_id
-    )
-    if lock:
-        statement = statement.with_for_update()
-    work_item = session.exec(statement).one_or_none()
-    if work_item is None:
-        raise NotFoundError("Inventory correction work item not found")
-    return work_item
 
 
 def _active_request_for_document(
@@ -165,59 +133,6 @@ def _validate_operation_target(
     raise BadRequestError("Unsupported inventory correction operation")
 
 
-def _append_audit_event(
-    *,
-    session: Session,
-    actor_user_id: uuid.UUID,
-    request_id: str | None,
-    correction_request_id: int | None,
-    action: str,
-    changes: dict[str, object],
-) -> None:
-    allowed = {
-        "inventory.correction.created": frozenset(
-            {"operation", "document_id", "proposal_hash"}
-        ),
-        "inventory.correction.approved": frozenset(
-            {
-                "operation",
-                "document_id",
-                "proposal_hash",
-                "work_item_id",
-                "attempt_sequence",
-            }
-        ),
-        "inventory.correction.rejected": frozenset(
-            {"operation", "document_id", "proposal_hash"}
-        ),
-        "inventory.correction.withdrawn": frozenset(
-            {"operation", "document_id", "proposal_hash"}
-        ),
-        "inventory.correction.applied": frozenset(
-            {
-                "operation",
-                "document_id",
-                "proposal_hash",
-                "work_item_id",
-                "attempt_sequence",
-            }
-        ),
-    }
-    if action not in allowed or set(changes) != allowed[action]:
-        raise ValueError("Inventory correction audit event does not match its contract")
-    if correction_request_id is None:
-        raise RuntimeError("Inventory correction request must be persisted")
-    audit_service.append_audit_event(
-        session=session,
-        actor_user_id=actor_user_id,
-        request_id=request_id,
-        action=action,
-        resource_type="inventory_correction_request",
-        resource_id=str(correction_request_id),
-        changes=changes,
-    )
-
-
 def create_request(
     *,
     session: Session,
@@ -228,8 +143,8 @@ def create_request(
     document = _require_correction_target(
         session=session, document_id=request_in.document_id, lock=True
     )
-    expected_updated_at = _utc(request_in.expected_updated_at)
-    if _utc(document.updated_at) != expected_updated_at:
+    expected_updated_at = workflow.normalize_timestamp(request_in.expected_updated_at)
+    if workflow.normalize_timestamp(document.updated_at) != expected_updated_at:
         raise ConflictError("INVENTORY_CORRECTION_TARGET_CHANGED")
     _validate_operation_target(
         document=document,
@@ -262,7 +177,7 @@ def create_request(
             session.flush()
     except IntegrityError as error:
         raise ConflictError("INVENTORY_CORRECTION_ACTIVE_REQUEST") from error
-    _append_audit_event(
+    workflow.append_audit_event(
         session=session,
         actor_user_id=actor_user_id,
         request_id=audit_request_id,
@@ -467,7 +382,7 @@ def list_recovery_queue(
 def get_request_detail(
     *, session: Session, request_id: int, user: User
 ) -> InventoryCorrectionRequestPublic:
-    request = _request_by_id(session=session, request_id=request_id)
+    request = workflow.require_request(session=session, request_id=request_id)
     permissions = _permission_set(session=session, user=user)
     owns_request = request.created_by == user.id and _can(
         permissions=permissions, permission="inventory.corrections.request"
@@ -500,14 +415,18 @@ def approve_request(
     reviewer_id: uuid.UUID,
     audit_request_id: str | None,
 ) -> InventoryCorrectionRequestPublic:
-    request = _request_by_id(session=session, request_id=request_id, lock=True)
+    request = workflow.require_request(
+        session=session, request_id=request_id, lock=True
+    )
     if request.status is not InventoryCorrectionRequestStatus.PENDING_REVIEW:
         raise ConflictError("Inventory correction request is not pending review")
     document = _require_correction_target(
         session=session, document_id=request.document_id, lock=True
     )
     now = get_datetime_utc()
-    if _utc(document.updated_at) != _utc(request.expected_updated_at):
+    if workflow.normalize_timestamp(
+        document.updated_at
+    ) != workflow.normalize_timestamp(request.expected_updated_at):
         request.status = InventoryCorrectionRequestStatus.STALE
         request.reviewer_id = reviewer_id
         request.decided_at = now
@@ -552,7 +471,7 @@ def approve_request(
     attempt.work_item_id = work_item.id
     session.add(attempt)
     session.flush()
-    _append_audit_event(
+    workflow.append_audit_event(
         session=session,
         actor_user_id=reviewer_id,
         request_id=audit_request_id,
@@ -576,7 +495,9 @@ def reject_request(
     reviewer_id: uuid.UUID,
     audit_request_id: str | None,
 ) -> InventoryCorrectionRequestPublic:
-    request = _request_by_id(session=session, request_id=request_id, lock=True)
+    request = workflow.require_request(
+        session=session, request_id=request_id, lock=True
+    )
     if request.status is not InventoryCorrectionRequestStatus.PENDING_REVIEW:
         raise ConflictError("Inventory correction request is not pending review")
     request.status = InventoryCorrectionRequestStatus.REJECTED
@@ -584,7 +505,7 @@ def reject_request(
     request.decided_at = get_datetime_utc()
     session.add(request)
     session.flush()
-    _append_audit_event(
+    workflow.append_audit_event(
         session=session,
         actor_user_id=reviewer_id,
         request_id=audit_request_id,
@@ -606,7 +527,9 @@ def withdraw_request(
     actor_user_id: uuid.UUID,
     audit_request_id: str | None,
 ) -> InventoryCorrectionRequestPublic:
-    request = _request_by_id(session=session, request_id=request_id, lock=True)
+    request = workflow.require_request(
+        session=session, request_id=request_id, lock=True
+    )
     if request.created_by != actor_user_id:
         from app.core.exceptions import PermissionDeniedError
 
@@ -617,7 +540,7 @@ def withdraw_request(
     request.decided_at = get_datetime_utc()
     session.add(request)
     session.flush()
-    _append_audit_event(
+    workflow.append_audit_event(
         session=session,
         actor_user_id=actor_user_id,
         request_id=audit_request_id,
@@ -637,18 +560,22 @@ def recover_work_item(
     session: Session,
     work_item_id: int,
 ) -> InventoryCorrectionWorkItemPublic:
-    work_item = _work_item_by_id(session=session, work_item_id=work_item_id, lock=True)
+    work_item = workflow.require_work_item(
+        session=session, work_item_id=work_item_id, lock=True
+    )
     if work_item.status is not InventoryCorrectionWorkItemStatus.TERMINAL_FAILED:
         raise ConflictError("Only terminal correction work items can be recovered")
     if work_item.request_id is None:
         raise RuntimeError("Correction work item request is missing")
-    request = _request_by_id(
+    request = workflow.require_request(
         session=session, request_id=work_item.request_id, lock=True
     )
     document = _require_correction_target(
         session=session, document_id=work_item.document_id, lock=True
     )
-    if _utc(document.updated_at) != _utc(work_item.expected_updated_at):
+    if workflow.normalize_timestamp(
+        document.updated_at
+    ) != workflow.normalize_timestamp(work_item.expected_updated_at):
         raise ConflictError("INVENTORY_CORRECTION_TARGET_CHANGED")
     if work_item.proposal_hash != request.proposal_hash:
         raise ConflictError("INVENTORY_CORRECTION_PROPOSAL_CHANGED")

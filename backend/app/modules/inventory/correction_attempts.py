@@ -17,7 +17,8 @@ from app.models.inventory import (
     InventoryCorrectionRequestStatus,
     InventoryCorrectionWorkItemStatus,
 )
-from app.modules.inventory import correction_service, documents
+from app.modules.inventory import correction_workflow as workflow
+from app.modules.inventory import documents
 from app.schemas.inventory import InventoryDocumentCreate
 
 MAX_PENDING_ATTEMPTS_PER_SCAN = 20
@@ -59,7 +60,7 @@ def mark_expired_attempts_terminal(*, session: Session, now: datetime) -> int:
         ).one_or_none()
         if attempt is None:
             continue
-        request = correction_service._request_by_id(
+        request = workflow.require_request(
             session=session, request_id=work_item.request_id, lock=True
         )
         _set_terminal_failure(
@@ -99,7 +100,7 @@ def claim_pending_attempts(
     for attempt in pending_attempts:
         if attempt.id is None:
             raise RuntimeError("Inventory correction attempt must be persisted")
-        work_item = correction_service._work_item_by_id(
+        work_item = workflow.require_work_item(
             session=session, work_item_id=attempt.work_item_id, lock=True
         )
         if (
@@ -132,7 +133,7 @@ def apply_claimed_attempt(
     actor_user_id: uuid.UUID,
     now: datetime,
 ) -> bool:
-    work_item = correction_service._work_item_by_id(
+    work_item = workflow.require_work_item(
         session=session, work_item_id=work_item_id, lock=True
     )
     attempt = session.exec(
@@ -152,7 +153,7 @@ def apply_claimed_attempt(
         raise CorrectionApplicationError(
             InventoryCorrectionFailureCategory.EXECUTION_FAILED
         )
-    request = correction_service._request_by_id(
+    request = workflow.require_request(
         session=session, request_id=work_item.request_id, lock=True
     )
     document = session.exec(
@@ -167,8 +168,8 @@ def apply_claimed_attempt(
     if (
         request.status is not InventoryCorrectionRequestStatus.APPROVED
         or request.proposal_hash != work_item.proposal_hash
-        or correction_service._utc(document.updated_at)
-        != correction_service._utc(work_item.expected_updated_at)
+        or workflow.normalize_timestamp(document.updated_at)
+        != workflow.normalize_timestamp(work_item.expected_updated_at)
     ):
         raise CorrectionApplicationError(
             InventoryCorrectionFailureCategory.STALE_TARGET
@@ -220,7 +221,7 @@ def finalize_failed_attempt(
     category: InventoryCorrectionFailureCategory,
     now: datetime,
 ) -> bool:
-    work_item = correction_service._work_item_by_id(
+    work_item = workflow.require_work_item(
         session=session, work_item_id=work_item_id, lock=True
     )
     attempt = session.exec(
@@ -236,7 +237,7 @@ def finalize_failed_attempt(
         or work_item.request_id is None
     ):
         return False
-    request = correction_service._request_by_id(
+    request = workflow.require_request(
         session=session, request_id=work_item.request_id, lock=True
     )
     _set_terminal_failure(
@@ -284,7 +285,7 @@ def _set_application_succeeded(
     attempt.status = InventoryCorrectionAttemptStatus.SUCCEEDED
     attempt.finished_at = now
     attempt.failure_category = None
-    correction_service._append_audit_event(
+    workflow.append_audit_event(
         session=session,
         actor_user_id=actor_user_id,
         request_id=None,

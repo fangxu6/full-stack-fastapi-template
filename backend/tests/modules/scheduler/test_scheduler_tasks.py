@@ -13,7 +13,17 @@ from app.models.scheduler import (
     SchedulerRunStatus,
     SchedulerRunTrigger,
 )
-from app.modules.scheduler import run_lifecycle, scheduler_alerts, service, tasks
+from app.modules.scheduler import (
+    orchestration as tasks,
+)
+from app.modules.scheduler import (
+    run_lifecycle,
+    scheduler_alerts,
+    service,
+)
+from app.modules.scheduler import (
+    tasks as celery_tasks,
+)
 from app.modules.scheduler.config import scheduler_settings
 from app.modules.scheduler.contracts import SchedulerRunOutcome
 from app.schemas.scheduler import SchedulerJobCreate
@@ -131,7 +141,7 @@ def test_scan_creates_only_current_minute_run(
     monkeypatch.setattr(tasks, "utc_now", lambda: now)
 
     with patch.object(
-        tasks.celery_app.tasks["scheduler.execute_run"], "delay"
+        celery_tasks.celery_app.tasks["scheduler.execute_run"], "delay"
     ) as delay:
         tasks.scan_due_jobs()
         tasks.scan_due_jobs()
@@ -168,7 +178,7 @@ def test_scan_skips_missed_time_and_records_overlap(
     monkeypatch.setattr(tasks, "utc_now", lambda: now)
     monkeypatch.setattr(tasks, "_send_alert", lambda **_: None)
 
-    with patch.object(tasks.celery_app.tasks["scheduler.execute_run"], "delay"):
+    with patch.object(celery_tasks.celery_app.tasks["scheduler.execute_run"], "delay"):
         tasks.scan_due_jobs()
 
     db.expire_all()
@@ -339,7 +349,7 @@ def test_dispatch_retries_broker_failure_on_the_next_scan_minute(
     monkeypatch.setattr(tasks, "utc_now", lambda: now)
 
     with patch.object(
-        tasks.celery_app.tasks["scheduler.execute_run"],
+        celery_tasks.celery_app.tasks["scheduler.execute_run"],
         "delay",
         side_effect=RuntimeError("broker unavailable"),
     ):
@@ -391,7 +401,7 @@ def test_dispatch_claims_no_more_than_the_fixed_batch_limit(
     monkeypatch.setattr(tasks, "utc_now", lambda: now)
 
     with patch.object(
-        tasks.celery_app.tasks["scheduler.execute_run"], "delay"
+        celery_tasks.celery_app.tasks["scheduler.execute_run"], "delay"
     ) as delay:
         tasks.dispatch_queued_runs()
 

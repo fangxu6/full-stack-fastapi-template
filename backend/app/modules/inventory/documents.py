@@ -16,9 +16,8 @@ from app.models.base import get_datetime_utc
 from app.models.inventory import (
     InventoryCorrectionOperation,
     InventoryDocumentType,
-    InventoryLedgerKind,
-    InventoryMovementType,
 )
+from app.modules.inventory import ledger
 from app.modules.inventory.units import require_active_units
 from app.schemas.inventory import (
     InventoryDocumentCreate,
@@ -27,32 +26,6 @@ from app.schemas.inventory import (
 )
 
 LEGACY_PLACEHOLDERS = {"未填写品号", "未填写含毛量", "未分缸"}
-
-
-def _movement(
-    document_type: InventoryDocumentType,
-) -> tuple[InventoryLedgerKind, InventoryMovementType, Decimal]:
-    mapping = {
-        InventoryDocumentType.RAW_RECEIPT: (
-            InventoryLedgerKind.RAW,
-            InventoryMovementType.RAW_RECEIPT,
-            Decimal("1"),
-        ),
-        InventoryDocumentType.RAW_RETURN: (
-            InventoryLedgerKind.RAW,
-            InventoryMovementType.RAW_RETURN,
-            Decimal("-1"),
-        ),
-        InventoryDocumentType.FINISHED_SHIPMENT: (
-            InventoryLedgerKind.FINISHED,
-            InventoryMovementType.FINISHED_SHIPMENT,
-            Decimal("-1"),
-        ),
-    }
-    try:
-        return mapping[document_type]
-    except KeyError as err:
-        raise BadRequestError("This document type cannot be created manually") from err
 
 
 def _validate_line_for_type(document_type: InventoryDocumentType, line: object) -> None:
@@ -86,7 +59,9 @@ def _add_lines_and_ledgers(
     document: InventoryDocument,
     document_in: InventoryDocumentCreate,
 ) -> None:
-    ledger_kind, movement_type, direction = _movement(document_in.document_type)
+    ledger_kind, movement_type, direction = ledger.movement_for_document_type(
+        document_in.document_type
+    )
     for line_no, line_in in enumerate(document_in.lines, start=1):
         _validate_line_for_type(document_in.document_type, line_in)
         line = InventoryDocumentLine(
@@ -96,8 +71,9 @@ def _add_lines_and_ledgers(
         )
         session.add(line)
         session.flush()
-        session.add(
-            InventoryLedgerEntry(
+        ledger.append_movement(
+            session=session,
+            movement=ledger.LedgerMovement(
                 ledger_kind=ledger_kind,
                 movement_type=movement_type,
                 business_date=document.business_date,
@@ -110,7 +86,7 @@ def _add_lines_and_ledgers(
                 dye_lot_no=line.dye_lot_no,
                 rolls_delta=direction * line.quantity_rolls,
                 meters_delta=direction * (line.quantity_meters or Decimal("0")),
-            )
+            ),
         )
 
 
@@ -134,7 +110,7 @@ def create_document(
 ) -> InventoryDocumentPublic:
     try:
         require_active_units(session=session, document_in=document_in)
-        _movement(document_in.document_type)
+        ledger.movement_for_document_type(document_in.document_type)
         document = InventoryDocument(
             document_type=document_in.document_type,
             business_date=document_in.business_date,
@@ -150,7 +126,7 @@ def create_document(
             document=document,
             document_in=document_in,
         )
-        _reject_negative_balances(
+        ledger.reject_negative_balances(
             session=session, processing_unit_id=document.processing_unit_id
         )
         session.flush()
@@ -201,11 +177,11 @@ def _update_document_impl(
             document=document,
             document_in=document_in,
         )
-        _reject_negative_balances(
+        ledger.reject_negative_balances(
             session=session, processing_unit_id=original_processing_unit_id
         )
         if document.processing_unit_id != original_processing_unit_id:
-            _reject_negative_balances(
+            ledger.reject_negative_balances(
                 session=session, processing_unit_id=document.processing_unit_id
             )
         session.flush()
@@ -254,7 +230,7 @@ def _restore_document_impl(*, session: Session, document: InventoryDocument) -> 
             document=document,
             deleted_at=None,
         )
-        _reject_negative_balances(
+        ledger.reject_negative_balances(
             session=session, processing_unit_id=document.processing_unit_id
         )
         session.add(document)
@@ -325,8 +301,8 @@ def _replace_document_lines(*, session: Session, document: InventoryDocument) ->
             InventoryLedgerEntry.document_line_id.in_(line_ids)  # ty:ignore[unresolved-attribute]
         )
     ).all()
-    for ledger in ledgers:
-        session.delete(ledger)
+    for ledger_entry in ledgers:
+        session.delete(ledger_entry)
     session.flush()
     for line in lines:
         session.delete(line)
@@ -351,9 +327,9 @@ def _set_document_ledger_deleted(
             InventoryLedgerEntry.document_line_id.in_(line_ids)  # ty:ignore[unresolved-attribute]
         )
     ).all()
-    for ledger in ledgers:
-        ledger.deleted_at = deleted_at
-        session.add(ledger)
+    for ledger_entry in ledgers:
+        ledger_entry.deleted_at = deleted_at
+        session.add(ledger_entry)
 
 
 def document_public(
@@ -394,28 +370,3 @@ def document_public(
             for line in lines
         ],
     )
-
-
-def _reject_negative_balances(
-    *, session: Session, processing_unit_id: uuid.UUID
-) -> None:
-    entries = session.exec(
-        select(InventoryLedgerEntry).where(
-            InventoryLedgerEntry.processing_unit_id == processing_unit_id,
-            InventoryLedgerEntry.deleted_at.is_(None),  # ty:ignore[unresolved-attribute]
-        )
-    ).all()
-    balances: dict[tuple[object, ...], tuple[Decimal, Decimal]] = {}
-    for entry in entries:
-        key = (
-            entry.ledger_kind,
-            entry.item_name,
-            entry.item_code,
-            entry.wool_content,
-            entry.color_code,
-            entry.dye_lot_no,
-        )
-        rolls, meters = balances.get(key, (Decimal("0"), Decimal("0")))
-        balances[key] = (rolls + entry.rolls_delta, meters + entry.meters_delta)
-    if any(rolls < 0 or meters < 0 for rolls, meters in balances.values()):
-        raise ConflictError("Insufficient inventory")
