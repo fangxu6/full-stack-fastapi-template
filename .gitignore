@@ -10,6 +10,9 @@ node_modules/
 /upstream_prs.json
 
 .venv/
+/.env
+/.env_dev
+/.env_prod
 /.env.production
 __pycache__/
 *.pyc
