@@ -1,0 +1,30 @@
+{
+  "id": "refresh-trellis-spec-architecture",
+  "name": "refresh-trellis-spec-architecture",
+  "title": "Refresh Trellis specs from current architecture",
+  "description": "Reconcile .trellis/spec with current backend module, scheduler lifecycle, frontend permission, and feature-boundary contracts discovered by the 2026-08-07 audit.",
+  "status": "planning",
+  "dev_type": null,
+  "scope": ".trellis/spec/** documentation refresh only; no product source changes",
+  "package": null,
+  "priority": "P1",
+  "creator": "fx",
+  "assignee": "fx",
+  "createdAt": "2026-08-07",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "08-07-correct-backend-hybrid-architecture-spec",
+    "08-07-correct-scheduler-lifecycle-spec",
+    "08-07-refresh-frontend-and-guide-spec-contracts"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
