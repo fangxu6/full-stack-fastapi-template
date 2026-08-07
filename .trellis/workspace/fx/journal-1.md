@@ -1542,3 +1542,24 @@ Removed confirmed unused root snapshots, duplicate readiness and logging artifac
 ### Status
 
 [OK] **Completed**
+
+
+## Session 49: Codify backend architecture escalation triggers
+
+**Date**: 2026-08-07
+**Task**: Codify backend architecture escalation triggers
+**Branch**: `master`
+
+### Summary
+
+Updated the Trellis backend placement contract to keep simple CRUD lightweight and document observable escalation triggers for separate domain entities, application use cases, DTO/adapters, and dependency injection. Validated spec lint, task context, stale-term search, and diff checks; committed and archived the completed task.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3c9ec00` | (see git log) |
+
+### Status
+
+[OK] **Completed**
