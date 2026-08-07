@@ -58,7 +58,7 @@ backend/app/
 - Put module-boundary entrypoints in `modules/*` when introducing a business slice with enough complexity that it should not remain a lightweight CRUD addition.
 - For items, keep public route declarations in `api/routes/items.py` and the lightweight `router -> service -> crud -> ORM` flow.
 - Put infra abstractions in `infra/*` only when they represent reusable infrastructure concerns rather than business logic.
-- Keep startup/lifecycle scripts such as `backend_pre_start.py`, `tests_pre_start.py`, and `initial_data.py` small and operational; do not hide request-time business behavior there.
+- Keep startup/lifecycle scripts such as `backend_pre_start.py` and `initial_data.py` small and operational; do not hide request-time business behavior there.
 
 ---
 
