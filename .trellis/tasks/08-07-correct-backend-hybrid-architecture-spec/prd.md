@@ -49,7 +49,22 @@ routers. The full source record is
    criterion. Relevant evidence includes multi-table state transitions, durable
    asynchronous work, external integration, events, or collaboration across
    domains.
-6. Preserve unrelated verified contracts: Unit of Work, audit actor, cache
+6. Make the architecture escalation rule explicit without requiring Clean
+   Architecture ceremony by default:
+   - SQLModel models, service functions, Pydantic schemas, and FastAPI
+     `Depends` remain the default entity, use-case, DTO, and DI mechanisms for
+     lightweight CRUD.
+   - Add a persistence-independent domain entity only when business invariants
+     need to be reused outside the ORM model.
+   - Promote service orchestration into a module-local application use case
+     only for multi-table workflows, state transitions, durable work, or
+     cross-domain collaboration; do not add one class per endpoint.
+   - Treat schemas as DTOs at HTTP/task/event boundaries and add adapters only
+     for external protocol translation or a genuinely replaceable integration.
+   - Keep FastAPI request dependencies as `Depends`; use constructor injection
+     only for replaceable external clients or complex lifecycles, without a DI
+     container or service locator.
+7. Preserve unrelated verified contracts: Unit of Work, audit actor, cache
    invalidation, structured logging, Celery reliability, generated-client,
    pagination, and thin routes.
 
@@ -63,6 +78,8 @@ routers. The full source record is
 - Do not use router registration alone to classify every `modules/*` directory
   as an API domain. It proves the operational examples above, while individual
   module responsibilities remain source-backed.
+- Do not introduce entity mappers, use-case classes, repository interfaces,
+  adapters, or a DI container merely to satisfy a named architecture pattern.
 
 ## Scope
 
@@ -94,6 +111,9 @@ Out of scope:
       that canonical contract without duplicate implementation signatures.
 - [ ] The corrected guidance does not require a module migration and preserves
       the `items` path as a valid lightweight CRUD reference.
+- [ ] The canonical placement contract states the default and escalation
+      triggers for domain entities, application use cases, DTO/adapters, and
+      DI without making any of them mandatory ceremony for simple CRUD.
 - [ ] All changed source-backed statements have a current code anchor or an
       explicit source revalidation record.
 - [ ] `python .trellis/scripts/spec_wiki.py lint`, path-scoped stale-term

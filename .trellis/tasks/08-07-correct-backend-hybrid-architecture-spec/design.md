@@ -31,6 +31,18 @@ multi-table state transitions, durable asynchronous work, external integration,
 events, or collaboration across domains. It is not selected merely because a
 feature is new or because the project has a `modules/` directory.
 
+## Escalation Contract
+
+The canonical directory guide will add one decision table rather than four
+new layers. For lightweight CRUD, the existing SQLModel model, service
+function, Pydantic schema, and FastAPI `Depends` are sufficient. Introduce a
+separate domain entity only for reusable persistence-independent invariants;
+a module-local application use case only for complex orchestration; a DTO or
+adapter only at HTTP/task/event or external-integration boundaries; and
+constructor injection only for replaceable external clients or complex
+lifecycle management. No DI container, service locator, one-class-per-endpoint
+use-case layer, repository interface, or mapper is part of this contract.
+
 ## Source Anchors
 
 - `backend/app/api/routes/items.py` is the lightweight reference path.

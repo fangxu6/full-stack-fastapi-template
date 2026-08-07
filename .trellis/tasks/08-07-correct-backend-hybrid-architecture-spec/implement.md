@@ -17,6 +17,10 @@
   concrete simple-CRUD example. Do not prescribe module migration.
 - Describe only the operational module examples that current source supports;
   do not infer public-router status for every module directory.
+- Add one compact default-versus-escalation table for entities, application use
+  cases, DTO/adapters, and DI. It must identify the existing lightweight
+  mechanism, the observable trigger that earns a stronger boundary, and the
+  pattern that remains explicitly out of scope.
 
 ## 3. Align Supporting Backend Guidance
 

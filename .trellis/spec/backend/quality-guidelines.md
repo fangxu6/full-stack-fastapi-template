@@ -9,7 +9,7 @@
 Backend quality in this repo is mostly about preserving architectural direction:
 
 - keep routes thin
-- keep services explicit
+- select boundaries by workflow complexity
 - preserve unified errors and request correlation
 - keep model/schema/API changes synchronized with frontend contract regeneration
 
@@ -17,7 +17,7 @@ Backend quality in this repo is mostly about preserving architectural direction:
 
 ## Required Patterns
 
-- Keep layering explicit: `api route -> service -> crud -> models/schemas` for simple CRUD; use `module router -> module service -> module repository` only when a domain earns that boundary.
+- Keep layering explicit: use the two supported paths and escalation triggers in [Directory Structure](./directory-structure.md#architecture-escalation).
 - Use semantic application exceptions for expected business failures.
 - Keep new platform-wide behavior in `core/*`.
 - Keep model/schema changes paired with migration thinking and frontend client impact review.
@@ -28,8 +28,8 @@ Backend quality in this repo is mostly about preserving architectural direction:
 
 ## Strong Review Rules
 
-- New module work should attach to the existing platform skeleton rather than expanding one large shared file forever.
-- If a feature is simple CRUD, keep it lightweight. If it suggests a bounded business slice, prefer a deliberate path through `modules/*` over uncontrolled growth in route files or a giant `crud.py`.
+- New module work should attach to an operational domain boundary rather than expanding one large shared file forever.
+- If a feature is simple CRUD, keep it lightweight. If it earns a bounded business slice, use `modules/*`; do not introduce separate entities, use-case classes, adapters, repository interfaces, or a DI container unless the matching trigger in [Directory Structure](./directory-structure.md#architecture-escalation) applies.
 - For items, keep the public router at `api/routes/items.py`, service behavior at `services/item.py`, and persistence helpers at `crud/item.py`; the public path remains `/api/v1/items/*`.
 - API contract changes require checking whether `bash ./scripts/generate-client.sh` must be run.
 - New or changed error branches should preserve the `detail + request_id` response contract.
@@ -257,8 +257,8 @@ uv run --env-file ../.env_test pytest tests/core/test_config.py
 
 ### Recommended direction
 
-- Continue migrating toward explicit module boundaries without pretending `modules/*` is already mature.
-- Use review pressure to stop regression back into the looser template-era structure.
+- Preserve the current hybrid architecture: lightweight CRUD stays lightweight, while operational workflows may own module-local boundaries.
+- Use review pressure to stop regression back into thick routes, giant shared services, or pattern-driven ceremony.
 
 ---
 

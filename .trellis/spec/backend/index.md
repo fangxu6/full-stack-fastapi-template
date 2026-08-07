@@ -6,11 +6,12 @@
 
 ## Overview
 
-This backend is no longer just the upstream template. It is in a platform-batch-0 transition toward a more enterprise-ready scaffold:
+This backend is no longer just the upstream template. It is a hybrid backend:
 
 - unified exception handling and `request_id` correlation are already implemented
-- `core/*`, `infra/*`, and `modules/*` establish the intended backend boundaries
-- most real business behavior still lives in `services/*` and `crud/*`
+- `core/*` and `infra/*` own cross-cutting and reusable infrastructure behavior
+- simple CRUD remains on `api/routes -> services -> crud -> models/schemas`
+- operational domains own module-local boundaries where workflow complexity justifies them
 
 Future work should preserve that direction instead of drifting back toward route-heavy or monolithic helper patterns.
 
@@ -20,7 +21,7 @@ Future work should preserve that direction instead of drifting back toward route
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Layer ownership, placement rules, transitional structure | Customized |
+| [Directory Structure](./directory-structure.md) | Layer ownership and architecture escalation rules | Customized |
 | [Database Guidelines](./database-guidelines.md) | SQLModel entities, audit fields, API schemas, Alembic workflow | Customized |
 | [Error Handling](./error-handling.md) | Unified error contract and exception usage | Customized |
 | [Excel Import and Export](./excel-import-export.md) | XLSX DTO, validation, transaction, and legacy-adapter contract | Customized |
@@ -62,9 +63,11 @@ Future work should preserve that direction instead of drifting back toward route
 - Real domain behavior is still service-first:
   - [`backend/app/services/user.py`](../../../backend/app/services/user.py)
   - [`backend/app/services/item.py`](../../../backend/app/services/item.py)
-- `modules/*` and `infra/*` exist as future-facing boundaries:
-  - [`backend/app/modules/api.py`](../../../backend/app/modules/api.py)
-  - [`backend/app/modules/system/__init__.py`](../../../backend/app/modules/system/__init__.py)
+- Operational module routers coexist with conventional routes:
+  - [`backend/app/modules/inventory/router.py`](../../../backend/app/modules/inventory/router.py)
+  - [`backend/app/modules/iam/router.py`](../../../backend/app/modules/iam/router.py)
+  - [`backend/app/modules/scheduler/router.py`](../../../backend/app/modules/scheduler/router.py)
+- `infra/*` contains reusable infrastructure boundaries where justified:
   - [`backend/app/infra/db/session.py`](../../../backend/app/infra/db/session.py)
 - `Item` is still a template-style entity rather than a fully business-specific domain model:
   - [`backend/app/models/item.py`](../../../backend/app/models/item.py)
@@ -74,9 +77,9 @@ Future work should preserve that direction instead of drifting back toward route
 
 ## Recommended Direction
 
-- Keep route handlers thin and continue concentrating business rules in services until real module-local service slices emerge.
+- Keep route handlers thin and select the lightest boundary described in [Directory Structure](./directory-structure.md#architecture-escalation).
 - Add new cross-cutting behavior to `core/*`, not to ad hoc helpers spread across routes or services.
-- When introducing a new business module, prefer attaching it to `modules/*` as an explicit boundary instead of growing one more large shared file. Keep simple CRUD in the lightweight route/service/crud flow until that boundary is justified.
+- When a domain earns a module boundary, attach it to `modules/*` instead of growing another large shared file. Keep simple CRUD lightweight and do not add named architecture patterns without their documented trigger.
 - Preserve the unified error contract and `request_id` chain as non-optional platform behavior.
 
 ---

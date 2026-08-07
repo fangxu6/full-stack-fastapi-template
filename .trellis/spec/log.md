@@ -303,3 +303,7 @@ Restored Bun as the thin-route AST checker runtime. The hook resolves Bun from P
 ## [2026-08-05 16:17:11] update | Document revocable JWT session and password-link contracts
 
 Recorded access claims, server-side session revocation, versioned password-link outbox migration behavior, and frontend auth cleanup contracts.
+
+## [2026-08-07 15:33:29] update | Correct backend hybrid architecture guidance
+
+Replaced future-module wording with the hybrid placement contract and documented escalation triggers for entities, use cases, DTO/adapters, and DI.
