@@ -15,6 +15,8 @@ materialized snapshots, and a minimal 90-day external-call audit trail.
 The system has no current business need for this external integration. Building
 the design now would create an unsupported security, credential, rate-limit,
 snapshot, and operational-support surface before it has an active consumer.
+The material above is historical planning context, not a current runtime
+boundary.
 
 ## Decision
 
@@ -40,3 +42,8 @@ snapshot, and operational-support surface before it has an active consumer.
   operations, assign named owners and support channels, and obtain explicit
   implementation approval before starting development. The archived design is
   historical planning input, not a standing authorization to implement.
+
+## Related Decisions
+
+- [ADR-0002: Evolve Backend as a Modular Monolith](./0002-evolve-backend-as-modular-monolith.md)
+- [ADR-0005: Use Celery And Redis For Background Runtime](./0005-use-celery-redis-for-background-runtime.md)

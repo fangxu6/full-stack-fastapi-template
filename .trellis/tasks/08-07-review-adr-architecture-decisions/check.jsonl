@@ -1,0 +1,6 @@
+{"file":".trellis/spec/guides/index.md","reason":"Review evidence hierarchy and architecture-question guidance."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Backend review expectations and validation boundaries."}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Data-model, transaction, and audit review baseline."}
+{"file":".trellis/spec/backend/async-task-guidelines.md","reason":"Background-runtime correctness baseline."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Frontend review baseline for the Ant Design ADR."}
+{"file":"docs/llm-wiki/index.md","reason":"Repository knowledge starting point, verified against live implementation."}

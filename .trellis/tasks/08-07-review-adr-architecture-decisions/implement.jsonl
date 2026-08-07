@@ -1,0 +1,7 @@
+{"file":".trellis/spec/guides/index.md","reason":"Architecture review routing and evidence hierarchy."}
+{"file":".trellis/spec/backend/directory-structure.md","reason":"Current backend boundary and module-placement contract for ADR-0002."}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Primary-key, audit, and transaction conventions for ADR-0004, ADR-0006, and ADR-0007."}
+{"file":".trellis/spec/backend/async-task-guidelines.md","reason":"Celery and Redis runtime boundary for ADR-0005, ADR-0009, ADR-0010, and ADR-0012."}
+{"file":".trellis/spec/backend/logging-guidelines.md","reason":"Operational logging and sensitive-data contract for ADR-0010."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Component-system boundary for ADR-0001."}
+{"file":"docs/llm-wiki/index.md","reason":"Durable architecture knowledge index; claims require verification against live code."}

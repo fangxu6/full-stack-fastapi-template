@@ -17,24 +17,18 @@ These phases are not duplicate business execution. The durable run record is
 created before dispatch so PostgreSQL remains the source of truth and a broker
 failure does not erase the business fact.
 
-The current implementation nevertheless spreads the `SchedulerRun` lifecycle
-across two modules:
-
-- `backend/app/modules/scheduler/service.py` validates definitions, manages
-  jobs, creates runs, cancels queued runs, and cleans up historical runs.
-- `backend/app/modules/scheduler/tasks.py` claims dispatch leases, starts and
-  finishes runs, handles broker failure, and writes terminal state before
-  sending scheduler alerts.
-
-Understanding one run therefore requires following direct ORM state changes
-through both the HTTP/manual path and the Celery path. A future change to a
-status, lease, retry, or terminal-state invariant can update one path while
-leaving another path inconsistent.
+Before this refactoring, lifecycle transitions were spread between
+`service.py` and `tasks.py`. That made status, lease, retry, and terminal-state
+changes easy to update inconsistently. The current implementation has moved
+durable transitions into `run_lifecycle.py`; `service.py` delegates to it,
+`orchestration.py` coordinates Beat/Worker dispatch, and `tasks.py` is a thin
+Celery registration adapter.
 
 ## Decision
 
 Keep the Beat/Worker producer-consumer split, but concentrate durable
-`SchedulerRun` lifecycle state in one scheduler-owned module.
+`SchedulerRun` lifecycle state in the scheduler-owned `run_lifecycle.py`
+module.
 
 The lifecycle module owns all persistence transitions and invariants for:
 
@@ -48,15 +42,11 @@ The lifecycle module owns all persistence transitions and invariants for:
 
 `service.py` remains responsible for `SchedulerJob` definitions, CRUD, Cron
 validation, task configuration validation, and manual-operation validation. It
-delegates run persistence to the lifecycle module.
-
-`tasks.py` remains responsible for scheduling and external orchestration:
-
-- scanning due jobs;
-- publishing `scheduler.execute_run(run_id)` after a durable lease claim;
-- delegating frozen task execution and result classification to
-  `scheduler/execution.py`; and
-- handing scheduler alert events to the existing durable email-outbox flow.
+delegates run persistence to the lifecycle module. `orchestration.py` owns
+scanning due jobs, publishing `scheduler.execute_run(run_id)` after a durable
+lease claim, and coordinating the Beat/Worker handoff. `tasks.py` registers the
+Celery entrypoints and delegates frozen execution and result classification to
+the scheduler execution/lifecycle helpers.
 
 `scheduler/execution.py` owns the side-effect-free execution boundary. It
 resolves the frozen task class, validates the frozen configuration, invokes
@@ -85,8 +75,8 @@ hold a database transaction across Celery or email operations.
   changing public scheduler schemas or generated frontend clients.
 - Existing alert throttling and `EmailOutbox` persistence remain governed by
   ADR-0009; this ADR does not create a second mail-delivery model.
-- A lease or terminal-state change must update lifecycle tests and the
-  scheduler task integration tests together.
+- A lease or terminal-state change must update lifecycle tests and scheduler
+  task integration tests together.
 
 ## Non-Goals
 
@@ -99,7 +89,8 @@ hold a database transaction across Celery or email operations.
 
 ## Related Decisions
 
-- [ADR-0002: Evolve Backend as Modular Monolith](./0002-evolve-backend-as-modular-monolith.md)
+- [ADR-0002: Evolve Backend as a Modular Monolith](./0002-evolve-backend-as-modular-monolith.md)
 - [ADR-0005: Use Celery And Redis For Background Runtime](./0005-use-celery-redis-for-background-runtime.md)
 - [ADR-0006: Use Request-Scoped Unit Of Work For HTTP Writes](./0006-use-request-scoped-unit-of-work-for-http-writes.md)
+- [ADR-0007: Require An Explicit Audit Actor](./0007-require-an-explicit-audit-actor.md)
 - [ADR-0009: Use A Generic Email Outbox For Non-Report Mail](./0009-use-generic-email-outbox-for-non-report-mail.md)
