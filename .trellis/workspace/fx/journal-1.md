@@ -1521,3 +1521,24 @@ Reconciled ADR-0001 through ADR-0013 with current implementation, added the AI-r
 ### Status
 
 [OK] **Completed**
+
+
+## Session 48: Remove confirmed unused repository artifacts
+
+**Date**: 2026-08-07
+**Task**: Remove confirmed unused repository artifacts
+**Branch**: `master`
+
+### Summary
+
+Removed confirmed unused root snapshots, duplicate readiness and logging artifacts, and five unused frontend direct dependencies; preserved cache, UI primitives, PM2 development logging, and frontend OpenAPI generation. Verified focused tests, backend lint, frozen install, Vite build, and isolated database readiness.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2f9c256` | (see git log) |
+
+### Status
+
+[OK] **Completed**

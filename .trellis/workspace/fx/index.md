@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 47
+- **Total Sessions**: 48
 - **Last Active**: 2026-08-07
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1523 | Active |
+| `journal-1.md` | ~1544 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 48 | 2026-08-07 | Remove confirmed unused repository artifacts | `2f9c256` | `master` |
 | 47 | 2026-08-07 | Reconcile ADR architecture decisions | `07cc556` | `master` |
 | 46 | 2026-08-07 | Split inventory workbook adapters | `4542874` | `master` |
 | 45 | 2026-08-07 | Separate inventory correction review and attempt execution | `1d7f4d2` | `master` |
