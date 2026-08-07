@@ -1500,3 +1500,24 @@ Extracted modern document and legacy workbook adapters from importer.py; preserv
 ### Status
 
 [OK] **Completed**
+
+
+## Session 47: Reconcile ADR architecture decisions
+
+**Date**: 2026-08-07
+**Task**: Reconcile ADR architecture decisions
+**Branch**: `master`
+
+### Summary
+
+Reconciled ADR-0001 through ADR-0013 with current implementation, added the AI-removal migration round-trip regression, clarified ADR-0010 and ADR-0013 logging boundaries, and verified focused tests plus the backend quality gate.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `07cc556` | (see git log) |
+
+### Status
+
+[OK] **Completed**

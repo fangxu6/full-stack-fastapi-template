@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 46
+- **Total Sessions**: 47
 - **Last Active**: 2026-08-07
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1502 | Active |
+| `journal-1.md` | ~1523 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 47 | 2026-08-07 | Reconcile ADR architecture decisions | `07cc556` | `master` |
 | 46 | 2026-08-07 | Split inventory workbook adapters | `4542874` | `master` |
 | 45 | 2026-08-07 | Separate inventory correction review and attempt execution | `1d7f4d2` | `master` |
 | 44 | 2026-08-06 | Inventory document ledger deepening | `8b99ff9` | `master` |
