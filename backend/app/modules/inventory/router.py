@@ -4,7 +4,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, File, Query, Response, UploadFile, status
 
-from app.api.deps import AuditedWriteSessionDep, CurrentUser, SessionDep
+from app.api.deps import AuditedWriteSessionDep, CurrentUser, ReadSessionDep
 from app.core.excel import (
     MAX_XLSX_BYTES,
     ExcelIssue,
@@ -141,7 +141,7 @@ async def import_legacy_workbooks_from_excel(
     dependencies=[Depends(permission_required("inventory.ledger.read"))],
 )
 def export_inventory_ledger(
-    session: SessionDep,
+    session: ReadSessionDep,
     current_user: CurrentUser,
     ledger_kind: InventoryLedgerKind,
     processing_unit_id: uuid.UUID | None = None,
@@ -175,7 +175,7 @@ def export_inventory_ledger(
     response_model=MasterUnitsPublic,
 )
 def read_processing_units(
-    session: SessionDep,
+    session: ReadSessionDep,
     current_user: CurrentUser,
     name: str | None = Query(default=None, max_length=255),
     is_active: bool | None = Query(default=None),
@@ -231,7 +231,7 @@ def update_processing_unit(
     response_model=MasterUnitsPublic,
 )
 def read_receiving_units(
-    session: SessionDep,
+    session: ReadSessionDep,
     current_user: CurrentUser,
     name: str | None = Query(default=None, max_length=255),
     is_active: bool | None = Query(default=None),
@@ -301,7 +301,7 @@ def create_inventory_document(
     response_model=InventoryDocumentsPublic,
 )
 def read_inventory_documents(
-    session: SessionDep,
+    session: ReadSessionDep,
     current_user: CurrentUser,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
@@ -334,7 +334,7 @@ def read_inventory_documents(
     response_model=InventoryDocumentPublic,
 )
 def read_inventory_document(
-    document_id: uuid.UUID, session: SessionDep, current_user: CurrentUser
+    document_id: uuid.UUID, session: ReadSessionDep, current_user: CurrentUser
 ) -> Any:
     del current_user
     return service.get_document(session=session, document_id=document_id)
@@ -387,7 +387,7 @@ def restore_inventory_document(
     response_model=InventoryBalancesPublic,
 )
 def read_raw_balances(
-    session: SessionDep,
+    session: ReadSessionDep,
     current_user: CurrentUser,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
@@ -411,7 +411,7 @@ def read_raw_balances(
     response_model=InventoryBalancesPublic,
 )
 def read_finished_balances(
-    session: SessionDep,
+    session: ReadSessionDep,
     current_user: CurrentUser,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
@@ -435,7 +435,7 @@ def read_finished_balances(
     response_model=InventoryLedgerEntriesPublic,
 )
 def read_inventory_ledger(
-    session: SessionDep,
+    session: ReadSessionDep,
     current_user: CurrentUser,
     ledger_kind: InventoryLedgerKind,
     processing_unit_id: uuid.UUID,
@@ -468,7 +468,7 @@ def read_inventory_ledger(
     response_model=InventorySuggestionsPublic,
 )
 def read_inventory_suggestions(
-    session: SessionDep,
+    session: ReadSessionDep,
     current_user: CurrentUser,
     ledger_kind: InventoryLedgerKind,
     field: Annotated[

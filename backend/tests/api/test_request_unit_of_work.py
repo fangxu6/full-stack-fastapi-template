@@ -91,6 +91,56 @@ def test_write_dependency_rolls_back_http_exception_before_close() -> None:
     assert events == ["open", "rollback", "close"]
 
 
+@pytest.mark.parametrize("raises_error", [False, True])
+def test_read_dependency_closes_without_a_transaction(raises_error: bool) -> None:
+    events: list[str] = []
+    session = TrackingSession(events)
+    app = FastAPI()
+    read_session_dep = getattr(database, "ReadSessionDep", None)
+
+    assert read_session_dep is not None
+
+    def get_tracking_read_db() -> Generator[Any]:
+        yield from tracking_db(session, events)
+
+    app.dependency_overrides[database.get_read_db] = get_tracking_read_db
+
+    @app.get("/read")
+    def read(read_session: read_session_dep) -> dict[str, bool]:
+        del read_session
+        if raises_error:
+            raise HTTPException(status_code=409, detail="conflict")
+        return {"ok": True}
+
+    with TestClient(app) as client:
+        response = client.get("/read")
+
+    assert response.status_code == (409 if raises_error else 200)
+    assert events == ["open", "close"]
+
+
+def test_read_dependency_propagates_replica_failures_without_primary_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    primary_engine = object()
+    replica_engine = object()
+    replica_error = RuntimeError("replica unavailable")
+    called_engines: list[object] = []
+
+    def failing_session(engine: object) -> None:
+        called_engines.append(engine)
+        raise replica_error
+
+    monkeypatch.setattr(database, "engine", primary_engine)
+    monkeypatch.setattr(database, "read_engine", replica_engine)
+    monkeypatch.setattr(database, "Session", failing_session)
+
+    with pytest.raises(RuntimeError, match="replica unavailable"):
+        next(database.get_read_db())
+
+    assert called_engines == [replica_engine]
+
+
 def test_write_dependency_invalidates_after_successful_commit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -216,6 +266,55 @@ def test_all_http_write_handlers_depend_on_write_session() -> None:
 
     assert write_routes
     assert missing_write_session == []
+
+
+def test_only_allowlisted_read_handlers_depend_on_read_session() -> None:
+    expected_paths = {
+        "/inventory/excel/ledger",
+        "/inventory/processing-units",
+        "/inventory/receiving-units",
+        "/inventory/documents",
+        "/inventory/documents/{document_id}",
+        "/inventory/balances/raw",
+        "/inventory/balances/finished",
+        "/inventory/ledger",
+        "/inventory/suggestions",
+        "/scheduler/jobs",
+        "/scheduler/jobs/{job_id}",
+        "/scheduler/jobs/{job_id}/runs",
+    }
+
+    def api_routes(router: Any) -> Generator[APIRoute]:
+        for route in router.routes:
+            included_router = getattr(route, "original_router", None)
+            if included_router is not None:
+                yield from api_routes(included_router)
+            elif isinstance(route, APIRoute):
+                yield route
+
+    def depends_on(callable_: Any, dependency: Any) -> bool:
+        return dependency.call is callable_ or any(
+            depends_on(callable_, child) for child in dependency.dependencies
+        )
+
+    read_routes = [
+        route
+        for route in api_routes(api_router)
+        if any(
+            depends_on(database.get_read_db, dependency)
+            for dependency in route.dependant.dependencies
+        )
+    ]
+
+    assert {route.path for route in read_routes} == expected_paths
+    assert all(route.methods == {"GET"} for route in read_routes)
+    assert all(
+        any(
+            depends_on(database.get_db, dependency)
+            for dependency in route.dependant.dependencies
+        )
+        for route in read_routes
+    )
 
 
 def test_test_email_queues_outbox_at_request_commit(

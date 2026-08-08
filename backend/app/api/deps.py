@@ -7,6 +7,7 @@ from app.core.audit import bind_audit_actor, require_system_actor
 
 from .dependencies import (
     CurrentUser,
+    ReadSessionDep,
     SessionDep,
     TokenDep,
     WriteSessionDep,
@@ -38,6 +39,7 @@ SystemAuditedWriteSessionDep = Annotated[
 
 __all__ = [
     "CurrentUser",
+    "ReadSessionDep",
     "SessionDep",
     "WriteSessionDep",
     "AuditedWriteSessionDep",

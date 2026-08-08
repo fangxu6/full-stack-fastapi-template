@@ -977,14 +977,24 @@ serializing unrelated roles or relying on per-process memory.
 
 ### 1. Scope / Trigger
 
-Apply this to every FastAPI `POST`, `PUT`, `PATCH`, and `DELETE` route. The
-request owns one transaction shared by authentication, permission, route, and
-service dependencies. Read routes retain the read-only session dependency.
+Apply this to every FastAPI HTTP route that needs a database session. Write
+requests own one primary-database transaction shared by authentication,
+permission, route, and service dependencies. A selected eventually-consistent
+query may use the dedicated read dependency; authentication, RBAC, and any
+strongly-consistent or mixed read remain on the primary dependency.
 
 ### 2. Signatures
 
 ```python
 SessionDep = Annotated[Session, Depends(get_db, scope="function")]
+
+
+def get_read_db() -> Generator[Session]:
+    with Session(read_engine) as session:
+        yield session
+
+
+ReadSessionDep = Annotated[Session, Depends(get_read_db, scope="function")]
 
 
 def get_write_db(
@@ -1001,16 +1011,35 @@ def get_write_db(
 WriteSessionDep = Annotated[Session, Depends(get_write_db, scope="function")]
 ```
 
-`get_db()` remains the only request session factory and closes the session.
-Both dependency signatures use the same callable and `scope="function"` so
-FastAPI reuses one cached `Session` and finalizes it before response sending.
+`POSTGRES_READ_REPLICA_SERVER: str | None` is optional. `write_engine` always
+uses `SQLALCHEMY_DATABASE_URI`; `read_engine` is the same object when the
+replica host is unset, otherwise it uses a URI with that host and the primary
+port, database, username, and password. Keep `engine = write_engine` for
+existing imports. `get_db()` remains the primary request-session factory and
+closes the session. `SessionDep` and `WriteSessionDep` use the same callable
+and `scope="function"`, so FastAPI reuses one primary `Session` and finalizes
+it before response sending.
 
 ### 3. Contracts
 
 - Every HTTP write handler declares `WriteSessionDep`, including a write-method
   endpoint that currently only authenticates or reads.
-- `SessionDep` remains the dependency for reads and authentication/RBAC
-  dependencies. It must use the same function scope as `WriteSessionDep`.
+- `SessionDep` remains the dependency for authentication, RBAC, and primary
+  reads that require read-after-write consistency. It must use the same
+  function scope as `WriteSessionDep`.
+- `ReadSessionDep` is only for an explicitly allowlisted, pure business query
+  that accepts replication delay. It opens and closes a function-scoped
+  `Session`; it does not explicitly commit, roll back, or drain cache
+  invalidations.
+- An allowlisted route may use `ReadSessionDep` for its business query while
+  its `CurrentUser` and `permission_required(...)` sub-dependencies still use
+  the primary `SessionDep`. The two sessions are deliberately distinct.
+- With no replica host, `read_engine is write_engine` and no second pool is
+  created. With a configured replica host, a connection failure stays visible
+  through the normal database error path; never retry it against the primary.
+- A replica-backed query is eventually consistent. Do not use it for a
+  write-following read, a correction-status query, a user/permission lookup,
+  or a flow that mixes reads and writes.
 - HTTP services, CRUD helpers, and route handlers do not call
   `session.commit()` or `session.rollback()`. They flush to obtain identities
   or translate expected integrity errors before the response is built.
@@ -1032,6 +1061,10 @@ FastAPI reuses one cached `Session` and finalizes it before response sending.
 | HTTP write succeeds | One final commit occurs before the shared session closes. |
 | Endpoint, dependency, or service raises | The write dependency rolls back before close; no partial business, audit, or outbox rows persist. |
 | Authentication/RBAC and endpoint both need a session | They observe the same cached function-scoped `Session`, not a second request session. |
+| Replica host is unset | `ReadSessionDep` uses the primary engine object and does not create a second connection pool. |
+| Replica host is configured and the read connection fails | Return the existing database failure; do not fall back to a successful primary read. |
+| Allowlisted read also authenticates or checks permission | Auth/RBAC uses primary `SessionDep`; the business query uses the separate `ReadSessionDep`. |
+| Query needs write-following visibility or writes | Use `SessionDep` or `WriteSessionDep`, never `ReadSessionDep`. |
 | Expected unique/integrity conflict | Flush and convert it to the existing domain error before final commit; the dependency performs the rollback. |
 | Direct test setup calls an HTTP route or worker that opens another session | Commit setup data first. After an expected direct-service exception, roll back before asserting durable state. |
 | Direct setup retains a row lock and calls a second-session worker | Commit before the worker call so it can read or update the same row without blocking. |
@@ -1042,15 +1075,29 @@ FastAPI reuses one cached `Session` and finalizes it before response sending.
   flush, then `WriteSessionDep` commits all rows once.
 - Base: a direct scheduler-task test creates a run through a service, commits
   the fixture session, then invokes a worker that opens its own session.
-- Bad: a CRUD helper commits to make one test pass, a route dispatches Celery
-  before commit, or a password-recovery service calls SMTP synchronously in
-  the request transaction.
+- Good: a scheduler or inventory list route accepts replica delay, injects
+  `ReadSessionDep` for its query, and retains primary authentication/RBAC.
+- Base: an unset replica host makes a read route use the primary engine without
+  allocating another pool.
+- Bad: a user/permission or write-following endpoint switches to
+  `ReadSessionDep`, a read connection error falls back to primary, a CRUD
+  helper commits to make one test pass, a route dispatches Celery before
+  commit, or a password-recovery service calls SMTP synchronously in the
+  request transaction.
 
 ### 6. Tests Required
 
 - Dependency test: assert `SessionDep` and `WriteSessionDep` share one session,
   commit/rollback occurs before close, and all HTTP write routes declare the
   write dependency.
+- Read-dependency test: assert `ReadSessionDep` closes without an explicit
+  commit or rollback on both success and endpoint failure.
+- Configuration/engine test: assert an unset replica host reuses the exact
+  primary engine object; a configured host builds a distinct read engine URI
+  while preserving the primary port, database, username, and password.
+- Dependency-graph test: assert only the reviewed pure-read allowlist uses
+  `ReadSessionDep`, it remains `GET`-only, and its auth/RBAC path still uses
+  `SessionDep`.
 - API regression: assert successful writes commit once and error responses keep
   `detail + request_id` while leaving no partial state.
 - Side-effect regression: patch SMTP/broker boundaries and assert they execute
@@ -1088,6 +1135,33 @@ def create_item(*, session: Session, item_in: ItemCreate) -> Item:
 
 The HTTP write dependency owns the final commit or rollback. A non-HTTP caller
 commits explicitly after the service returns.
+
+#### Wrong
+
+```python
+def get_read_db() -> Generator[Session]:
+    try:
+        with Session(read_engine) as session:
+            yield session
+    except OperationalError:
+        with Session(write_engine) as session:
+            yield session
+```
+
+This silently hides replica failure, permits a second yield from one
+dependency, and breaks the operational contract that a configured read path
+must fail observably.
+
+#### Correct
+
+```python
+def get_read_db() -> Generator[Session]:
+    with Session(read_engine) as session:
+        yield session
+```
+
+The read boundary only owns its session lifecycle. Engine selection happens at
+startup, and a configured replica failure remains observable.
 
 ---
 

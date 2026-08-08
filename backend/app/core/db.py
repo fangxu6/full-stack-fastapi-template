@@ -1,3 +1,4 @@
+from sqlalchemy import Engine
 from sqlmodel import Session, create_engine, select
 
 from app import crud
@@ -9,7 +10,17 @@ from app.modules.iam import service as iam_service
 from app.modules.scheduler.service import bootstrap_inventory_jobs
 from app.schemas.user import UserCreate
 
-engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+
+def _create_read_engine(write_engine: Engine, replica_uri: str | None) -> Engine:
+    return create_engine(replica_uri) if replica_uri else write_engine
+
+
+write_engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+read_replica_uri = settings.SQLALCHEMY_READ_REPLICA_URI
+read_engine = _create_read_engine(
+    write_engine, str(read_replica_uri) if read_replica_uri else None
+)
+engine = write_engine
 
 
 class IamBootstrapInitializationError(Exception):

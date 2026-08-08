@@ -307,3 +307,7 @@ Recorded access claims, server-side session revocation, versioned password-link 
 ## [2026-08-07 15:33:29] update | Correct backend hybrid architecture guidance
 
 Replaced future-module wording with the hybrid placement contract and documented escalation triggers for entities, use cases, DTO/adapters, and DI.
+
+## [2026-08-08 21:32:59] update | Document read-session dependency boundary
+
+Documented optional replica engine selection, primary authentication and transaction ownership, eventual-consistency limits, no-fallback failure behavior, and focused verification expectations.

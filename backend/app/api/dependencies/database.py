@@ -8,11 +8,16 @@ from app.core.cache import (
     discard_deferred_cache_invalidations,
     drain_deferred_cache_invalidations,
 )
-from app.core.db import engine
+from app.core.db import engine, read_engine
 
 
 def get_db() -> Generator[Session]:
     with Session(engine) as session:
+        yield session
+
+
+def get_read_db() -> Generator[Session]:
+    with Session(read_engine) as session:
         yield session
 
 
@@ -31,3 +36,4 @@ def get_write_db(
 
 
 WriteSessionDep = Annotated[Session, Depends(get_write_db, scope="function")]
+ReadSessionDep = Annotated[Session, Depends(get_read_db, scope="function")]

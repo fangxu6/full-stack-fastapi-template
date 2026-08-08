@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import AuditedWriteSessionDep, CurrentUser, SessionDep
+from app.api.deps import AuditedWriteSessionDep, CurrentUser, ReadSessionDep
 from app.models.scheduler import SchedulerJob
 from app.modules.iam.dependencies import permission_required
 from app.modules.scheduler import service
@@ -59,7 +59,7 @@ def preview_cron(
     response_model=SchedulerJobsPublic,
 )
 def read_jobs(
-    session: SessionDep,
+    session: ReadSessionDep,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     include_deleted: bool = False,
@@ -88,7 +88,7 @@ def create_job(
     dependencies=[Depends(permission_required("scheduler.jobs.read"))],
     response_model=SchedulerJobPublic,
 )
-def read_job(job_id: int, session: SessionDep) -> SchedulerJobPublic:
+def read_job(job_id: int, session: ReadSessionDep) -> SchedulerJobPublic:
     return _job(service.get_job(session=session, job_id=job_id))
 
 
@@ -191,7 +191,7 @@ def backfill(
 )
 def read_runs(
     job_id: int,
-    session: SessionDep,
+    session: ReadSessionDep,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
 ) -> SchedulerRunsPublic:

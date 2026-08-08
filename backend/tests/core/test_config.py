@@ -1,8 +1,10 @@
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 from pydantic import ValidationError
 
+from app.core import db
 from app.core.config import Settings
 from app.core.env import get_env_file
 
@@ -14,6 +16,7 @@ def make_settings(**overrides: object) -> Settings:
         "POSTGRES_SERVER": "localhost",
         "POSTGRES_USER": "test",
         "PROJECT_NAME": "test",
+        "REDIS_HOST": "redis",
     }
     values.update(overrides)
     return Settings(_env_file=None, **values)
@@ -35,6 +38,53 @@ def test_celery_urls_omit_authentication_without_a_redis_password() -> None:
     assert settings.celery_broker_url == "redis://redis:6379/0"
     assert settings.celery_result_backend_url == "redis://redis:6379/1"
     assert settings.redis_cache_url == "redis://redis:6379/2"
+
+
+def test_read_replica_uri_is_none_without_a_replica_host() -> None:
+    settings = make_settings()
+
+    assert settings.SQLALCHEMY_READ_REPLICA_URI is None
+
+
+def test_read_replica_uri_reuses_the_primary_connection_fields() -> None:
+    settings = make_settings(
+        POSTGRES_READ_REPLICA_SERVER="postgres-read",
+        POSTGRES_PORT=5433,
+        POSTGRES_USER="replica-user",
+        POSTGRES_PASSWORD="replica-password",
+        POSTGRES_DB="replica-db",
+    )
+
+    assert str(settings.SQLALCHEMY_READ_REPLICA_URI) == (
+        "postgresql+psycopg://replica-user:replica-password@postgres-read:5433/replica-db"
+    )
+
+
+def test_read_engine_reuses_the_write_engine_without_a_replica(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    write_engine = object()
+    create_engine = Mock()
+    monkeypatch.setattr(db, "create_engine", create_engine)
+
+    assert db._create_read_engine(write_engine, None) is write_engine
+    create_engine.assert_not_called()
+    assert db.engine is db.write_engine
+
+
+def test_read_engine_uses_a_distinct_configured_replica(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    write_engine = object()
+    read_engine = object()
+    create_engine = Mock(return_value=read_engine)
+    monkeypatch.setattr(db, "create_engine", create_engine)
+
+    assert (
+        db._create_read_engine(write_engine, "postgresql://postgres-read/app")
+        is read_engine
+    )
+    create_engine.assert_called_once_with("postgresql://postgres-read/app")
 
 
 @pytest.mark.parametrize(
