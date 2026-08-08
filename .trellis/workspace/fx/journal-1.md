@@ -1563,3 +1563,24 @@ Updated the Trellis backend placement contract to keep simple CRUD lightweight a
 ### Status
 
 [OK] **Completed**
+
+
+## Session 50: Reserve read-session dependency
+
+**Date**: 2026-08-08
+**Task**: Reserve read-session dependency
+**Branch**: `master`
+
+### Summary
+
+Added optional primary/replica read-session boundaries, migrated the approved scheduler and inventory queries, documented consistency and no-fallback contracts, and verified focused tests, backend lint, and an isolated live scheduler read.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7790d0d` | (see git log) |
+
+### Status
+
+[OK] **Completed**
