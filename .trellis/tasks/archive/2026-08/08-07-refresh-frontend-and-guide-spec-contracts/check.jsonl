@@ -1,4 +1,4 @@
-{"file":".trellis/tasks/08-07-refresh-frontend-and-guide-spec-contracts/research/remaining-findings-source-snapshot.md","reason":"compare the finished active-spec wording against current source evidence"}
+{"file":".trellis/tasks/archive/2026-08/08-07-refresh-frontend-and-guide-spec-contracts/research/remaining-findings-source-snapshot.md","reason":"compare the finished active-spec wording against current source evidence"}
 {"file":".trellis/spec/frontend/state-management.md","reason":"verify permission-query ownership remains aligned with route and menu guidance"}
 {"file":".trellis/spec/guides/index.md","reason":"verify CodeGraph-first navigation wording and canonical thinking-guide links"}
 {"file":".trellis/spec/backend/directory-structure.md","reason":"verify cross-layer and reuse guidance retain the completed hybrid backend contract"}

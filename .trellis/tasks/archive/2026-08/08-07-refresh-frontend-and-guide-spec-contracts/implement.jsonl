@@ -1,4 +1,4 @@
-{"file":".trellis/tasks/08-07-refresh-frontend-and-guide-spec-contracts/research/remaining-findings-source-snapshot.md","reason":"current source and specification evidence for the refined F-003 through F-006 scope"}
+{"file":".trellis/tasks/archive/2026-08/08-07-refresh-frontend-and-guide-spec-contracts/research/remaining-findings-source-snapshot.md","reason":"current source and specification evidence for the refined F-003 through F-006 scope"}
 {"file":".trellis/spec/frontend/route-permission-navigation-contract.md","reason":"canonical owner to correct for route, guard, menu, and permission contracts"}
 {"file":".trellis/spec/frontend/component-guidelines.md","reason":"shared admission test and new feature-boundary rule target"}
 {"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"cross-layer guidance that must preserve simple CRUD and bounded-module paths"}
