@@ -1584,3 +1584,24 @@ Added optional primary/replica read-session boundaries, migrated the approved sc
 ### Status
 
 [OK] **Completed**
+
+
+## Session 51: 统一状态迁移规则与矩阵回填
+
+**Date**: 2026-08-10
+**Task**: 统一状态迁移规则与矩阵回填
+**Branch**: `master`
+
+### Summary
+
+建立领域本地状态迁移规则，回填 scheduler、库存纠错、Email Outbox 和库存日报的七张矩阵，并接入后端规范索引、数据库/目录交叉引用与文档入口。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ce6443a` | (see git log) |
+
+### Status
+
+[OK] **Completed**
