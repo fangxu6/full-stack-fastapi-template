@@ -311,3 +311,7 @@ Replaced future-module wording with the hybrid placement contract and documented
 ## [2026-08-08 21:32:59] update | Document read-session dependency boundary
 
 Documented optional replica engine selection, primary authentication and transaction ownership, eventual-consistency limits, no-fallback failure behavior, and focused verification expectations.
+
+## [2026-08-10 19:37:56] update | Add unified state transition design contract
+
+Added domain-local state transition rules, normalized matrix naming, enum versus workflow-state guidance, and references to the canonical scheduler, inventory correction, email outbox, and daily report matrices.

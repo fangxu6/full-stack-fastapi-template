@@ -86,6 +86,7 @@ The existing frontend route-permission-navigation contract is the local example:
 - [Backend Development Guidelines](./backend/index.md)
 - [Logging Guidelines](./backend/logging-guidelines.md)
 - [Quality Guidelines](./backend/quality-guidelines.md)
+- [State Transition Design Guidelines](./backend/state-transition-guidelines.md)
 - [Backend Type Safety](./backend/type-safety.md)
 - [Component Guidelines](./frontend/component-guidelines.md)
 - [Directory Structure](./frontend/directory-structure.md)

@@ -74,6 +74,12 @@ simple-CRUD reference. Promote a domain into `modules/*` only after it develops
 multi-table workflows, state transitions, durable asynchronous work,
 external-system calls, events, or cross-module collaboration.
 
+When a `modules/*` domain design meets the workflow trigger described in the
+[State Transition Design Guidelines](./state-transition-guidelines.md), keep
+the state transition matrix in the domain design documentation before coding.
+The matrix documents the domain boundary; it does not justify a shared runtime,
+registry, or extra layer.
+
 | Concern | Default for lightweight CRUD | Upgrade only when | Do not add by default |
 | --- | --- | --- | --- |
 | Entity | SQLModel model plus service-enforced rules | Business invariants must be reused independently of persistence | A separate domain entity or ORM mapper |

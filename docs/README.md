@@ -1,5 +1,6 @@
 # 项目规划文档
 
+- `docs/state-machine-unified-transition-design.md`：统一状态迁移契约，以及 scheduler、库存纠错、Email Outbox 和库存日报投递的现有状态迁移矩阵。
 - `docs/postgresql-export.md`：PostgreSQL 数据库导出、恢复、远程操作、常见排错和安全注意事项。
 - `docs/authorization-recovery.md`：RBAC 无活跃平台管理员时的受控数据库恢复流程。
 - `docs/3-month-roadmap.md`：3 个月路线图（按双周迭代），包含每期目标、验收标准、风险点、资源配置。
