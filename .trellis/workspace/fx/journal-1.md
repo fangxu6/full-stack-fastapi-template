@@ -1584,3 +1584,24 @@ Added optional primary/replica read-session boundaries, migrated the approved sc
 ### Status
 
 [OK] **Completed**
+
+
+## Session 51: Correct scheduler lifecycle spec
+
+**Date**: 2026-08-10
+**Task**: Correct scheduler lifecycle spec
+**Branch**: `master`
+
+### Summary
+
+Corrected the async-task scheduler lifecycle scenario to match the current adapters, orchestration, pure execution outcomes, durable lifecycle persistence, alert ownership, and post-commit failure handoff. Validated the spec catalog, task manifests, stale-term search, and diff formatting.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `35a805a` | (see git log) |
+
+### Status
+
+[OK] **Completed**
