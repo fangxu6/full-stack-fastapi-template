@@ -10,8 +10,7 @@ Use this file as the first stop for repository coding guidance. It points to the
 layer indexes that contain the actual implementation rules, trigger-based read
 order, and quality checks.
 
-This catalog reflects the current repository after the 2026-07-08 upstream
-merge:
+This catalog reflects the current repository architecture:
 
 - backend: FastAPI + SQLModel under `backend/app/**`
 - frontend: React 19 + Vite 8 + TanStack Router/Query under `frontend/src/**`

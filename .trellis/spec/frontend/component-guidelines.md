@@ -38,6 +38,13 @@ The main frontend risk in this repo is false sharing: pushing page-specific or b
   - it is used by more than one page or domain
   - it does not depend on one domain's business vocabulary
   - it does not encode one page's workflow assumptions
+- A new feature must not import another `features/*` domain as a utility
+  provider. For genuinely domain-neutral behavior, apply the shared admission
+  test below and move it to `shared/*` only after it passes; trivial code may
+  remain duplicated locally when extraction would add more coupling.
+- Existing `SchedulerJobsPage -> features/inventory/pagination` is recorded
+  source cleanup for a future product task, not a reason to weaken this rule or
+  change product code in a documentation update.
 - Prefer grouped shared barrels such as `@/shared/components/feedback`, `@/shared/components/layout`, or `@/shared/components/theme`.
 
 ## Ant Design Boundary
@@ -106,6 +113,8 @@ If the answer is no, keep it in the domain.
 - Do not edit generated UI primitives under `frontend/src/components/ui/**` directly when composition or wrapping is enough.
 - Do not make a page-private component shared because it may be reused someday;
   wait until another page or domain actually needs it.
+- Do not add new feature-to-feature utility imports to avoid moving a
+  domain-neutral helper through the shared admission test.
 - Do not interpret Ant Design adoption as permission to replace existing
   shadcn/ui pages wholesale.
 

@@ -22,12 +22,21 @@ Common cross-layer bugs in this repo:
 
 ## Before Implementing Cross-Layer Features
 
+Use CodeGraph first to trace symbols and call paths in this indexed repository.
+Reserve `rg` for narrow text, specification, and link checks after the code
+boundary is understood.
+
 ### Step 1: Map the Data Flow
 
-Draw out how data moves:
+Draw out how data moves. The repository supports two backend placement paths;
+choose based on actual complexity rather than a universal template:
 
 ```text
-Request -> API route -> service -> CRUD/model -> schema -> OpenAPI client -> React query/page
+Simple CRUD:
+Request -> API route -> service -> CRUD -> model/schema -> OpenAPI client -> React query/page
+
+Bounded operational module:
+Request -> module route -> module orchestration/domain/persistence -> model/schema -> OpenAPI client -> React query/page
 ```
 
 For flows that do not fit that exact API path, use the more general shape:
@@ -44,6 +53,11 @@ For each arrow, ask:
 - Does this boundary require generated-client updates or route/menu checks?
 - Which file owns the contract at this boundary?
 - Which validation command proves this boundary still works?
+
+Keep simple CRUD on the existing `api/routes -> services -> crud ->
+models/schemas` path. Use a bounded `modules/*` workflow only when the feature
+has real orchestration, lifecycle, or ownership complexity that earns the
+boundary; do not create module ceremony for a single CRUD operation.
 
 ### Step 2: Identify Boundaries
 
@@ -104,11 +118,11 @@ For each boundary:
 
 ### Route, Permission, And Navigation
 
-- Protected route behavior belongs in `frontend/src/app/router/guards.ts`.
-- Permission truth belongs in `frontend/src/shared/permissions/index.ts`.
-- Menu visibility belongs in `frontend/src/app/navigation/menu-config.ts` and is
-  rendered through `AppSidebar`.
-- When one of these changes, verify the other two paths in the same review.
+Use the canonical
+[`frontend/route-permission-navigation-contract.md`](../frontend/route-permission-navigation-contract.md)
+for route guards, permission-query ownership, menu filtering, thin-route
+metadata, and action-capability boundaries. When one of those paths changes,
+review the paired route, menu, and permission mechanisms together.
 
 ---
 

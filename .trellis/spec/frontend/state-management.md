@@ -27,7 +27,9 @@ This repo intentionally avoids a separate global store. The practical state mode
 - Mutations invalidate query state through React Query:
   - [`frontend/src/platform/system/components/users/EditUserMenuItem.tsx`](../../../frontend/src/platform/system/components/users/EditUserMenuItem.tsx)
   - [`frontend/src/platform/system/components/users/DeleteUserMenuItem.tsx`](../../../frontend/src/platform/system/components/users/DeleteUserMenuItem.tsx)
-- Navigation and access behavior derives from user state and permission helpers:
+- Navigation and access behavior derives from the current permission query and
+  pure permission helpers:
+  - [`frontend/src/app/permissions.ts`](../../../frontend/src/app/permissions.ts)
   - [`frontend/src/app/navigation/menu-config.ts`](../../../frontend/src/app/navigation/menu-config.ts)
   - [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)
 
@@ -84,7 +86,11 @@ This repo intentionally avoids a separate global store. The practical state mode
 ## Recommended Direction
 
 - Avoid introducing a separate global state library unless repeated cross-route state truly cannot be modeled with query state, router state, or focused hooks.
-- Keep admin navigation and permission behavior derived from current-user data rather than duplicated booleans spread across pages.
+- Keep navigation and page access derived from the permission query in
+  [`frontend/src/app/permissions.ts`](../../../frontend/src/app/permissions.ts)
+  and `PermissionCode`/`hasPermission` in
+  [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts),
+  rather than duplicated booleans or ad hoc user flags spread across pages.
 - Preserve the current `401/403` handling pattern in
   [`frontend/src/app/query-client.ts`](../../../frontend/src/app/query-client.ts)
   and permission error classification in
@@ -107,6 +113,6 @@ This repo intentionally avoids a separate global store. The practical state mode
 
 - Auth state and token persistence: [`frontend/src/hooks/useAuth.ts`](../../../frontend/src/hooks/useAuth.ts), [`frontend/src/main.tsx`](../../../frontend/src/main.tsx)
 - Shared query client and permission access: [`frontend/src/app/query-client.ts`](../../../frontend/src/app/query-client.ts), [`frontend/src/app/permissions.ts`](../../../frontend/src/app/permissions.ts)
-- Navigation derived from user state: [`frontend/src/app/navigation/menu-config.ts`](../../../frontend/src/app/navigation/menu-config.ts)
+- Navigation derived from the permission query: [`frontend/src/app/permissions.ts`](../../../frontend/src/app/permissions.ts), [`frontend/src/app/navigation/menu-config.ts`](../../../frontend/src/app/navigation/menu-config.ts)
 - Permission entrypoint: [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)
 - Server-state consumers: [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx), [`frontend/src/platform/system/components/users/EditUserMenuItem.tsx`](../../../frontend/src/platform/system/components/users/EditUserMenuItem.tsx)

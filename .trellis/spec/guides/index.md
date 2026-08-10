@@ -128,11 +128,14 @@ Shared specifications must not bind contributors or agents to one machine.
 
 ## Pre-Modification Rule
 
-Before changing a value, contract, or placement rule, search for the current usage first.
+Before changing a value, contract, or placement rule, trace the current code
+usage first with CodeGraph in this indexed repository. Use `rg` only for narrow
+text, specification, and link checks.
 
-Prefer `rg` in this repo, for example:
+For example:
 
 ```bash
+codegraph explore "request_id"
 rg "request_id" backend/app frontend/src .trellis/spec
 ```
 

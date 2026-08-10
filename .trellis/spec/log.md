@@ -315,3 +315,10 @@ Documented optional replica engine selection, primary authentication and transac
 ## [2026-08-10 09:33:37] update | Correct scheduler lifecycle ownership
 
 Updated the active async-task scenario to match the current thin tasks.py adapter, orchestration/execution/lifecycle/alerts split, and finish_outcome outcome flow.
+
+## [2026-08-10 10:16:46] update | Refresh frontend and guide spec contracts
+
+Updated permission-query, thin-route, action-capability, feature-boundary, and
+CodeGraph-first guidance. Preserved the hybrid backend and scheduler lifecycle
+contracts while deferring backend-guide splitting without a concrete usability
+or duplicate-contract failure.

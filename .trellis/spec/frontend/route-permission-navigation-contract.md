@@ -32,13 +32,15 @@
   - `routes/_layout/*.tsx`
 - Guard entrypoints:
   - `requireLogin(): Promise<void>`
-  - `requireSuperuser(): Promise<void>`
-- Permission entrypoint:
-  - `canAccessAdmin(user): boolean`
+  - `requirePermission(permission: PermissionCode): Promise<void>`
+- Permission entrypoints:
+  - `PermissionCode` and pure `hasPermission(permissions, permission)` from
+    `shared/permissions/*`
+  - permission-query data from `app/permissions.ts` for React and route access
 - Navigation entrypoints:
   - `baseMenuItems: AppNavigationItem[]`
   - `adminMenuItem: AppNavigationItem`
-  - `getMenuItemsForUser(user): AppNavigationItem[]`
+  - permission-filtered menu items from `app/navigation/menu-config.ts`
 
 ### 3. Contracts
 
@@ -46,17 +48,24 @@
   - `Route`
   - `beforeLoad`
   - `head()`
+  - transport metadata such as `validateSearch`
   - page-module imports
   They must not become the long-term home of full page implementation.
 - Real page implementations must live under:
   - `platform/*/pages` for platform capabilities
   - `features/*/pages` for business features
 - Protected access must be enforced through `app/router/guards.ts`, not through ad hoc page-level redirect logic.
-- Menu visibility must be derived from centralized navigation config and shared permission helpers:
-  - guards decide route access
-  - `shared/permissions/*` decides permission truth
+- Permission data is queried through `app/permissions.ts`; pure permission
+  predicates and the `PermissionCode` union remain in `shared/permissions/*`.
+- Menu visibility must be derived from centralized navigation config and the
+  same permission helpers:
+  - `requirePermission(permission)` decides protected route access
+  - `hasPermission(permissions, permission)` decides permission truth
   - `app/navigation/*` decides visible menu structure
 - When a route requires a permission rule, the route guard path and the menu-visibility path must stay aligned. Do not let a route remain reachable while the menu hides it for a different reason, or vice versa, unless that asymmetry is intentional and documented.
+- Page access and menu visibility are distinct from action capabilities. A page
+  may show request, review, or recovery controls using narrower action
+  permissions, but the backend endpoint remains the authorization authority.
 - New pages must be classified before placement:
   - app-shell concern -> `app/*`
   - platform capability -> `platform/*`
@@ -69,7 +78,7 @@
 | --- | --- |
 | add public auth page | thin route imports page module from `platform/auth/pages/*`; route may redirect logged-in users in `beforeLoad` |
 | add protected page under existing authenticated layout | route is attached under protected layout or guarded with `requireLogin` |
-| add admin-only page | route uses `requireSuperuser`; menu visibility derives from `canAccessAdmin` path |
+| add permission-protected page | route uses `requirePermission(permission)`; menu visibility filters with the same `PermissionCode` |
 | add menu item | `menu-config.ts` and actual route path stay synchronized |
 | move page implementation | route file remains thin; implementation lands in `platform/*/pages` or `features/*/pages` |
 | change permission truth | `shared/permissions/*`, guards, and menu visibility all remain aligned |
@@ -82,8 +91,8 @@
 - Good: [`frontend/src/routes/_layout/admin.tsx`](../../../frontend/src/routes/_layout/admin.tsx) protects admin access through [`frontend/src/app/router/guards.ts`](../../../frontend/src/app/router/guards.ts), while menu visibility uses [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts) via [`frontend/src/app/navigation/menu-config.ts`](../../../frontend/src/app/navigation/menu-config.ts).
 - Base: a new authenticated business page is added under `routes/_layout/*` and points to a page module in `features/*/pages`, with no extra menu item because the page is intentionally deep-linked only.
 - Bad: a new page is fully implemented in `routes/reports.tsx` because it was faster than creating `platform/reports/pages/ReportsPage.tsx`.
-- Bad: an admin menu item is added in `menu-config.ts` but the route forgets to use `requireSuperuser`.
-- Bad: route access checks `is_superuser` inline while the menu still uses `canAccessAdmin`, creating two permission truths.
+- Bad: a permission-filtered menu item is added in `menu-config.ts` but the route forgets to use the matching `requirePermission(permission)` guard.
+- Bad: page access and action controls each invent their own permission data instead of using the permission query and pure helper, creating multiple permission truths.
 
 ### 6. Tests Required
 

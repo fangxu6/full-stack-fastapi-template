@@ -27,6 +27,8 @@ this indexed repository. Use `rg` for lightweight text checks, generated-file
 boundaries, and spec/document searches.
 
 ```bash
+codegraph explore "functionName domainKeyword"
+codegraph node path/to/file
 rg "functionName|domainKeyword" backend/app frontend/src .trellis/spec
 rg --files backend/app frontend/src | rg "service|crud|Page|Dialog|Table|guard|permission"
 ```
@@ -48,8 +50,11 @@ rg --files backend/app frontend/src | rg "service|crud|Page|Dialog|Table|guard|p
 
 Bad: duplicating permission or ownership checks in multiple route handlers.
 
-Good: keep business checks in `services/*`, persistence helpers in `crud/*`,
-and route handlers thin for simple CRUD. Existing anchors:
+Good: keep simple CRUD on `api/routes -> services -> crud -> models/schemas`;
+keep route handlers thin, business checks in `services/*`, and persistence
+helpers in `crud/*`. Use a bounded `modules/*` workflow only where real
+orchestration, lifecycle, or ownership complexity earns that boundary. Existing
+simple CRUD anchors:
 
 - `backend/app/api/routes/items.py`
 - `backend/app/services/item.py`
@@ -71,14 +76,13 @@ domain folder. Existing anchors:
 
 ### Pattern 3: Permission And Route Logic Duplication
 
-Bad: checking `is_superuser` inline in page components, route files, and menu
-config separately.
+Bad: inventing page-local permission flags in page components, route files, and
+menu config separately.
 
-Good: use the existing route/permission/navigation split:
-
-- route enforcement in `frontend/src/app/router/guards.ts`
-- permission truth in `frontend/src/shared/permissions/index.ts`
-- menu visibility in `frontend/src/app/navigation/menu-config.ts`
+Good: use the canonical
+[`frontend/route-permission-navigation-contract.md`](../frontend/route-permission-navigation-contract.md)
+for the route/permission/navigation split instead of repeating permission
+entrypoints here.
 
 ### Pattern 4: API Contract Duplication
 
@@ -111,8 +115,9 @@ Do not abstract when:
 ## Placement Guide
 
 - Backend cross-cutting platform behavior belongs in `backend/app/core/*`.
-- Backend business orchestration belongs in `backend/app/services/*` until a
-  real module boundary justifies `backend/app/modules/<name>/`.
+- Simple backend business orchestration belongs in `backend/app/services/*`;
+  use `backend/app/modules/<name>/` only for a bounded operational domain with
+  complexity that justifies the boundary.
 - Backend persistence helpers belong in `backend/app/crud/*`.
 - Frontend app-frame behavior belongs in `frontend/src/app/*`.
 - Frontend business feature code belongs in `frontend/src/features/*`.
@@ -120,6 +125,9 @@ Do not abstract when:
 - Frontend shared code belongs in `frontend/src/shared/*` only after it passes
   the shared admission test in
   [`frontend/component-guidelines.md`](../frontend/component-guidelines.md).
+- A feature must not use another `features/*` domain as its utility module;
+  keep trivial duplication local or admit genuinely domain-neutral code to
+  `shared/*` through that same contract.
 
 ---
 

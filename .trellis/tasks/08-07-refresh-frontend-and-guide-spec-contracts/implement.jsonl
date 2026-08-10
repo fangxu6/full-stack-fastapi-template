@@ -1,1 +1,5 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file":".trellis/tasks/08-07-refresh-frontend-and-guide-spec-contracts/research/remaining-findings-source-snapshot.md","reason":"current source and specification evidence for the refined F-003 through F-006 scope"}
+{"file":".trellis/spec/frontend/route-permission-navigation-contract.md","reason":"canonical owner to correct for route, guard, menu, and permission contracts"}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"shared admission test and new feature-boundary rule target"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"cross-layer guidance that must preserve simple CRUD and bounded-module paths"}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"reuse guidance that must adopt current permission and placement contracts"}

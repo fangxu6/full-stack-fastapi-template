@@ -2,9 +2,11 @@
 
 ## Goal
 
-Resolve the remaining audit findings in frontend access guidance, cross-layer
-and reuse guidance, feature boundaries, and specification governance without
-changing product behavior.
+Correct the remaining active-specification drift in frontend access guidance,
+thinking guides, and feature boundaries without changing product behavior.
+The user value is safer future frontend work: page access, navigation, action
+capabilities, and reuse choices must follow the current implementation rather
+than retired template-era examples.
 
 ## Confirmed Findings
 
@@ -35,11 +37,12 @@ changing product behavior.
   generic pagination values from
   `frontend/src/features/inventory/pagination.ts`, despite the shared-admission
   rule in `.trellis/spec/frontend/component-guidelines.md:35-41`.
-- **F-006 (P3):** `backend/database-guidelines.md` is 1,399 lines and
-  `backend/async-task-guidelines.md` is 796 lines. Static contracts are
-  duplicated across indexes, quality guides, and thinking guides, and
-  `.trellis/spec/index.md:13-20` calls its 2026-07-08 state current despite
-  later architecture refactors.
+- **F-006 (P3):** `.trellis/spec/index.md:13-20` still describes the
+  2026-07-08 merge as the active-current baseline. The database and async
+  guides are now 1,473 and 806 lines, respectively, but their scenario
+  contracts and `backend/index.md` trigger routing remain usable. Length alone
+  does not establish a safe split; a mechanical reorganization would add link
+  and wording drift without correcting an observable contract defect.
 
 ## Requirements
 
@@ -60,14 +63,14 @@ changing product behavior.
    test passes; keep trivial code local. Record the current scheduler-to-
    inventory pagination import as a source-cleanup follow-up, not as an
    authorized product change.
-6. Establish canonical owners and compact trigger routing for duplicated or
-   oversized active guidance. Move existing scenario content rather than
-   creating generic template policy, retain durable invariants, and remove
-   stale active-current event wording while preserving historical records.
-7. Before modifying async guidance for F-006, incorporate the completed
-   scheduler-lifecycle child task's corrected ownership contract. This is an
-   ordering constraint to prevent reintroducing F-002, not a permission to
-   alter product source.
+6. Remove the dated active-current baseline from the root catalog and make the
+   corrected frontend contracts the canonical owners. Thinking guides may link
+   to those owners, but must not restate their implementation signatures.
+   Preserve the existing backend trigger indexes and durable scenarios; defer
+   splitting `database-guidelines.md` or `async-task-guidelines.md` until a
+   concrete navigation, validation, or duplicate-contract failure justifies it.
+7. Do not modify async guidance for F-006. The completed scheduler-lifecycle
+   ownership contract remains a protected out-of-scope dependency.
 
 ## Acceptance Criteria
 
@@ -83,12 +86,15 @@ changing product behavior.
       imports, gives a `shared/*` admission path for genuinely shared behavior,
       permits trivial local duplication, and records the existing pagination
       import as future product-source cleanup.
-- [ ] Each repeated architecture, permission/route, and feature-boundary
-      contract has one canonical active owner; indexes and related guides link
-      to it rather than restating implementation signatures.
-- [ ] Oversized database and async guidance has trigger-based entry points that
-      preserve durable invariants and the scheduler ownership correction.
-- [ ] Active indexes do not call a superseded dated merge state current.
+- [ ] The route-permission contract, component-placement guide, and state guide
+      are the canonical owners of their respective frontend rules; thinking
+      guides link to them without duplicating signatures.
+- [ ] The root catalog no longer calls a dated merge event the active-current
+      baseline, while `backend/index.md` continues to route database and async
+      work to their durable scenario contracts.
+- [ ] No active requirement asks for a mechanical split of the long backend
+      guides; such a split is explicitly deferred until a concrete usability or
+      duplication failure is evidenced.
 - [ ] `python .trellis/scripts/spec_wiki.py lint`, path-scoped stale-term
       searches, `python .trellis/scripts/task.py validate <task-dir>`, and
       `git diff --check` pass.
@@ -99,9 +105,8 @@ In scope:
 
 - Active `.trellis/spec/frontend/**`, `.trellis/spec/guides/**`, and shared
   indexes/links needed for F-003 through F-006.
-- Trigger routing or focused splits in active database and async guidance when
-  they reduce duplicated first-read context without losing an invariant.
-- This task's planning artifacts and the parent integration record.
+- The root catalog wording and canonical links needed for F-003 through F-006.
+- This task's planning artifacts and source-evidence snapshot.
 
 Out of scope:
 
@@ -109,15 +114,7 @@ Out of scope:
   database schema, dependencies, migrations, or runtime configuration.
 - Moving the existing scheduler-to-inventory pagination helper during this
   documentation task.
+- Splitting, moving, or mass-reformatting `database-guidelines.md` or
+  `async-task-guidelines.md` solely because of line count.
 - A global state-management redesign, generic Clean Architecture rewrite, or
   historical-record rewrite.
-
-## Planning Constraint
-
-This is a complex documentation task because it can reorganize several
-cross-linked contracts. Add a design and implementation plan, including the
-F-002 ordering constraint, before `task.py start`.
-
-## Open Questions
-
-None. The audit evidence resolves the required scope and source authority.

@@ -3,7 +3,7 @@
   "name": "refresh-frontend-and-guide-spec-contracts",
   "title": "Refresh frontend and guide spec contracts",
   "description": "Resolve remaining frontend permission, cross-layer, reuse, feature-boundary, and spec-governance findings.",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
