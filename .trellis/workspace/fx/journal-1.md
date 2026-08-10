@@ -1605,3 +1605,24 @@ Corrected the async-task scheduler lifecycle scenario to match the current adapt
 ### Status
 
 [OK] **Completed**
+
+
+## Session 52: Refresh frontend and guide spec contracts
+
+**Date**: 2026-08-10
+**Task**: Refresh frontend and guide spec contracts
+**Branch**: `master`
+
+### Summary
+
+Corrected frontend permission-query, thin-route, action-capability, feature-boundary, and CodeGraph-first guidance; preserved hybrid backend and scheduler lifecycle contracts; deferred mechanical backend-guide splitting. Independently verified spec lint, task manifests, stale terms, and diff checks, then repaired archived task manifest paths.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `31f2003` | (see git log) |
+
+### Status
+
+[OK] **Completed**

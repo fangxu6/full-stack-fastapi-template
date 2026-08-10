@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 51
+- **Total Sessions**: 52
 - **Last Active**: 2026-08-10
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1607 | Active |
+| `journal-1.md` | ~1628 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 52 | 2026-08-10 | Refresh frontend and guide spec contracts | `31f2003` | `master` |
 | 51 | 2026-08-10 | Correct scheduler lifecycle spec | `35a805a` | `master` |
 | 50 | 2026-08-08 | Reserve read-session dependency | `7790d0d` | `master` |
 | 49 | 2026-08-07 | Codify backend architecture escalation triggers | `3c9ec00` | `master` |
