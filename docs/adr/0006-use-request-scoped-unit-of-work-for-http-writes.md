@@ -14,11 +14,15 @@ effects. A request-scoped owner gives those changes one atomic outcome.
 
 HTTP write requests own one database transaction through `WriteSessionDep`: it
 reuses the request-cached `get_db` session, commits after a successful
-endpoint, and rolls back on any exception. `SessionDep` remains the read-session
-dependency. Services and CRUD helpers may `flush` or `refresh` but must not
-commit or roll back. This supersedes the item-specific transaction rule so
-multi-step HTTP commands are atomic without each service inventing its own
-transaction boundary.
+endpoint, and rolls back on any exception. `SessionDep` remains the primary
+session dependency for authentication, RBAC, and reads that require
+read-after-write consistency. An explicitly allowlisted pure business read that
+accepts replication delay may use `ReadSessionDep`, which opens an independent
+function-scoped session from `read_engine` and never explicitly commits, rolls
+back, or drains cache invalidations. Services and CRUD helpers may `flush` or
+`refresh` but must not commit or roll back. This supersedes the item-specific
+transaction rule so multi-step HTTP commands are atomic without each service
+inventing its own transaction boundary.
 
 ## Consequences
 
@@ -31,6 +35,14 @@ transaction boundary.
   `WriteSessionDep`, including endpoints that currently only authenticate or
   read. Authentication dependencies continue to use `SessionDep` and receive
   the same cached request session.
+- `ReadSessionDep` is limited to the current pure-read allowlist in the
+  inventory and scheduler modules. Its business-query session is deliberately
+  separate from the primary `SessionDep` used by authentication and permission
+  checks. When `POSTGRES_READ_REPLICA_SERVER` is unset, `read_engine` is the
+  exact primary engine object; when it is configured, read failures remain
+  observable and never silently retry against the primary. Replica-backed
+  reads are eventually consistent and must not be used for write-following,
+  correction-status, user, or permission queries.
 - Services flush where they need generated identities or to translate an
   integrity error, but never commit or roll back; the Unit of Work owns the
   final transaction outcome.
