@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 51
+- **Total Sessions**: 52
 - **Last Active**: 2026-08-10
 <!-- @@@/auto:current-status -->
 
@@ -29,7 +29,8 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
-| 51 | 2026-08-10 | 统一状态迁移规则与矩阵回填 | `ce6443a` | `master` |
+| 51 | 2026-08-10 | Correct scheduler lifecycle spec | `35a805a` | `master` |
+| 52 | 2026-08-10 | 统一状态迁移规则与矩阵回填 | `ce6443a` | `master` |
 | 50 | 2026-08-08 | Reserve read-session dependency | `7790d0d` | `master` |
 | 49 | 2026-08-07 | Codify backend architecture escalation triggers | `3c9ec00` | `master` |
 | 48 | 2026-08-07 | Remove confirmed unused repository artifacts | `2f9c256` | `master` |

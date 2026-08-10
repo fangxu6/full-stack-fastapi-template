@@ -1586,7 +1586,30 @@ Added optional primary/replica read-session boundaries, migrated the approved sc
 [OK] **Completed**
 
 
-## Session 51: 统一状态迁移规则与矩阵回填
+## Session 51: Correct scheduler lifecycle spec
+
+**Date**: 2026-08-10
+**Task**: Correct scheduler lifecycle spec
+**Branch**: `master`
+
+### Summary
+
+建立领域本地状态迁移规则，回填 scheduler、库存纠错、Email Outbox 和库存日报的七张矩阵，并接入后端规范索引、数据库/目录交叉引用与文档入口。
+Corrected the async-task scheduler lifecycle scenario to match the current adapters, orchestration, pure execution outcomes, durable lifecycle persistence, alert ownership, and post-commit failure handoff. Validated the spec catalog, task manifests, stale-term search, and diff formatting.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ce6443a` | (see git log) |
+| `35a805a` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 52: 统一状态迁移规则与矩阵回填
 
 **Date**: 2026-08-10
 **Task**: 统一状态迁移规则与矩阵回填

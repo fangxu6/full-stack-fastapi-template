@@ -312,6 +312,10 @@ Replaced future-module wording with the hybrid placement contract and documented
 
 Documented optional replica engine selection, primary authentication and transaction ownership, eventual-consistency limits, no-fallback failure behavior, and focused verification expectations.
 
+## [2026-08-10 09:33:37] update | Correct scheduler lifecycle ownership
+
+Updated the active async-task scenario to match the current thin tasks.py adapter, orchestration/execution/lifecycle/alerts split, and finish_outcome outcome flow.
+
 ## [2026-08-10 19:37:56] update | Add unified state transition design contract
 
 Added domain-local state transition rules, normalized matrix naming, enum versus workflow-state guidance, and references to the canonical scheduler, inventory correction, email outbox, and daily report matrices.
