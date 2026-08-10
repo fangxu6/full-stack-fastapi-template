@@ -311,3 +311,7 @@ Replaced future-module wording with the hybrid placement contract and documented
 ## [2026-08-08 21:32:59] update | Document read-session dependency boundary
 
 Documented optional replica engine selection, primary authentication and transaction ownership, eventual-consistency limits, no-fallback failure behavior, and focused verification expectations.
+
+## [2026-08-10 09:33:37] update | Correct scheduler lifecycle ownership
+
+Updated the active async-task scenario to match the current thin tasks.py adapter, orchestration/execution/lifecycle/alerts split, and finish_outcome outcome flow.

@@ -1,1 +1,3 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file":".trellis/tasks/08-07-correct-scheduler-lifecycle-spec/research/scheduler-lifecycle-source-snapshot.md","reason":"review the final guide correction against the compact source-backed ownership evidence"}
+{"file":"docs/adr/0012-concentrate-scheduler-run-lifecycle-state.md","reason":"review final ownership wording against the accepted decision"}
+{"file":".trellis/spec/backend/directory-structure.md","reason":"confirm the correction remains a specification-only operational-module change"}

@@ -3,7 +3,7 @@
   "name": "correct-scheduler-lifecycle-spec",
   "title": "Correct scheduler lifecycle spec",
   "description": "Correct scheduler registration, orchestration, execution, lifecycle, and alert ownership guidance.",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

@@ -208,10 +208,14 @@ record become eligible again only after the defined retry boundary.
 `backend/app/modules/scheduler/run_lifecycle.py` is the only module allowed to
 assign `SchedulerRun` status, lease, dispatch, execution, terminal, retry, and
 retention fields. `service.py` may validate jobs and delegate run creation,
-queued cancellation, active-run reads, and cleanup. `tasks.py` may scan,
-publish, resolve, and execute, but must call lifecycle helpers for every run
-write. `scheduler_alerts.py` owns `SchedulerJob` alert timestamps and
-`EmailOutbox` writes; it must not update `SchedulerRun`.
+queued cancellation, active-run reads, and cleanup. `tasks.py` is a thin
+Celery adapter: it preserves the dispatch-helper export and registers stable
+task names, but does not scan jobs or coordinate execution. `orchestration.py`
+owns due-job scanning, dispatch leasing and broker handoff, Beat/Worker phase
+coordination, post-commit alert handoff, and historical cleanup.
+`execution.py` executes frozen task inputs without a database session and
+returns a `SchedulerRunOutcome`. `scheduler_alerts.py` owns `SchedulerJob`
+alert timestamps and `EmailOutbox` writes; it must not update `SchedulerRun`.
 
 Lifecycle helpers accept a caller-owned `Session`, flush when a caller needs
 database-generated values, and never commit or rollback. HTTP, Beat, Worker,
@@ -221,14 +225,20 @@ business-task, or email work. The Worker flow is therefore:
 ```python
 run = run_lifecycle.claim_execution(session=session, run_id=run_id, now=now)
 session.commit()
-execute_frozen_task(run)
-run_lifecycle.finish_run(session=session, run_id=run_id, status=status)
+outcome = execution.execute(...)  # frozen inputs captured from the claimed run
+run_lifecycle.finish_outcome(session=session, run_id=run_id, outcome=outcome)
+if outcome.status is SchedulerRunStatus.SUCCEEDED:
+    scheduler_alerts.clear_success_alerts(session=session, job_id=job_id)
 session.commit()
+if outcome.status is SchedulerRunStatus.FAILED:
+    scheduler_alerts.send_alert(...)  # opens its own post-commit session
 ```
 
-Do not merge Beat dispatch and Worker execution into one function or add a
-generic state-machine abstraction. The database enum, partial active-run
-index, dispatch lease, and execution lease remain the lifecycle invariants.
+The terminal lifecycle update and any success-alert reset share the second
+short durable phase; failure alert handoff occurs only after it commits. Do not
+merge Beat dispatch and Worker execution into one function or add a generic
+state-machine abstraction. The database enum, partial active-run index,
+dispatch lease, and execution lease remain the lifecycle invariants.
 
 ## Scenario: Scheduler Manual Operation Capabilities
 
