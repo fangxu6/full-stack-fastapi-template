@@ -27,8 +27,12 @@ from app.models.inventory import (
 from app.models.user import User
 from app.modules.inventory.config import inventory_settings
 from app.modules.inventory.daily_report import (
+    DAILY_REPORT_LEASE_DURATION,
     DAILY_REPORT_MAX_ATTEMPTS,
     DAILY_REPORT_TIMEZONE,
+    _complete_delivery,
+    _delivery_payload,
+    _fail_delivery,
     create_daily_reports,
     deliver_daily_report_email,
     queue_due_daily_report_deliveries,
@@ -322,6 +326,50 @@ def test_delivery_retries_only_the_failed_recipient(
     assert good_delivery.status is InventoryDailyReportDeliveryStatus.DELIVERED
     assert bad_delivery.status is InventoryDailyReportDeliveryStatus.RETRY_WAIT
     assert bad_delivery.attempt_count == 2
+
+
+def test_stale_delivery_results_do_not_overwrite_a_reclaimed_delivery(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    user = create_random_user(db)
+    unit = _create_processing_unit(session=db, user=user)
+    now = _scheduled_now(date(2026, 7, 25))
+    create_daily_reports(session=db, now=now)
+    monkeypatch.setattr(
+        inventory_settings,
+        "INVENTORY_DAILY_REPORT_RECIPIENTS",
+        {unit.id: ["daily@example.com"]},
+    )
+    delivery_id = queue_due_daily_report_deliveries(session=db, now=now)[0]
+    payload_a = _delivery_payload(session=db, delivery_id=delivery_id, now=now)
+    assert payload_a is not None
+    db.commit()
+
+    payload_b = _delivery_payload(
+        session=db,
+        delivery_id=delivery_id,
+        now=now + DAILY_REPORT_LEASE_DURATION + timedelta(seconds=1),
+    )
+    assert payload_b is not None
+    assert payload_b.lease_expires_at != payload_a.lease_expires_at
+    _complete_delivery(session=db, payload=payload_b, now=payload_b.lease_expires_at)
+    db.commit()
+
+    _complete_delivery(session=db, payload=payload_a, now=payload_b.lease_expires_at)
+    _fail_delivery(
+        session=db,
+        payload=payload_a,
+        error_category="SMTP_DELIVERY_FAILED",
+        now=payload_b.lease_expires_at,
+    )
+    db.commit()
+
+    db.expire_all()
+    delivery = db.get(InventoryDailyReportDelivery, delivery_id)
+    report = _report_for_unit(db, unit)
+    assert delivery is not None
+    assert delivery.status is InventoryDailyReportDeliveryStatus.DELIVERED
+    assert report.status is InventoryDailyReportStatus.DELIVERED
 
 
 def test_delivery_stops_after_eight_attempts(

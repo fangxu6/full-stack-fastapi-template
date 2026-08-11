@@ -36,6 +36,7 @@ class DeliveryPayload:
     email: str
     subject: str
     html_content: str
+    lease_expires_at: datetime
 
 
 def _require_id(value: int | None, name: str) -> int:
@@ -311,6 +312,7 @@ def _delivery_payload(
     delivery.lease_expires_at = now + DAILY_REPORT_LEASE_DURATION
     delivery.updated_at = now
     session.add(delivery)
+    assert delivery.lease_expires_at is not None
     return DeliveryPayload(
         delivery_id=delivery_id,
         email=delivery.email,
@@ -324,15 +326,31 @@ def _delivery_payload(
                 "finished_rows": report.snapshot["finished"],
             },
         ),
+        lease_expires_at=delivery.lease_expires_at,
     )
 
 
-def _complete_delivery(*, session: Session, delivery_id: int, now: datetime) -> None:
+def _locked_active_delivery(
+    *, session: Session, payload: DeliveryPayload
+) -> InventoryDailyReportDelivery | None:
     delivery = session.exec(
         select(InventoryDailyReportDelivery)
-        .where(InventoryDailyReportDelivery.id == delivery_id)
+        .where(InventoryDailyReportDelivery.id == payload.delivery_id)
         .with_for_update()
     ).one_or_none()
+    if (
+        delivery is None
+        or delivery.status is not InventoryDailyReportDeliveryStatus.DELIVERING
+        or delivery.lease_expires_at != payload.lease_expires_at
+    ):
+        return None
+    return delivery
+
+
+def _complete_delivery(
+    *, session: Session, payload: DeliveryPayload, now: datetime
+) -> None:
+    delivery = _locked_active_delivery(session=session, payload=payload)
     if delivery is None:
         return
     delivery.status = InventoryDailyReportDeliveryStatus.DELIVERED
@@ -347,13 +365,13 @@ def _complete_delivery(*, session: Session, delivery_id: int, now: datetime) -> 
 
 
 def _fail_delivery(
-    *, session: Session, delivery_id: int, error_category: str, now: datetime
+    *,
+    session: Session,
+    payload: DeliveryPayload,
+    error_category: str,
+    now: datetime,
 ) -> None:
-    delivery = session.exec(
-        select(InventoryDailyReportDelivery)
-        .where(InventoryDailyReportDelivery.id == delivery_id)
-        .with_for_update()
-    ).one_or_none()
+    delivery = _locked_active_delivery(session=session, payload=payload)
     if delivery is None:
         return
     delivery.last_error_category = error_category
@@ -393,11 +411,11 @@ def deliver_daily_report_email(delivery_id: int) -> None:
         error_category = "SMTP_DELIVERY_FAILED"
     with Session(engine) as session:
         if error_category is None:
-            _complete_delivery(session=session, delivery_id=delivery_id, now=_utc_now())
+            _complete_delivery(session=session, payload=payload, now=_utc_now())
         else:
             _fail_delivery(
                 session=session,
-                delivery_id=delivery_id,
+                payload=payload,
                 error_category=error_category,
                 now=_utc_now(),
             )
