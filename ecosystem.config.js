@@ -9,7 +9,7 @@ const frontendDir = path
   .join(projectRoot, "frontend")
   .replaceAll("\\", "/")
 const productionEnvFile = path
-  .join(projectRoot, ".env.production")
+  .join(projectRoot, ".env_dev")
   .replaceAll("\\", "/")
 const venvBin = process.platform === "win32" ? "Scripts" : "bin"
 const executableSuffix = process.platform === "win32" ? ".exe" : ""
