@@ -322,3 +322,7 @@ Updated permission-query, thin-route, action-capability, feature-boundary, and
 CodeGraph-first guidance. Preserved the hybrid backend and scheduler lifecycle
 contracts while deferring backend-guide splitting without a concrete usability
 or duplicate-contract failure.
+
+## [2026-08-10 19:37:56] update | Add unified state transition design contract
+
+Added domain-local state transition rules, normalized matrix naming, enum versus workflow-state guidance, and references to the canonical scheduler, inventory correction, email outbox, and daily report matrices.

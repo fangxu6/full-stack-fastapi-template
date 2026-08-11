@@ -84,6 +84,13 @@ whose values could reasonably grow beyond two choices. Do not introduce a
 boolean merely because the first release currently has an enabled/disabled or
 yes/no presentation.
 
+When that persisted state also participates in a DDD workflow with events,
+terminal outcomes, retries, leases, recovery, concurrency, permissions, or
+cross-entity effects, read and apply the [State Transition Design
+Guidelines](./state-transition-guidelines.md). That rule defines the design
+matrix; this section remains the authority for enum persistence, migrations,
+comments, and public schema contracts.
+
 This does not require converting existing boolean columns. A conversion needs a
 separate compatibility and migration task. A boolean remains appropriate for a
 true binary fact or a technical switch whose two values are exhaustive and do

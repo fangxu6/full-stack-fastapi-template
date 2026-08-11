@@ -1,0 +1,6 @@
+{"file":"docs/state-machine-unified-transition-design.md","reason":"检查七张矩阵、固定列、命名和现有行为代码锚点。"}
+{"file":".trellis/tasks/08-10-unified-state-transition/design.md","reason":"检查新规则的 enum/状态/矩阵边界、测试和反模式已被完整规划。"}
+{"file":".trellis/spec/backend/index.md","reason":"检查新规则在后端规范索引可发现。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"检查持久化状态规则仅交叉引用且无重复冲突。"}
+{"file":".trellis/spec/backend/directory-structure.md","reason":"检查工作流设计矩阵触发条件与模块边界一致。"}
+{"file":"docs/README.md","reason":"检查方案文档入口链接。"}

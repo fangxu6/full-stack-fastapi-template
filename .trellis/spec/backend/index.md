@@ -23,6 +23,7 @@ Future work should preserve that direction instead of drifting back toward route
 |-------|-------------|--------|
 | [Directory Structure](./directory-structure.md) | Layer ownership and architecture escalation rules | Customized |
 | [Database Guidelines](./database-guidelines.md) | SQLModel entities, audit fields, API schemas, Alembic workflow | Customized |
+| [State Transition Design](./state-transition-guidelines.md) | Domain-local workflow states, transition matrices, naming, concurrency, and tests | Customized |
 | [Error Handling](./error-handling.md) | Unified error contract and exception usage | Customized |
 | [Excel Import and Export](./excel-import-export.md) | XLSX DTO, validation, transaction, and legacy-adapter contract | Customized |
 | [Type Safety](./type-safety.md) | Python 3.14, SQLModel/Pydantic, service signatures, and generated-client impact | Customized |
