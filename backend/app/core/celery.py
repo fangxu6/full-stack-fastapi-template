@@ -8,9 +8,13 @@ from celery.signals import (  # type: ignore[import-untyped]
     task_failure,
     task_postrun,
     task_prerun,
+    worker_init,
 )
+from sqlmodel import Session
 
+from app.core.audit import ensure_system_actor
 from app.core.config import settings
+from app.core.db import engine
 from app.core.observability import (
     bind_task_context,
     clear_task_context,
@@ -30,6 +34,16 @@ def _preserve_structlog_output(*, signal: Any, **signal_payload: Any) -> None:
 
 
 setup_logging.connect(_preserve_structlog_output, weak=False)
+
+
+def _initialize_system_actor(*, sender: Any, **signal_payload: Any) -> None:
+    del sender, signal_payload
+    with Session(engine) as session:
+        ensure_system_actor(session=session)
+        session.commit()
+
+
+worker_init.connect(_initialize_system_actor, weak=False)
 
 celery_app: Any = Celery(
     "app",

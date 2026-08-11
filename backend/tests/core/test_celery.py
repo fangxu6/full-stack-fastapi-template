@@ -33,6 +33,20 @@ def test_celery_setup_logging_preserves_structlog_output() -> None:
     configure_logger.assert_not_called()
 
 
+def test_celery_worker_initializes_system_actor() -> None:
+    from app.core.celery import _initialize_system_actor
+
+    with (
+        patch("app.core.celery.Session") as session_factory,
+        patch("app.core.celery.ensure_system_actor") as ensure_actor,
+    ):
+        session = session_factory.return_value.__enter__.return_value
+        _initialize_system_actor(sender=celery_app)
+
+    ensure_actor.assert_called_once_with(session=session)
+    session.commit.assert_called_once_with()
+
+
 def _runtime_environment(tmp_path: Path) -> dict[str, str]:
     environment = os.environ.copy()
     environment.update(

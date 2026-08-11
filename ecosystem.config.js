@@ -4,11 +4,20 @@ const projectRoot = __dirname.replaceAll("\\", "/")
 const pm2JsonPrefix = path
   .join(projectRoot, "scripts", "pm2-json-prefix.cjs")
   .replaceAll("\\", "/")
+const backendDir = path.join(projectRoot, "backend").replaceAll("\\", "/")
+const frontendDir = path
+  .join(projectRoot, "frontend")
+  .replaceAll("\\", "/")
+const productionEnvFile = path
+  .join(projectRoot, ".env.production")
+  .replaceAll("\\", "/")
+const venvBin = process.platform === "win32" ? "Scripts" : "bin"
+const executableSuffix = process.platform === "win32" ? ".exe" : ""
 const python = path
-  .join(projectRoot, ".venv", "Scripts", "python.exe")
+  .join(projectRoot, ".venv", venvBin, "python" + executableSuffix)
   .replaceAll("\\", "/")
 const celery = path
-  .join(projectRoot, ".venv", "Scripts", "celery.exe")
+  .join(projectRoot, ".venv", venvBin, "celery" + executableSuffix)
   .replaceAll("\\", "/")
 
 const quoteArg = (value) => `"${value.replaceAll('"', '\\"')}"`
@@ -19,7 +28,7 @@ module.exports = {
   apps: [
     {
       name: "fsft-backend",
-      cwd: "D:/Workspace/full-stack-fastapi-template/backend",
+      cwd: backendDir,
       script: pm2JsonPrefix,
       args: wrappedArgs(python, [
         "-m",
@@ -38,12 +47,12 @@ module.exports = {
         PYTHONUNBUFFERED: "1"
       },
       env_production: {
-        APP_ENV_FILE: "D:/Workspace/full-stack-fastapi-template/.env.production"
+        APP_ENV_FILE: productionEnvFile
       }
     },
     {
       name: "fsft-frontend-dev",
-      cwd: "D:/Workspace/full-stack-fastapi-template/frontend",
+      cwd: frontendDir,
       script: pm2JsonPrefix,
       args: wrappedArgs("bun", ["run", "dev", "--host", "0.0.0.0"]),
       interpreter: process.execPath,
@@ -57,7 +66,7 @@ module.exports = {
     },
     {
       name: "fsft-celery-worker",
-      cwd: "D:/Workspace/full-stack-fastapi-template/backend",
+      cwd: backendDir,
       script: pm2JsonPrefix,
       args: wrappedArgs(celery, [
         "-q",
@@ -76,12 +85,12 @@ module.exports = {
         PYTHONUNBUFFERED: "1"
       },
       env_production: {
-        APP_ENV_FILE: "D:/Workspace/full-stack-fastapi-template/.env.production"
+        APP_ENV_FILE: productionEnvFile
       }
     },
     {
       name: "fsft-celery-beat",
-      cwd: "D:/Workspace/full-stack-fastapi-template/backend",
+      cwd: backendDir,
       script: pm2JsonPrefix,
       args: wrappedArgs(celery, ["-q", "-A", "app.core.celery:celery_app", "beat"]),
       interpreter: process.execPath,
@@ -93,7 +102,7 @@ module.exports = {
         PYTHONUNBUFFERED: "1"
       },
       env_production: {
-        APP_ENV_FILE: "D:/Workspace/full-stack-fastapi-template/.env.production"
+        APP_ENV_FILE: productionEnvFile
       }
     }
   ]

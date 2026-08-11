@@ -23,7 +23,7 @@ $ uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 Then you can activate the virtual environment with:
 
 ```console
-$ source .venv/bin/activate
+$ source ../.venv/bin/activate
 ```
 
 ### windows环境
@@ -32,13 +32,15 @@ $ source .venv/bin/activate
 python --version  # 或 py --version（Windows多版本Python）
 
 # 2. 重新创建虚拟环境
-python -m venv .venv
+python -m venv ..\.venv
 
 # 3. 再次执行激活脚本
-& .\.venv\Scripts\Activate.ps1
+& ..\.venv\Scripts\Activate.ps1
 ```
 
-Make sure your editor is using the correct Python virtual environment, with the interpreter at `backend/.venv/bin/python`.
+Make sure your editor is using the correct Python virtual environment, with the interpreter at `../.venv/bin/python`.
+
+From `backend/`, start the server with `uv run uvicorn app.main:app --reload`; this avoids passing a `../.venv` path directly to Python 3.14.
 
 Backend code follows the layered structure:
 
@@ -64,7 +66,7 @@ Recommended Run/Debug configuration:
 - **Module name**: `uvicorn`
 - **Parameters**: `app.main:app --reload`
 - **Working directory**: `backend/`
-- **Python interpreter**: `backend/.venv/Scripts/python.exe` (Windows) or `backend/.venv/bin/python` (macOS/Linux)
++ **Python interpreter**: `../.venv/Scripts/python.exe` (Windows) or `../.venv/bin/python` (macOS/Linux)
 
 Why this matters:
 
