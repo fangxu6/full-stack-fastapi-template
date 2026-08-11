@@ -118,4 +118,4 @@ do not hand-edit generated client types.
 - Global registration: [`backend/app/main.py`](../../../backend/app/main.py)
 - Exception hierarchy and handlers: [`backend/app/core/exceptions.py`](../../../backend/app/core/exceptions.py)
 - Service usage: [`backend/app/services/user.py`](../../../backend/app/services/user.py), [`backend/app/services/item.py`](../../../backend/app/services/item.py)
-- Frontend request/error consumer context: [`frontend/src/main.tsx`](../../../frontend/src/main.tsx), [`frontend/src/utils.ts`](../../../frontend/src/utils.ts)
+- Frontend request/error consumer context: [`frontend/src/main.tsx`](../../../frontend/src/main.tsx), [`frontend/src/shared/utils/index.ts`](../../../frontend/src/shared/utils/index.ts)

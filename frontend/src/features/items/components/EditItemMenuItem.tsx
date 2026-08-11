@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 
 import { type ItemPublic, ItemsService } from "@/client"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/shared/components/ui/button"
 import {
   Dialog,
   DialogClose,
@@ -15,8 +15,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+} from "@/shared/components/ui/dialog"
+import { DropdownMenuItem } from "@/shared/components/ui/dropdown-menu"
 import {
   Form,
   FormControl,
@@ -24,11 +24,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { LoadingButton } from "@/components/ui/loading-button"
-import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+} from "@/shared/components/ui/form"
+import { Input } from "@/shared/components/ui/input"
+import { LoadingButton } from "@/shared/components/ui/loading-button"
+import useCustomToast from "@/shared/hooks/useCustomToast"
+import { handleError } from "@/shared/utils"
 
 const formSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),

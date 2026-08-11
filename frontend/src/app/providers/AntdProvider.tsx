@@ -5,7 +5,7 @@ import {
   type ThemeConfig,
 } from "antd"
 
-import { useTheme } from "@/components/theme-provider"
+import { useTheme } from "@/shared/components/theme/ThemeProvider"
 
 const { darkAlgorithm, defaultAlgorithm } = antdTheme
 

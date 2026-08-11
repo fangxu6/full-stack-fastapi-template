@@ -66,8 +66,8 @@ boundary; do not create module ceremony for a single CRUD operation.
 | Route -> service | `backend/app/api/routes/items.py`, `backend/app/services/item.py` | business logic leaking into routes |
 | Service -> CRUD/model | `backend/app/services/user.py`, `backend/app/crud/user.py`, `backend/app/models/user.py` | ownership, null handling, or update semantics drifting |
 | Schema -> OpenAPI client | `backend/app/schemas/*`, `scripts/generate-client.sh`, `frontend/src/client/**` | stale generated types after backend contract changes |
-| Auth -> route/menu | `frontend/src/hooks/useAuth.ts`, `frontend/src/app/router/guards.ts`, `frontend/src/app/navigation/menu-config.ts` | menu shows a page the guard blocks, or hides a page the route allows |
-| Error -> UI/debugging | `backend/app/core/exceptions.py`, `frontend/src/main.tsx`, `frontend/src/utils.ts` | missing `request_id` or inconsistent error normalization |
+| Auth -> route/menu | `frontend/src/platform/auth/hooks/useAuth.ts`, `frontend/src/app/router/guards.ts`, `frontend/src/app/navigation/menu-config.ts` | menu shows a page the guard blocks, or hides a page the route allows |
+| Error -> UI/debugging | `backend/app/core/exceptions.py`, `frontend/src/main.tsx`, `frontend/src/shared/utils/index.ts` | missing `request_id` or inconsistent error normalization |
 
 ### Step 2.5: Check Generated And Configured Boundaries
 

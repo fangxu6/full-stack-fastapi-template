@@ -17,10 +17,9 @@ GENERATED_ARTIFACT_PATHS = (
     "frontend/src/client",
     "frontend/src/routeTree.gen.ts",
 )
-VENDOR_MANAGED_PATHS = ("frontend/src/components/ui",)
+VENDOR_MANAGED_PATHS = ("frontend/src/shared/components/ui",)
 COMPONENT_ROOTS = (
     "frontend/src/app",
-    "frontend/src/components",
     "frontend/src/features",
     "frontend/src/platform",
     "frontend/src/shared",

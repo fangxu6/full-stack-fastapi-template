@@ -11,7 +11,6 @@ frontend/src/
 │   ├── navigation/                 # Sidebar, menu config, navigation types
 │   └── router/                     # Route guards
 ├── client/                         # Generated OpenAPI client
-├── components/ui/                  # Shared design-system primitives (generated/vendor-style layer)
 ├── features/                       # Business features
 │   └── items/
 │       ├── components/
@@ -20,6 +19,7 @@ frontend/src/
 ├── platform/                       # Cross-business platform capabilities
 │   ├── auth/
 │   │   ├── components/
+│   │   ├── hooks/                  # Authentication session behavior
 │   │   ├── pages/
 │   │   └── index.ts
 │   ├── docs/
@@ -34,7 +34,8 @@ frontend/src/
 │   │   ├── feedback/
 │   │   ├── layout/
 │   │   ├── table/
-│   │   └── theme/
+│   │   ├── theme/
+│   │   └── ui/                     # Generated/vendor-style primitives
 │   ├── hooks/
 │   ├── permissions/
 │   └── utils/
@@ -149,7 +150,7 @@ Those belong under `platform/*` or `features/*`.
 ### Main data sources
 
 - generated OpenAPI client in `client/*`
-- auth state helpers in `hooks/useAuth.ts`
+- auth state helpers in `platform/auth/hooks/useAuth.ts`
 - TanStack Router for navigation/guards
 - TanStack Query for request orchestration and caching
 
@@ -165,13 +166,8 @@ Route
 
 ## 7. Transitional Reality
 
-This frontend architecture is intentionally in a hybrid state:
-
-- the new boundaries are real and in use
-- some existing hooks and UI primitives still live in legacy-friendly locations
-- not every page family has been migrated yet
-
-That means new code should follow the target boundary, not the old shortcut.
+The source tree follows the `app`, `platform`, `features`, `shared`, and thin
+`routes` ownership model. New code should preserve those boundaries.
 
 ## 8. Growth Rules
 

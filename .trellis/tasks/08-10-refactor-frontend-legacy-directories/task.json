@@ -1,0 +1,28 @@
+{
+  "id": "refactor-frontend-legacy-directories",
+  "name": "refactor-frontend-legacy-directories",
+  "title": "Refactor frontend legacy directories",
+  "description": "Relocate legacy frontend roots into the current shared and platform ownership model, then remove the old paths without changing behavior.",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": "frontend source, frontend tooling, project quality hook/tests, and active frontend guidance only; no backend or API changes",
+  "package": null,
+  "priority": "P2",
+  "creator": "fx",
+  "assignee": "fx",
+  "createdAt": "2026-08-10",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "08-11-reconcile-frontend-e2e-baseline"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

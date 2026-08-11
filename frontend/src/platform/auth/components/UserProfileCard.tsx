@@ -5,7 +5,8 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 
 import { UsersService, type UserUpdateMe } from "@/client"
-import { Button } from "@/components/ui/button"
+import useAuth from "@/platform/auth/hooks/useAuth"
+import { Button } from "@/shared/components/ui/button"
 import {
   Form,
   FormControl,
@@ -13,13 +14,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { LoadingButton } from "@/components/ui/loading-button"
-import useAuth from "@/hooks/useAuth"
-import useCustomToast from "@/hooks/useCustomToast"
-import { cn } from "@/lib/utils"
-import { handleError } from "@/utils"
+} from "@/shared/components/ui/form"
+import { Input } from "@/shared/components/ui/input"
+import { LoadingButton } from "@/shared/components/ui/loading-button"
+import useCustomToast from "@/shared/hooks/useCustomToast"
+import { cn, handleError } from "@/shared/utils"
 
 const formSchema = z.object({
   full_name: z.string().max(30).optional(),

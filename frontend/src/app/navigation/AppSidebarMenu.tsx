@@ -8,7 +8,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from "@/shared/components/ui/sidebar"
 
 interface AppSidebarMenuProps {
   items: AppNavigationItem[]

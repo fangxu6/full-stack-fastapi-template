@@ -86,8 +86,10 @@ The frontend code is structured as follows:
 * `frontend/src` - The main frontend code.
 * `frontend/src/assets` - Static assets.
 * `frontend/src/client` - The generated OpenAPI client.
-* `frontend/src/components` -  The different components of the frontend.
-* `frontend/src/hooks` - Custom hooks.
+* `frontend/src/app` - Application shell, navigation, and router guards.
+* `frontend/src/platform` - Cross-business capabilities such as authentication and system administration.
+* `frontend/src/features` - Business feature slices.
+* `frontend/src/shared` - Reusable components, hooks, utilities, and permissions.
 * `frontend/src/routes` - The different routes of the frontend which include the pages.
 
 ## End-to-End Testing with Playwright

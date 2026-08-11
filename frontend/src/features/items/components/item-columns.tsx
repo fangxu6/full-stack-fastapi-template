@@ -2,10 +2,10 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { Check, Copy } from "lucide-react"
 
 import type { ItemPublic } from "@/client"
-import { Button } from "@/components/ui/button"
 import { ItemActionsMenu } from "@/features/items/components/ItemActionsMenu"
-import { useCopyToClipboard } from "@/hooks/useCopyToClipboard"
-import { cn } from "@/lib/utils"
+import { Button } from "@/shared/components/ui/button"
+import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard"
+import { cn } from "@/shared/utils"
 
 function CopyId({ id }: { id: string }) {
   const [copiedText, copy] = useCopyToClipboard()

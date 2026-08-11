@@ -16,10 +16,7 @@ The frontend structure is no longer a loose collection of routes and components.
 frontend/src/
 ├── app/
 ├── client/
-├── components/
 ├── features/
-├── hooks/
-├── lib/
 ├── platform/
 ├── routes/
 └── shared/
@@ -38,14 +35,15 @@ frontend/src/
   - [`frontend/src/platform/system/pages/AdminUsersPage.tsx`](../../../frontend/src/platform/system/pages/AdminUsersPage.tsx)
 - `features/*` owns business feature slices:
   - [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx)
-- `shared/*` owns reusable feedback, table, layout, theme, and permission helpers:
+- `shared/*` owns reusable feedback, table, layout, theme, hooks, utilities,
+  and permission helpers:
   - [`frontend/src/shared/components/feedback/ErrorState.tsx`](../../../frontend/src/shared/components/feedback/ErrorState.tsx)
   - [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)
-- `client/*`, `routeTree.gen.ts`, and `components/ui/*` are generated or
+- `client/*`, `routeTree.gen.ts`, and `shared/components/ui/*` are generated or
   vendor-style surfaces for normal feature work:
   - [`frontend/src/client/types.gen.ts`](../../../frontend/src/client/types.gen.ts)
   - [`frontend/src/routeTree.gen.ts`](../../../frontend/src/routeTree.gen.ts)
-  - [`frontend/src/components/ui/button.tsx`](../../../frontend/src/components/ui/button.tsx)
+  - [`frontend/src/shared/components/ui/button.tsx`](../../../frontend/src/shared/components/ui/button.tsx)
 
 ---
 

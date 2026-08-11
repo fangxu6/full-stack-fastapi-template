@@ -2,7 +2,7 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { Suspense } from "react"
 
 import { type UserPublic, UsersService } from "@/client"
-import useAuth from "@/hooks/useAuth"
+import useAuth from "@/platform/auth/hooks/useAuth"
 import AddUserDialog from "@/platform/system/components/users/AddUserDialog"
 import {
   type UserTableData,

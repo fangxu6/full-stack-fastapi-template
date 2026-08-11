@@ -19,9 +19,10 @@ This document defines the frontend coding standards for `frontend/` in this repo
 ## 3. Project Structure
 
 - Routes live in `frontend/src/routes/` (TanStack Router).
-- Reusable UI and feature components live in `frontend/src/components/`.
-- Hooks live in `frontend/src/hooks/`.
-- Shared helpers live in `frontend/src/lib/` and `frontend/src/utils.ts`.
+- App shell, navigation, and router guards live in `frontend/src/app/`.
+- Cross-business capabilities such as auth live in `frontend/src/platform/`.
+- Business feature code lives in `frontend/src/features/`.
+- Reusable UI, generic hooks, and utilities live in `frontend/src/shared/`.
 - Generated OpenAPI client lives in `frontend/src/client/`.
 
 ## 4. Naming Conventions
@@ -54,7 +55,7 @@ This document defines the frontend coding standards for `frontend/` in this repo
 ## 8. Styling and UI Patterns
 
 - Use the existing Tailwind + shadcn/ui design system consistently.
-- Do not manually edit generated shadcn base files under `src/components/ui/**` unless intentionally customizing and reviewed.
+- Do not manually edit generated shadcn base files under `src/shared/components/ui/**` unless intentionally customizing and reviewed.
 - Prefer composition over one-off duplicated utility class blocks.
 
 ## 9. Error Handling and UX
@@ -84,7 +85,7 @@ bunx playwright test
 - Do not edit generated files directly:
   - `frontend/src/client/**`
   - `frontend/src/routeTree.gen.ts`
-  - `frontend/src/components/ui/**`
+  - `frontend/src/shared/components/ui/**`
 - If backend OpenAPI changes, regenerate client with `bash ./scripts/generate-client.sh` from repo root.
 
 ## 12. Pull Request Expectations

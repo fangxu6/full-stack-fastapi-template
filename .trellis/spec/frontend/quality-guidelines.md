@@ -110,7 +110,7 @@ export const Route = createFileRoute("/reports")({
 - Do not edit generated files directly:
   - `frontend/src/client/**`
   - `frontend/src/routeTree.gen.ts`
-  - `frontend/src/components/ui/**`
+  - `frontend/src/shared/components/ui/**`
 - Do not push page implementations back into `routes/*`.
 - Do not use `shared/*` as a first-stop bucket for domain-specific code.
 - Do not mass-format unrelated files while touching frontend code.

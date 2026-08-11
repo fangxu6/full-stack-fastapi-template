@@ -1,7 +1,12 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ChangePasswordForm from "@/platform/auth/components/ChangePasswordForm"
 import DeleteAccountDialog from "@/platform/auth/components/DeleteAccountDialog"
 import UserProfileCard from "@/platform/auth/components/UserProfileCard"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/shared/components/ui/tabs"
 
 const tabsConfig = [
   { value: "my-profile", title: "My profile", component: UserProfileCard },

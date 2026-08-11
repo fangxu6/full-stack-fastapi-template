@@ -3,15 +3,15 @@ import { AppSidebarMenu } from "@/app/navigation/AppSidebarMenu"
 import { AppSidebarUserMenu } from "@/app/navigation/AppSidebarUserMenu"
 import { getMenuItemsForUser } from "@/app/navigation/menu-config"
 import { myPermissionsQueryOptions } from "@/app/permissions"
+import useAuth from "@/platform/auth/hooks/useAuth"
+import { Logo } from "@/shared/components/branding"
+import { SidebarAppearance } from "@/shared/components/theme"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-} from "@/components/ui/sidebar"
-import useAuth from "@/hooks/useAuth"
-import { Logo } from "@/shared/components/branding"
-import { SidebarAppearance } from "@/shared/components/theme"
+} from "@/shared/components/ui/sidebar"
 
 export function AppSidebar() {
   const { user: currentUser } = useAuth()

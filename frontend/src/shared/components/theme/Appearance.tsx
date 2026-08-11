@@ -1,18 +1,18 @@
 import { Monitor, Moon, Sun } from "lucide-react"
 
-import { type Theme, useTheme } from "@/components/theme-provider"
-import { Button } from "@/components/ui/button"
+import { type Theme, useTheme } from "@/shared/components/theme/ThemeProvider"
+import { Button } from "@/shared/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/shared/components/ui/dropdown-menu"
 import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from "@/shared/components/ui/sidebar"
 
 type LucideIcon = React.FC<React.SVGProps<SVGSVGElement>>
 

@@ -2,14 +2,14 @@ import { EllipsisVertical } from "lucide-react"
 import { useState } from "react"
 
 import type { ItemPublic } from "@/client"
-import { Button } from "@/components/ui/button"
+import DeleteItemMenuItem from "@/features/items/components/DeleteItemMenuItem"
+import EditItemMenuItem from "@/features/items/components/EditItemMenuItem"
+import { Button } from "@/shared/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import DeleteItemMenuItem from "@/features/items/components/DeleteItemMenuItem"
-import EditItemMenuItem from "@/features/items/components/EditItemMenuItem"
+} from "@/shared/components/ui/dropdown-menu"
 
 interface ItemActionsMenuProps {
   item: ItemPublic

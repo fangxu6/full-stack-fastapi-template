@@ -40,7 +40,9 @@ class BackendQualityHookTests(unittest.TestCase):
 
 class FrontendComponentHookTests(unittest.TestCase):
     def test_rejects_vendor_managed_primitive_edit(self) -> None:
-        result = FrontendComponentHook().run(HookContext(Path.cwd(), ("frontend/src/components/ui/button.tsx",)))
+        result = FrontendComponentHook().run(
+            HookContext(Path.cwd(), ("frontend/src/shared/components/ui/button.tsx",))
+        )
         self.assertEqual(result.status, "failed")
         self.assertIn("vendor-managed", result.details[0])
 
@@ -180,10 +182,16 @@ class FrontendComponentHookTests(unittest.TestCase):
             repo_root = Path(temp_dir)
             config = repo_root / "frontend/components.json"
             config.parent.mkdir(parents=True)
-            config.write_text('{"aliases": {"ui": "@/components/ui"}}', encoding="utf-8")
+            config.write_text(
+                '{"aliases": {"ui": "@/shared/components/ui"}}',
+                encoding="utf-8",
+            )
             source = repo_root / "frontend/src/features/demo/components/Widget.tsx"
             source.parent.mkdir(parents=True)
-            source.write_text('import { Widget } from "@/components/ui/not-registered"\n', encoding="utf-8")
+            source.write_text(
+                'import { Widget } from "@/shared/components/ui/not-registered"\n',
+                encoding="utf-8",
+            )
             result = FrontendComponentHook().run(HookContext(repo_root, ("frontend/src/features/demo/components/Widget.tsx",)))
         self.assertEqual(result.status, "failed")
         self.assertIn("not registered", result.details[0])

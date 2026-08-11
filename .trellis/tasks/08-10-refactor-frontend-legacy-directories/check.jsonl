@@ -1,0 +1,8 @@
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Defines frontend quality expectations, protected vendor-style paths, and read-only validation commands."}
+{"file":".trellis/spec/frontend/type-safety.md","reason":"Defines generated-client protection that this path-only refactor must preserve."}
+{"file":".trellis/spec/trellis-hook-contract.md","reason":"Defines the expected behavior and verification of project quality hooks."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Verifies cross-layer anchors do not retain retired frontend paths."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Verifies the active error-helper documentation link follows the utility move."}
+{"file":".trellis/tasks/08-10-refactor-frontend-legacy-directories/prd.md","reason":"Provides the approved scope and observable acceptance criteria for review."}
+{"file":".trellis/tasks/08-10-refactor-frontend-legacy-directories/design.md","reason":"Provides the final ownership map, compatibility constraints, risks, and rollback plan."}
+{"file":".trellis/tasks/08-10-refactor-frontend-legacy-directories/research/legacy-directory-inventory.md","reason":"Provides the baseline counts and stale-reference search targets."}

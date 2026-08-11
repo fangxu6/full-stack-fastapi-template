@@ -4,6 +4,8 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 
 import type { Body_login_login_access_token as AccessToken } from "@/client"
+import AuthPageLayout from "@/platform/auth/components/AuthPageLayout"
+import useAuth from "@/platform/auth/hooks/useAuth"
 import {
   Form,
   FormControl,
@@ -11,12 +13,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { LoadingButton } from "@/components/ui/loading-button"
-import { PasswordInput } from "@/components/ui/password-input"
-import useAuth from "@/hooks/useAuth"
-import AuthPageLayout from "@/platform/auth/components/AuthPageLayout"
+} from "@/shared/components/ui/form"
+import { Input } from "@/shared/components/ui/input"
+import { LoadingButton } from "@/shared/components/ui/loading-button"
+import { PasswordInput } from "@/shared/components/ui/password-input"
 
 const formSchema = z.object({
   username: z.email(),

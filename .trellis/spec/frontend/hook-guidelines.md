@@ -13,9 +13,9 @@ Hooks in this repo should stay focused. The most important current hook is `useA
 ## Current Reality
 
 - Auth token presence is checked through `localStorage`:
-  - [`frontend/src/hooks/useAuth.ts`](../../../frontend/src/hooks/useAuth.ts)
+  - [`frontend/src/platform/auth/hooks/useAuth.ts`](../../../frontend/src/platform/auth/hooks/useAuth.ts)
 - `useAuth` owns current-user query wiring plus login/logout/signup behavior:
-  - [`frontend/src/hooks/useAuth.ts`](../../../frontend/src/hooks/useAuth.ts)
+  - [`frontend/src/platform/auth/hooks/useAuth.ts`](../../../frontend/src/platform/auth/hooks/useAuth.ts)
 - Route guards use thin helper entrypoints rather than embedding all auth logic directly in route files:
   - [`frontend/src/app/router/guards.ts`](../../../frontend/src/app/router/guards.ts)
 - Page-specific query helpers often stay inside the page file:
@@ -74,7 +74,7 @@ Hooks in this repo should stay focused. The most important current hook is `useA
 
 ## Code Anchors
 
-- Auth hook: [`frontend/src/hooks/useAuth.ts`](../../../frontend/src/hooks/useAuth.ts)
+- Auth hook: [`frontend/src/platform/auth/hooks/useAuth.ts`](../../../frontend/src/platform/auth/hooks/useAuth.ts)
 - Route guards: [`frontend/src/app/router/guards.ts`](../../../frontend/src/app/router/guards.ts)
 - Page-local query pattern: [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx)
 - Mutation invalidation examples: [`frontend/src/platform/system/components/users/EditUserMenuItem.tsx`](../../../frontend/src/platform/system/components/users/EditUserMenuItem.tsx), [`frontend/src/platform/system/components/users/DeleteUserMenuItem.tsx`](../../../frontend/src/platform/system/components/users/DeleteUserMenuItem.tsx)

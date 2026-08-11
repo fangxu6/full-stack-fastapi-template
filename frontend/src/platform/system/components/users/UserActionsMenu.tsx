@@ -2,15 +2,15 @@ import { EllipsisVertical } from "lucide-react"
 import { useState } from "react"
 
 import type { UserPublic } from "@/client"
-import { Button } from "@/components/ui/button"
+import useAuth from "@/platform/auth/hooks/useAuth"
+import DeleteUserMenuItem from "@/platform/system/components/users/DeleteUserMenuItem"
+import EditUserMenuItem from "@/platform/system/components/users/EditUserMenuItem"
+import { Button } from "@/shared/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import useAuth from "@/hooks/useAuth"
-import DeleteUserMenuItem from "@/platform/system/components/users/DeleteUserMenuItem"
-import EditUserMenuItem from "@/platform/system/components/users/EditUserMenuItem"
+} from "@/shared/components/ui/dropdown-menu"
 
 interface UserActionsMenuProps {
   user: UserPublic

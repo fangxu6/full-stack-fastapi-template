@@ -6,7 +6,7 @@
 
 ## Overview
 
-This frontend is also in a platform-batch-0 transition away from template-era file placement. The target layering is already visible in code and should now be treated as a strong constraint:
+The frontend uses these ownership boundaries:
 
 - `app/*` for shell, navigation, router guards
 - `platform/*` for platform capabilities such as auth and system
@@ -70,7 +70,7 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
   - [`frontend/src/app/router/guards.ts`](../../../frontend/src/app/router/guards.ts)
   - [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)
 - Auth token persistence and current-user query behavior are already coupled through:
-  - [`frontend/src/hooks/useAuth.ts`](../../../frontend/src/hooks/useAuth.ts)
+  - [`frontend/src/platform/auth/hooks/useAuth.ts`](../../../frontend/src/platform/auth/hooks/useAuth.ts)
   - [`frontend/src/main.tsx`](../../../frontend/src/main.tsx)
 
 ---
@@ -99,7 +99,7 @@ This frontend is also in a platform-batch-0 transition away from template-era fi
 - Vite owns the `@/` alias, TanStack Router plugin, React SWC plugin, and
   Tailwind plugin in [`frontend/vite.config.ts`](../../../frontend/vite.config.ts).
 - Biome excludes generated/vendor-style paths such as `src/client/**`,
-  `src/routeTree.gen.ts`, and `src/components/ui/**` in
+  `src/routeTree.gen.ts`, and `src/shared/components/ui/**` in
   [`frontend/biome.json`](../../../frontend/biome.json).
 
 Assume local frontend verification uses `http://127.0.0.1:5173` unless the task says otherwise.

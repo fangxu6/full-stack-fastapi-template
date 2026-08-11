@@ -3,7 +3,7 @@ import { Outlet } from "@tanstack/react-router"
 import { AppFooter } from "@/app/layout/AppFooter"
 import { AppHeader } from "@/app/layout/AppHeader"
 import { AppSidebar } from "@/app/navigation/AppSidebar"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { SidebarInset, SidebarProvider } from "@/shared/components/ui/sidebar"
 
 export function AppLayout() {
   return (

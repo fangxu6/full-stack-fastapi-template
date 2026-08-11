@@ -11,11 +11,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { LoadingButton } from "@/components/ui/loading-button"
-import { PasswordInput } from "@/components/ui/password-input"
-import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+} from "@/shared/components/ui/form"
+import { LoadingButton } from "@/shared/components/ui/loading-button"
+import { PasswordInput } from "@/shared/components/ui/password-input"
+import useCustomToast from "@/shared/hooks/useCustomToast"
+import { handleError } from "@/shared/utils"
 
 const formSchema = z
   .object({

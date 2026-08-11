@@ -19,10 +19,10 @@ This repo intentionally avoids a separate global store. The practical state mode
 ## Current Reality
 
 - Auth token persistence is wired through:
-  - [`frontend/src/hooks/useAuth.ts`](../../../frontend/src/hooks/useAuth.ts)
+  - [`frontend/src/platform/auth/hooks/useAuth.ts`](../../../frontend/src/platform/auth/hooks/useAuth.ts)
   - [`frontend/src/main.tsx`](../../../frontend/src/main.tsx)
 - Query state powers current-user and page data fetching:
-  - [`frontend/src/hooks/useAuth.ts`](../../../frontend/src/hooks/useAuth.ts)
+  - [`frontend/src/platform/auth/hooks/useAuth.ts`](../../../frontend/src/platform/auth/hooks/useAuth.ts)
   - [`frontend/src/features/items/pages/ItemsPage.tsx`](../../../frontend/src/features/items/pages/ItemsPage.tsx)
 - Mutations invalidate query state through React Query:
   - [`frontend/src/platform/system/components/users/EditUserMenuItem.tsx`](../../../frontend/src/platform/system/components/users/EditUserMenuItem.tsx)
@@ -111,7 +111,7 @@ This repo intentionally avoids a separate global store. The practical state mode
 
 ## Code Anchors
 
-- Auth state and token persistence: [`frontend/src/hooks/useAuth.ts`](../../../frontend/src/hooks/useAuth.ts), [`frontend/src/main.tsx`](../../../frontend/src/main.tsx)
+- Auth state and token persistence: [`frontend/src/platform/auth/hooks/useAuth.ts`](../../../frontend/src/platform/auth/hooks/useAuth.ts), [`frontend/src/main.tsx`](../../../frontend/src/main.tsx)
 - Shared query client and permission access: [`frontend/src/app/query-client.ts`](../../../frontend/src/app/query-client.ts), [`frontend/src/app/permissions.ts`](../../../frontend/src/app/permissions.ts)
 - Navigation derived from the permission query: [`frontend/src/app/permissions.ts`](../../../frontend/src/app/permissions.ts), [`frontend/src/app/navigation/menu-config.ts`](../../../frontend/src/app/navigation/menu-config.ts)
 - Permission entrypoint: [`frontend/src/shared/permissions/index.ts`](../../../frontend/src/shared/permissions/index.ts)

@@ -6,7 +6,7 @@ import {
   readMyPermissionsForRoute,
 } from "@/app/permissions"
 import { clearAuthState } from "@/app/query-client"
-import { isLoggedIn } from "@/hooks/useAuth"
+import { isLoggedIn } from "@/platform/auth/hooks/useAuth"
 import {
   hasPermission,
   isSafeInternalPath,

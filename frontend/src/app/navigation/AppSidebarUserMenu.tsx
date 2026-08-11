@@ -2,7 +2,8 @@ import { Link as RouterLink } from "@tanstack/react-router"
 import { ChevronsUpDown, LogOut, Settings } from "lucide-react"
 
 import type { UserPublic } from "@/client"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import useAuth from "@/platform/auth/hooks/useAuth"
+import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,15 +11,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/shared/components/ui/dropdown-menu"
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
-import useAuth from "@/hooks/useAuth"
-import { getInitials } from "@/utils"
+} from "@/shared/components/ui/sidebar"
+import { getInitials } from "@/shared/utils"
 
 interface UserInfoProps {
   fullName?: string

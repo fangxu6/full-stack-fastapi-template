@@ -1,4 +1,4 @@
-import useAuth from "@/hooks/useAuth"
+import useAuth from "@/platform/auth/hooks/useAuth"
 
 export function DashboardPage() {
   const { user: currentUser } = useAuth()

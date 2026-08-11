@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { z } from "zod"
 
-import { isLoggedIn } from "@/hooks/useAuth"
+import { isLoggedIn } from "@/platform/auth/hooks/useAuth"
 import { ResetPasswordPage } from "@/platform/auth/pages/ResetPasswordPage"
 
 const searchSchema = z.object({

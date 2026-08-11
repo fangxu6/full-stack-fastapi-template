@@ -1,0 +1,8 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Defines the target app/platform/features/shared/routes ownership model and active frontend tool guidance."}
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"Defines current frontend placement and must be reconciled with the final directory tree."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Owns the shared-admission rule and vendor-style primitive policy."}
+{"file":".trellis/spec/frontend/hook-guidelines.md","reason":"Owns the auth and generic-hook boundary that determines the final hook destinations."}
+{"file":".trellis/spec/trellis-hook-contract.md","reason":"Governs changes to the project-owned frontend quality hook."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Owns cross-layer source anchors updated by the path migration."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Contains the active frontend error-helper anchor that must follow the utility move."}
+{"file":".trellis/tasks/08-10-refactor-frontend-legacy-directories/research/legacy-directory-inventory.md","reason":"Records the verified legacy inventory, consumers, tooling references, and chosen ownership map."}

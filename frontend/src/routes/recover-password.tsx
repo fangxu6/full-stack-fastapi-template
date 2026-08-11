@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 
-import { isLoggedIn } from "@/hooks/useAuth"
+import { isLoggedIn } from "@/platform/auth/hooks/useAuth"
 import { RecoverPasswordPage } from "@/platform/auth/pages/RecoverPasswordPage"
 
 export const Route = createFileRoute("/recover-password")({
