@@ -177,11 +177,18 @@ def finish_outcome(
     *,
     session: Session,
     run_id: int,
+    expected_lease_expires_at: datetime,
     outcome: SchedulerRunOutcome,
     finished_at: datetime | None = None,
 ) -> SchedulerRun | None:
-    run = session.get(SchedulerRun, run_id)
-    if run is None:
+    run = session.exec(
+        select(SchedulerRun).where(SchedulerRun.id == run_id).with_for_update()
+    ).one_or_none()
+    if (
+        run is None
+        or run.status is not SchedulerRunStatus.RUNNING
+        or run.lease_expires_at != expected_lease_expires_at
+    ):
         return None
     run.status = outcome.status
     run.error_category = outcome.error_category

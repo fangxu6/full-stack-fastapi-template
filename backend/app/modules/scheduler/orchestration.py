@@ -185,6 +185,9 @@ def execute_run(run_id: int) -> None:
         job_id = run.job_id
         actor_id = run.requested_by or require_system_actor(session=session)
         started_at = run.started_at or now
+        lease_expires_at = run.lease_expires_at
+        if lease_expires_at is None:
+            raise RuntimeError("claimed scheduler run must have an execution lease")
         session.commit()
     outcome = execution.execute(
         run_id=run_id,
@@ -201,6 +204,7 @@ def execute_run(run_id: int) -> None:
             run = run_lifecycle.finish_outcome(
                 session=session,
                 run_id=run_id,
+                expected_lease_expires_at=lease_expires_at,
                 outcome=outcome,
             )
             if run is None:

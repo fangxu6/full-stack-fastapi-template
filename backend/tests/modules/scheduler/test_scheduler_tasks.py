@@ -77,11 +77,13 @@ def test_run_lifecycle_owns_claim_and_terminal_persistence(db: Session) -> None:
     claimed = run_lifecycle.claim_execution(session=db, run_id=run.id, now=now)
     assert claimed is not None
     assert claimed.status is SchedulerRunStatus.RUNNING
+    assert claimed.lease_expires_at is not None
     db.commit()
 
     finished = run_lifecycle.finish_outcome(
         session=db,
         run_id=run.id,
+        expected_lease_expires_at=claimed.lease_expires_at,
         outcome=SchedulerRunOutcome(
             status=SchedulerRunStatus.SUCCEEDED,
             error_category=None,
@@ -95,6 +97,170 @@ def test_run_lifecycle_owns_claim_and_terminal_persistence(db: Session) -> None:
     assert finished.status is SchedulerRunStatus.SUCCEEDED
     assert finished.lease_expires_at is None
     assert finished.next_dispatch_at is None
+
+
+def test_finish_outcome_rejects_stale_results_after_lease_reclaim(
+    db: Session,
+) -> None:
+    now = datetime(2026, 8, 11, 0, 0, tzinfo=UTC)
+    job = create_job(session=db, now=now)
+    run = run_lifecycle.create_run(
+        session=db,
+        job=job,
+        trigger=SchedulerRunTrigger.MANUAL_NOW,
+        planned_at=now,
+        requested_by=job.created_by,
+        now=now,
+    )
+    assert run.id is not None
+    db.commit()
+
+    claimed_a = run_lifecycle.claim_execution(session=db, run_id=run.id, now=now)
+    assert claimed_a is not None
+    assert claimed_a.lease_expires_at is not None
+    lease_a = claimed_a.lease_expires_at
+    db.commit()
+
+    reclaim_at = lease_a + timedelta(seconds=1)
+    claimed_b = run_lifecycle.claim_execution(
+        session=db, run_id=run.id, now=reclaim_at
+    )
+    assert claimed_b is not None
+    assert claimed_b.lease_expires_at is not None
+    assert claimed_b.lease_expires_at != lease_a
+    completed_b = run_lifecycle.finish_outcome(
+        session=db,
+        run_id=run.id,
+        expected_lease_expires_at=claimed_b.lease_expires_at,
+        outcome=SchedulerRunOutcome(
+            status=SchedulerRunStatus.SUCCEEDED,
+            error_category=None,
+            error_summary=None,
+        ),
+        finished_at=reclaim_at,
+    )
+    assert completed_b is not None
+    db.commit()
+
+    assert (
+        run_lifecycle.finish_outcome(
+            session=db,
+            run_id=run.id,
+            expected_lease_expires_at=lease_a,
+            outcome=SchedulerRunOutcome(
+                status=SchedulerRunStatus.SUCCEEDED,
+                error_category=None,
+                error_summary=None,
+            ),
+            finished_at=reclaim_at,
+        )
+        is None
+    )
+    assert (
+        run_lifecycle.finish_outcome(
+            session=db,
+            run_id=run.id,
+            expected_lease_expires_at=lease_a,
+            outcome=SchedulerRunOutcome(
+                status=SchedulerRunStatus.FAILED,
+                error_category="EXECUTION_FAILED",
+                error_summary="Scheduled task execution failed",
+            ),
+            finished_at=reclaim_at,
+        )
+        is None
+    )
+    db.commit()
+
+    db.expire_all()
+    persisted = db.get(SchedulerRun, run.id)
+    assert persisted is not None
+    assert persisted.status is SchedulerRunStatus.SUCCEEDED
+    assert persisted.error_category is None
+    assert persisted.error_summary is None
+    assert persisted.finished_at == reclaim_at
+    assert persisted.attempt_count == 2
+
+
+def test_execute_run_does_not_alert_for_a_stale_failed_outcome(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    now = datetime(2026, 8, 11, 0, 0, tzinfo=UTC)
+    job = create_job(session=db, now=now)
+    run = run_lifecycle.create_run(
+        session=db,
+        job=job,
+        trigger=SchedulerRunTrigger.MANUAL_NOW,
+        planned_at=now,
+        requested_by=job.created_by,
+        now=now,
+    )
+    assert run.id is not None
+    db.commit()
+
+    execution_started = Event()
+    release_execution = Event()
+    worker_errors: list[BaseException] = []
+    alert_calls: list[dict[str, object]] = []
+
+    def stale_execution(**_: object) -> SchedulerRunOutcome:
+        execution_started.set()
+        assert release_execution.wait(timeout=5)
+        return SchedulerRunOutcome(
+            status=SchedulerRunStatus.FAILED,
+            error_category="EXECUTION_FAILED",
+            error_summary="Scheduled task execution failed",
+        )
+
+    def run_worker() -> None:
+        try:
+            tasks.execute_run(run.id or 0)
+        except BaseException as error:
+            worker_errors.append(error)
+
+    monkeypatch.setattr(tasks.execution, "execute", stale_execution)
+    monkeypatch.setattr(
+        tasks, "_send_alert", lambda **kwargs: alert_calls.append(kwargs)
+    )
+    worker = Thread(target=run_worker)
+    worker.start()
+    assert execution_started.wait(timeout=5)
+
+    db.expire_all()
+    claimed_a = db.get(SchedulerRun, run.id)
+    assert claimed_a is not None
+    assert claimed_a.lease_expires_at is not None
+    reclaim_at = claimed_a.lease_expires_at + timedelta(seconds=1)
+    claimed_b = run_lifecycle.claim_execution(
+        session=db, run_id=run.id, now=reclaim_at
+    )
+    assert claimed_b is not None
+    assert claimed_b.lease_expires_at is not None
+    completed_b = run_lifecycle.finish_outcome(
+        session=db,
+        run_id=run.id,
+        expected_lease_expires_at=claimed_b.lease_expires_at,
+        outcome=SchedulerRunOutcome(
+            status=SchedulerRunStatus.SUCCEEDED,
+            error_category=None,
+            error_summary=None,
+        ),
+        finished_at=reclaim_at,
+    )
+    assert completed_b is not None
+    db.commit()
+
+    release_execution.set()
+    worker.join(timeout=5)
+    assert not worker.is_alive()
+    assert worker_errors == []
+    assert alert_calls == []
+
+    db.expire_all()
+    persisted = db.get(SchedulerRun, run.id)
+    assert persisted is not None
+    assert persisted.status is SchedulerRunStatus.SUCCEEDED
+    assert persisted.attempt_count == 2
 
 
 def test_cancel_queued_runs_locks_before_execution_claim(db: Session) -> None:

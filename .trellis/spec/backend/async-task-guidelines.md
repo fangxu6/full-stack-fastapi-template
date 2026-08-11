@@ -113,6 +113,8 @@ validation error prevents an empty password from reaching this branch.
 
 - Celery app import: `app.core.celery:celery_app`.
 - Tasks: `scheduler.scan_due_jobs()` and `scheduler.execute_run(run_id: int)`.
+- Terminal lifecycle seam:
+  `finish_outcome(*, session, run_id, expected_lease_expires_at, outcome)`.
 - Internal run field: `scheduler_run.next_dispatch_at TIMESTAMPTZ NULL` with
   partial index `ix_scheduler_run_queued_dispatch` for `status = 'QUEUED'`.
 - Alert configuration: `SCHEDULED_TASK_ALERT_RECIPIENTS` is CSV email input;
@@ -143,6 +145,10 @@ validation error prevents an empty password from reaching this branch.
 - Frozen class/config failures are `CONFIGURATION_INVALID`; after successful
   construction, every uncontrolled `run()` exception, including `ValueError`,
   is `EXECUTION_FAILED`. `ScheduledTaskSkipped` remains a controlled skip.
+- `claim_execution()` captures an execution lease. `finish_outcome()` locks the
+  row and accepts a result only while it remains `RUNNING` with that exact
+  persisted lease; a stale, duplicate, cancelled, or terminal result returns
+  `None` and must not change alerts.
 
 ### 4. Validation And Error Matrix
 
@@ -154,6 +160,7 @@ validation error prevents an empty password from reaching this branch.
 | One broker send fails in a claimed batch | Keep other sends independent and retry that run on the next scan minute. |
 | Concurrent active-run insert conflicts | Return/record the overlap without rolling back other scanner updates. |
 | Task business code raises `ValueError` | Persist `FAILED/EXECUTION_FAILED` and use the failure alert limit. |
+| Worker result has a stale or non-current execution lease | Return `None`; leave run fields and scheduler alerts unchanged. |
 
 ### 5. Good / Base / Bad Cases
 
@@ -176,6 +183,8 @@ validation error prevents an empty password from reaching this branch.
   conflict savepoint isolation, and migration upgrade/downgrade.
 - Cover configuration-invalid versus business-`ValueError` terminal status,
   alert category, and retained `ScheduledTaskSkipped` behavior.
+- Cover lease reclaim followed by late success and failure results; neither can
+  overwrite the later terminal state or emit/clear alerts.
 
 ### 7. Wrong Vs Correct
 
@@ -224,9 +233,17 @@ business-task, or email work. The Worker flow is therefore:
 
 ```python
 run = run_lifecycle.claim_execution(session=session, run_id=run_id, now=now)
+expected_lease_expires_at = run.lease_expires_at
 session.commit()
 outcome = execution.execute(...)  # frozen inputs captured from the claimed run
-run_lifecycle.finish_outcome(session=session, run_id=run_id, outcome=outcome)
+run = run_lifecycle.finish_outcome(
+    session=session,
+    run_id=run_id,
+    expected_lease_expires_at=expected_lease_expires_at,
+    outcome=outcome,
+)
+if run is None:
+    return  # a stale Worker must not affect scheduler alerts
 if outcome.status is SchedulerRunStatus.SUCCEEDED:
     scheduler_alerts.clear_success_alerts(session=session, job_id=job_id)
 session.commit()

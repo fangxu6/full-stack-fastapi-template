@@ -40,7 +40,7 @@
 - `create_run()` 创建排队运行，也记录配置无效和活动运行重叠等预执行终态。
 - `claim_dispatchable_runs()` 管理队列投递租约，`release_dispatch()` 处理投递失败后的下一次扫描。
 - `claim_execution()` 在行锁下领取 `QUEUED` 或已过期 `RUNNING`，设置执行租约。
-- `finish_outcome()` 统一写入 `SUCCEEDED`、`SKIPPED`、`FAILED` 并清理租约。
+- `finish_outcome()` 在行锁和当前执行租约匹配后统一写入 `SUCCEEDED`、`SKIPPED`、`FAILED` 并清理租约。
 - `cancel_queued_runs()` 只取消 `QUEUED` 运行；`cleanup_runs()` 清理已完成且超过保留期的记录。
 
 实现位置和职责也记录在 `docs/adr/0012-concentrate-scheduler-run-lifecycle-state.md`。`async-task-guidelines.md` 中陈旧的 `finish_run(...)` 描述由活跃任务 `08-07-correct-scheduler-lifecycle-spec` 负责，本方案不修改该文件。
@@ -112,11 +112,11 @@
 | `QUEUED` | `RELEASE_DISPATCH` | `QUEUED` | Celery 投递失败且仍是排队状态。 | 将下一次 dispatch 推迟到下一分钟。 | 锁定单行；非 `QUEUED` 记录无副作用返回。 |
 | `QUEUED` | `CLAIM_EXECUTION` | `RUNNING` | 行锁成功，且运行未被取消。 | 设置开始时间和执行租约，清空 dispatch 时间并增加尝试次数。 | 有效 `RUNNING` 租约重复领取返回空；租约过期允许重新领取。 |
 | `RUNNING` | `RECLAIM_EXPIRED_LEASE` | `RUNNING` | `lease_expires_at` 为空或已过期。 | 更新开始时间、租约和尝试次数。 | 行锁串行化领取；业务任务必须可承受至少一次执行。 |
-| `RUNNING` | `FINISH_SUCCESS` | `SUCCEEDED` | orchestration 已成功领取并完成任务。 | 写入完成时间，清除租约和 dispatch 字段，清理成功告警。 | 结果落库后重复消息不应产生业务副作用；`finish_outcome()` 当前不自行重检状态。 |
-| `RUNNING` | `FINISH_SKIP` | `SKIPPED` | 任务显式抛出受控跳过结果。 | 写入跳过分类、完成时间并清理租约。 | 只允许执行编排路径产生；终态重复调用应被视为无业务副作用。 |
-| `RUNNING` | `FINISH_FAILURE` | `FAILED` | 配置或任务执行返回失败结果。 | 写入错误分类/摘要、完成时间并清理租约；必要时发送告警。 | 结果写入由生命周期边界集中处理；外部告警不在事务内。 |
+| `RUNNING` | `FINISH_SUCCESS` | `SUCCEEDED` | orchestration 已成功领取并完成任务，且持久化 lease 与本次领取完全一致。 | 写入完成时间，清除租约和 dispatch 字段，清理成功告警。 | 结果落库锁行并精确比对 lease；陈旧或终态结果无副作用。 |
+| `RUNNING` | `FINISH_SKIP` | `SKIPPED` | 任务显式抛出受控跳过结果，且持久化 lease 与本次领取完全一致。 | 写入跳过分类、完成时间并清理租约。 | 只允许当前执行编排路径产生；陈旧或终态结果无副作用。 |
+| `RUNNING` | `FINISH_FAILURE` | `FAILED` | 配置或任务执行返回失败结果，且持久化 lease 与本次领取完全一致。 | 写入错误分类/摘要、完成时间并清理租约；必要时发送告警。 | 结果落库锁行并精确比对 lease；被拒绝的结果不发送告警。 |
 | `QUEUED` | `CANCEL` | `CANCELLED` | 只取消尚未领取的运行。 | 写入完成时间并清除租约和 dispatch 字段。 | 批量取消锁定符合条件的排队记录；已领取记录不受影响。 |
-| `SUCCEEDED`/`FAILED`/`SKIPPED`/`CANCELLED` | `ANY_LIFECYCLE_EVENT` | `不变/拒绝` | 终态不应再执行生命周期事件。 | 无。 | 文档契约视为终态；实现加固需另行任务。 |
+| `SUCCEEDED`/`FAILED`/`SKIPPED`/`CANCELLED` | `ANY_LIFECYCLE_EVENT` | `不变/拒绝` | 终态不应再执行生命周期事件。 | 无。 | 行锁后的状态/lease 检查拒绝陈旧或重复结果。 |
 
 ### inventory.correction_request 状态迁移矩阵
 
