@@ -326,3 +326,7 @@ or duplicate-contract failure.
 ## [2026-08-10 19:37:56] update | Add unified state transition design contract
 
 Added domain-local state transition rules, normalized matrix naming, enum versus workflow-state guidance, and references to the canonical scheduler, inventory correction, email outbox, and daily report matrices.
+
+## [2026-08-11 10:21:12] update | Document async user forms and Docker-free E2E mailbox
+
+Record reset-after-current-user form initialization and the Playwright loopback mailbox SMTP/HTTP contract.

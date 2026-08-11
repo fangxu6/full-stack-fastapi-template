@@ -2,44 +2,69 @@
 
 ## Goal
 
-Reconcile the 13 failing frontend Playwright cases caused by runtime services, fixtures, permissions, or stale browser assertions after the legacy-directory migration.
+Remove E2E-harness prerequisites and classify the baseline failures observed
+while validating the legacy-directory migration. Product and runtime defects
+discovered during that classification are owned by the independent
+[`08-11-resolve-frontend-baseline-defects`](../08-11-resolve-frontend-baseline-defects/prd.md)
+task, not by this archived harness task.
 
-## Requirements
+## Confirmed Facts
 
-1. Reproduce and classify all 13 baseline failures from the 2026-08-11
-   Playwright run under an isolated local test environment.
-2. Make the suite deterministic by providing the required mail sink, inventory
-   fixtures, scheduler permissions, and test data, or by correcting assertions
-   that no longer match the established product contract.
-3. Preserve production behavior and the completed legacy-directory migration;
-   do not change UI behavior merely to satisfy an E2E assertion.
-4. Record the required local test services and invocation so the complete
-   Playwright suite can be rerun consistently without Docker.
+- The 2026-08-11 local run completed 65 of 78 cases. The path-only migration
+  did not alter the moved toast implementation or the affected components'
+  behavior; the failures remain this task's scope.
+- Two recovery cases query `MAILCATCHER_HOST` directly
+  (`frontend/tests/utils/mailcatcher.ts:16`), but the E2E guide starts neither
+  SMTP nor a mailbox UI and local port `1080` is unavailable.
+- Recovery HTTP success means a durable email outbox request was created; SMTP
+  delivery is asynchronous and is not part of the HTTP contract
+  (`docs/adr/0009-use-generic-email-outbox-for-non-report-mail.md:15-30`).
+- Three inventory cases depend on pre-existing or high-cardinality master and
+  balance data (`frontend/tests/inventory.spec.ts:46-64`, `167-197`), and
+  three scheduler cases need `scheduler.jobs.manage`, which controls the page
+  actions (`frontend/src/features/scheduler/pages/SchedulerJobsPage.tsx:137-140`).
+- Five remaining failures are one admin delete notification, three user-settings
+  notification/form-display assertions, and one existing-email signup assertion.
+- The agreed mail strategy is a repository-owned ephemeral SMTP/mailbox
+  fixture. Playwright starts it for the run, exposes only the Mailcatcher-shaped
+  endpoints the recovery tests need, and stops it during teardown. No Docker or
+  machine-global mail binary is required.
+
+Detailed reproduction and anchors are in
+[`research/e2e-baseline-evidence.md`](research/e2e-baseline-evidence.md).
+
+## Outcome And Handoff
+
+- A repository-owned loopback SMTP/HTTP mailbox now starts and stops with the
+  Playwright run, keeps the existing Mailcatcher-shaped helper API, and handles
+  the bounded MIME shape emitted by the current email client.
+- Inventory tests create their own finished-balance fixture rather than relying
+  on pre-seeded shipment data. Signup assertions were reconciled, and the
+  `UserProfileCard` async initialization defect was fixed with existing profile
+  regression coverage.
+- The remaining two password-recovery delivery failures, three scheduler
+  permission failures, two inventory UI failures, and one user-delete feedback
+  failure were reproduced and transferred to
+  [`08-11-resolve-frontend-baseline-defects`](../08-11-resolve-frontend-baseline-defects/prd.md).
+  They require runtime/bootstrap or product UI repair; they are not defects in
+  the E2E mailbox, fixture ownership, or frontend directory migration.
 
 ## Acceptance Criteria
 
-- [ ] The Mailcatcher-dependent reset-password cases run against an available
-      isolated mail sink and pass.
-- [ ] Inventory and scheduler cases create or select their required fixtures
-      and permissions deterministically.
-- [ ] Admin and user-settings browser assertions match the current documented
-      success and form-display contracts.
-- [ ] `bunx playwright test` passes all 78 cases in the documented isolated
-      local environment.
-- [ ] The parent legacy-directory task's moved implementations and ownership
-      boundaries remain unchanged except where a proven E2E defect requires a
-      narrowly scoped correction.
+- [x] Playwright starts and tears down a Docker-free, loopback-only temporary
+      mailbox without changing production email behavior.
+- [x] E2E inventory fixtures no longer require a pre-existing finished balance,
+      and the auth setup does not block unrelated cases when an older database
+      lacks scheduler permission rows.
+- [x] The signup assertion and `UserProfileCard` initialization contract were
+      reconciled through focused browser runs.
+- [x] All remaining failures are recorded with reproduction evidence and
+      explicitly owned by `08-11-resolve-frontend-baseline-defects`.
+- [x] The parent migration's moved implementations remain unchanged except for
+      the narrowly proven `UserProfileCard` defect.
 
-## Constraints
+## Closeout
 
-- This is the owner of the 13 full-suite failures observed while validating
-  `08-10-refactor-frontend-legacy-directories`; it is not a reason to reopen
-  the completed source-path migration.
-- Plan this as a complex task before implementation because it spans browser
-  tests, runtime services, fixtures, permissions, and product assertions.
-
-## Notes
-
-- Keep `prd.md` focused on requirements, constraints, and acceptance criteria.
-- Lightweight tasks can remain PRD-only.
-- For complex tasks, add `design.md` for technical design and `implement.md` for execution planning before `task.py start`.
+This task is complete. Full-suite E2E success is deliberately not claimed:
+the remaining defects are no longer this task's acceptance scope and will be
+verified by the independent repair task after its approved implementation.

@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/async-task-guidelines.md", "reason": "Verify email changes keep HTTP enqueue and asynchronous delivery semantics intact."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Verify IAM seed reconciliation is idempotent and does not bypass authorization."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify mutation invalidation and query-backed UI feedback stay consistent."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify frontend changes include focused regression coverage and no unstable timing workaround."}

@@ -9,6 +9,7 @@
 - 执行测试时，Playwright 会自动运行 `bun run dev` 启动 Vite；本机已有前端服务时会复用它。
 - 后端地址默认为 `http://127.0.0.1:8000`，**不会**由 Playwright 自动启动，需单独启动。
 - Chromium 项目在每次测试前执行 `frontend/tests/auth.setup.ts`，以根目录 `.env` 的 `FIRST_SUPERUSER` 和 `FIRST_SUPERUSER_PASSWORD` 登录，并保存会话至 `frontend/playwright/.auth/user.json`。
+- Playwright 的 global setup 会自动启动仓库内的临时 SMTP/HTTP mailbox（SMTP 默认 `127.0.0.1:2525`，HTTP 默认 `http://127.0.0.1:1080`），teardown 会关闭并清理它。无需 Docker、Mailpit 或 Mailcatcher 可执行文件。
 
 ## 2. 前置条件
 
@@ -55,10 +56,30 @@ uv run python app/initial_data.py
 ```powershell
 Set-Location D:\Workspace\full-stack-fastapi-template\backend
 $env:POSTGRES_DB = 'aiadmin_test'
+$env:SMTP_HOST = '127.0.0.1'
+$env:SMTP_PORT = '2525'
+$env:SMTP_TLS = 'False'
+$env:SMTP_SSL = 'False'
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 启动后访问 [健康检查](http://127.0.0.1:8000/api/v1/utils/health-check/)，应返回 `true`。
+
+## 4.1 启动 Celery worker（终端 A 的另一个窗口）
+
+密码恢复邮件由 Celery 从 outbox 投递；worker 必须使用与后端相同的隔离数据库、Redis 和 SMTP 变量：
+
+```powershell
+Set-Location D:\Workspace\full-stack-fastapi-template\backend
+$env:POSTGRES_DB = 'aiadmin_test'
+$env:SMTP_HOST = '127.0.0.1'
+$env:SMTP_PORT = '2525'
+$env:SMTP_TLS = 'False'
+$env:SMTP_SSL = 'False'
+uv run celery -A app.core.celery:celery_app worker --concurrency=1
+```
+
+不要在 worker 终端设置外部 SMTP；mailbox 只监听 loopback。若需要使用外部 Mailcatcher 调试，可在启动 Playwright 前显式设置 `$env:E2E_MAILBOX_EXTERNAL = 'true'` 和 `$env:MAILCATCHER_HOST`，此时 global setup 会复用该地址，不会启动本地 mailbox。
 
 ## 5. 运行 E2E（终端 B）
 

@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises"
+import path from "node:path"
 import { expect, type Page, test } from "@playwright/test"
 import type { InventoryBalancePublic, MasterUnitPublic } from "../src/client"
 
@@ -61,6 +63,62 @@ async function findBalance(
     if (skip + balances.data.length >= balances.count) break
   }
   throw new Error(`The E2E database needs a ${ledgerKind} inventory balance`)
+}
+
+async function seedFinishedBalance(page: Page) {
+  const processingUnitName = "E2E fixture processing unit"
+  const existing = await readInventoryFixture<{ data: MasterUnitPublic[] }>(
+    page,
+    `/processing-units?name=${encodeURIComponent(processingUnitName)}&limit=20&skip=0`,
+  )
+  if (!existing.data.some((unit) => unit.name === processingUnitName)) {
+    await createInventoryFixture(page, "/processing-units", {
+      name: processingUnitName,
+    })
+  }
+  const processingUnits = await readInventoryFixture<{
+    data: MasterUnitPublic[]
+  }>(
+    page,
+    `/processing-units?name=${encodeURIComponent(processingUnitName)}&limit=20&skip=0`,
+  )
+  const processingUnit = processingUnits.data.find(
+    (unit) => unit.name === processingUnitName,
+  )
+  expect(processingUnit).toBeTruthy()
+  const workbook = await readFile(
+    path.join(process.cwd(), "tests/fixtures/finished-balance.xlsx"),
+  )
+  const response = await page.request.post(
+    `${apiBaseUrl}/api/v1/inventory/excel/imports/legacy`,
+    {
+      multipart: {
+        raw_workbook: {
+          name: "finished-balance.xlsx",
+          mimeType:
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          buffer: workbook,
+        },
+        finished_workbook: {
+          name: "finished-balance.xlsx",
+          mimeType:
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          buffer: workbook,
+        },
+      },
+      headers: await authenticatedHeaders(page),
+    },
+  )
+  expect(response.ok(), await response.text()).toBeTruthy()
+  return findBalance(
+    page,
+    "finished",
+    (candidate) =>
+      candidate.item_name === "E2E finished item" &&
+      candidate.processing_unit_id === processingUnit?.id &&
+      Number(candidate.rolls_balance) >= 0.5 &&
+      Number(candidate.meters_balance) >= 12.5,
+  )
 }
 
 async function selectOption(page: Page, label: string, option: string) {
@@ -164,31 +222,21 @@ test("Inventory master data, raw receipt, balance trace, and restore work togeth
   await expect(page.getByText("单据已恢复")).toBeVisible()
 })
 
-test("Finished shipment page deducts the pre-existing finished balance", async ({
+test("Finished shipment page deducts a fixture-created finished balance", async ({
   page,
 }) => {
   const receivingUnitName = uniqueValue("E2E收货单位")
   const documentNumber = uniqueValue("E2E-S")
 
   await page.goto("/")
-  const finishedBalance = await findBalance(
-    page,
-    "finished",
-    (candidate) =>
-      Number(candidate.rolls_balance) >= 0.5 &&
-      Number(candidate.meters_balance) >= 12.5 &&
-      candidate.color_code !== null &&
-      candidate.dye_lot_no !== null &&
-      candidate.dye_lot_no !== "未分缸" &&
-      candidate.wool_content !== "未填写含毛量",
-  )
+  const finishedBalance = await seedFinishedBalance(page)
   const { balance } = finishedBalance
   if (!balance?.color_code || !balance.dye_lot_no) {
     throw new Error("The E2E database needs a finished inventory balance")
   }
   const processingUnits = await readInventoryFixture<{
     data: MasterUnitPublic[]
-  }>(page, "/processing-units?limit=100&skip=0")
+  }>(page, `/processing-units?limit=100&skip=0`)
   const processingUnit = processingUnits.data.find(
     (unit) => unit.id === balance.processing_unit_id,
   )

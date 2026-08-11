@@ -172,6 +172,84 @@ export const Route = createFileRoute("/reports")({
   root so `bun.lock` stays synchronized; if the package manager stalls, record
   that explicitly before handoff.
 
+## Scenario: Async Current-User Forms And E2E Mailbox
+
+### 1. Scope / Trigger
+
+- Trigger: a form derives default values from an asynchronously loaded current
+  user, or Playwright covers password recovery through the email outbox.
+- Purpose: prevent forms from validating empty placeholders and keep recovery
+  E2E runs independent of machine-global mail services.
+
+### 2. Signatures
+
+```tsx
+useEffect(() => {
+  if (!currentUser) return
+  form.reset({ full_name: currentUser.full_name ?? undefined, email: currentUser.email })
+}, [currentUser, form])
+```
+
+```text
+SMTP_HOST=127.0.0.1
+SMTP_PORT=2525
+MAILCATCHER_HOST=http://127.0.0.1:1080
+```
+
+### 3. Contracts
+
+- A user-derived form resets only after `currentUser` is available and keeps
+  the existing API payload and validation schema.
+- Playwright global setup starts a loopback-only test mailbox; teardown closes
+  both listeners. The mailbox serves `GET /messages` and
+  `GET /messages/:id.html` for the existing recovery helper.
+- Backend and Celery use the same isolated database, Redis, and loopback SMTP
+  variables; the mailbox is not a production endpoint.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Current user is still loading | Keep the form unsubmitted and do not validate an empty email as the user's value. |
+| Current user arrives | Reset the form to the returned name/email. |
+| Mailbox port is occupied or message exceeds its bound | Fail mailbox startup/delivery clearly and close any listener already opened. |
+| External mailbox is explicitly requested | Set `E2E_MAILBOX_EXTERNAL=true` with `MAILCATCHER_HOST`; otherwise start the repository mailbox. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: call `form.reset` in an effect keyed by `currentUser`.
+- Base: use the current user's email in the existing generated-client update
+  request and preserve the existing success toast.
+- Bad: put a test-only bypass in the production API or leave default values
+  permanently empty while the query loads.
+
+### 6. Tests Required
+
+- Playwright profile-save and cancel cases assert the loaded name/email, not
+  `N/A` or an empty input.
+- A mailbox self-check sends one complete SMTP DATA payload, lists it, and
+  verifies nested multipart Base64 HTML decoding.
+- Run `bunx playwright test --project=chromium` with isolated PostgreSQL,
+  Redis, backend, and Celery; a missing runtime service is an environment
+  failure, not a passing result.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```tsx
+const form = useForm({ defaultValues: { email: currentUser?.email } })
+```
+
+#### Correct
+
+```tsx
+const form = useForm({ defaultValues: { email: undefined } })
+useEffect(() => {
+  if (currentUser) form.reset({ email: currentUser.email })
+}, [currentUser, form])
+```
+
 ---
 
 ## Delivery Gate Checklist

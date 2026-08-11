@@ -1,1 +1,4 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/tasks/08-11-reconcile-frontend-e2e-baseline/research/e2e-baseline-evidence.md", "reason": "Check all 13 failures against the recorded evidence and ensure no migration regression is inferred from environment failures."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Quality gate and Playwright verification expectations for the final check."}
+{"file": ".trellis/spec/backend/async-task-guidelines.md", "reason": "Verify the temporary mailbox does not change Celery or SMTP production boundaries."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Verify isolated fixture creation and cleanup do not rely on shared database state."}

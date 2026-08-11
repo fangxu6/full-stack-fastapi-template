@@ -1,1 +1,4 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/tasks/08-11-reconcile-frontend-e2e-baseline/research/e2e-baseline-evidence.md", "reason": "Confirmed failure classification, runtime contracts, and the agreed Docker-free ephemeral mailbox decision."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend Playwright, lint, build, and test verification conventions."}
+{"file": ".trellis/spec/backend/async-task-guidelines.md", "reason": "Celery and asynchronous email delivery boundaries that the E2E harness must preserve."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Required cross-layer contract tracing for browser, backend, fixture, and runtime changes."}
