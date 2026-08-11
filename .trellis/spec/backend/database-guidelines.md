@@ -1188,6 +1188,66 @@ startup, and a configured replica failure remains observable.
   - [`backend/app/alembic/versions/fe56fa70289e_add_created_at_to_user_and_item.py`](../../../backend/app/alembic/versions/fe56fa70289e_add_created_at_to_user_and_item.py)
 - Review generated frontend impact whenever public schemas or endpoint payloads change.
 
+## Scenario: Reconcile Deployed Seed Data
+
+### 1. Scope / Trigger
+
+Apply this when application source adds required permissions or other durable
+bootstrap rows that existing databases may already have missed.
+
+### 2. Signatures
+
+Add one forward revision from the current Alembic head. Make the seed operation
+idempotent and bind required permissions to the matching built-in role.
+
+### 3. Contracts
+
+- `upgrade()` inserts or updates the canonical seed rows and uses conflict-safe
+  association inserts.
+- Startup `ensure_bootstrap_state()` remains the reconciliation boundary for
+  newly initialized databases and repeated bootstrap runs.
+- Custom roles and unrelated role assignments remain unchanged.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| Existing database lacks a source-defined permission | Migration creates it and grants it to the required built-in role. |
+| Migration runs twice | No duplicate rows or associations are created. |
+| Bootstrap runs after seed drift | Missing permission and built-in-role bindings are restored. |
+| Custom role has unrelated assignments | Preserve them. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: use `ON CONFLICT` for the permission code and role-permission key.
+- Base: a fresh database receives the same rows through normal bootstrap.
+- Bad: add a browser-test bypass or silently grant the permission in a route.
+
+### 6. Tests Required
+
+- Test bootstrap after deleting the permission rows and their built-in-role
+  associations; assert both the catalog and effective role permissions.
+- Upgrade an isolated `_test` database and assert the migration reaches the
+  current head and is repeatable.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+# Add a scheduler permission only inside a browser fixture or route guard.
+```
+
+#### Correct
+
+```sql
+INSERT INTO iam_permission (code, group_name, label, description)
+VALUES (...) ON CONFLICT (code) DO UPDATE SET description = EXCLUDED.description;
+```
+
+The durable seed and its built-in-role binding are repaired at the database
+boundary, so normal authorization remains the source of truth.
+
 ---
 
 ## Scenario: Retiring A Persisted Module

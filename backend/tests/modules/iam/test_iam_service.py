@@ -2,14 +2,14 @@ import threading
 import uuid
 
 import pytest
-from sqlmodel import Session, select
+from sqlmodel import Session, col, delete, select
 
 from app import crud
 from app.core.audit import ensure_system_actor
 from app.core.config import settings
 from app.core.db import engine
 from app.core.exceptions import ConflictError, NotFoundError, PermissionDeniedError
-from app.models import AuditEvent, IamRole, User
+from app.models import AuditEvent, IamPermission, IamRole, IamRolePermission, User
 from app.modules.iam import repository, service
 from app.modules.iam.constants import PLATFORM_ADMINISTRATOR
 from app.schemas.iam import RoleCreate, RoleUpdate
@@ -31,6 +31,42 @@ def test_zero_role_user_has_no_effective_permissions(db: Session) -> None:
 
     assert result.roles == []
     assert result.permissions == []
+
+
+def test_bootstrap_reconciles_missing_scheduler_permissions(db: Session) -> None:
+    first_superuser = crud.get_user_by_email(
+        session=db, email=settings.FIRST_SUPERUSER
+    )
+    assert first_superuser is not None
+    platform_role = repository.get_role_by_code(
+        session=db, code=PLATFORM_ADMINISTRATOR
+    )
+    assert platform_role is not None
+    assert platform_role.id is not None
+
+    scheduler_codes = {"scheduler.jobs.read", "scheduler.jobs.manage"}
+    scheduler_permissions = db.exec(
+        select(IamPermission).where(col(IamPermission.code).in_(scheduler_codes))
+    ).all()
+    scheduler_permission_ids = [
+        permission.id
+        for permission in scheduler_permissions
+        if permission.id is not None
+    ]
+    db.exec(
+        delete(IamRolePermission).where(
+            col(IamRolePermission.role_id) == platform_role.id,
+            col(IamRolePermission.permission_id).in_(scheduler_permission_ids),
+        )
+    )
+    db.exec(delete(IamPermission).where(col(IamPermission.code).in_(scheduler_codes)))
+    db.flush()
+
+    service.ensure_bootstrap_state(session=db, first_superuser=first_superuser)
+
+    assert scheduler_codes.issubset(
+        set(repository.get_role_permission_codes(session=db, role_id=platform_role.id))
+    )
 
 
 def test_custom_role_rejects_governance_permissions(db: Session) -> None:

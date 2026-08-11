@@ -247,7 +247,8 @@ export function DocumentEditorModal({
               }
               onSearch={processingUnitOptions.onSearch}
               options={processingUnitOptions.options}
-              showSearch={{ filterOption: false }}
+              filterOption={false}
+              showSearch
             />
           </Form.Item>
           {isShipment ? (
@@ -270,7 +271,8 @@ export function DocumentEditorModal({
                 }
                 onSearch={receivingUnitOptions.onSearch}
                 options={receivingUnitOptions.options}
-                showSearch={{ filterOption: false }}
+                filterOption={false}
+                showSearch
               />
             </Form.Item>
           ) : null}

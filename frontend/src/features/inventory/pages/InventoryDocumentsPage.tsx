@@ -196,7 +196,7 @@ export function InventoryDocumentsPage({
     placeholderData: keepPreviousData,
   })
   const invalidate = () =>
-    void queryClient.invalidateQueries({ queryKey: ["inventory"] })
+    queryClient.invalidateQueries({ queryKey: ["inventory"] })
   const deleteMutation = useMutation({
     mutationFn: (documentId: string) =>
       InventoryService.deleteInventoryDocument({ documentId }),
@@ -216,10 +216,10 @@ export function InventoryDocumentsPage({
       }
       message.error("删除失败，库存不足或数据已变更。")
     },
-    onSuccess: () => {
-      message.success("单据已软删除")
+    onSuccess: async () => {
       setPage(1)
-      invalidate()
+      await invalidate()
+      message.success("单据已软删除")
     },
   })
   const restoreMutation = useMutation({
@@ -241,10 +241,10 @@ export function InventoryDocumentsPage({
       }
       message.error("恢复失败，恢复后库存不能为负数。")
     },
-    onSuccess: () => {
-      message.success("单据已恢复")
+    onSuccess: async () => {
       setPage(1)
-      invalidate()
+      await invalidate()
+      message.success("单据已恢复")
     },
   })
   const templateMutation = useMutation({
@@ -489,7 +489,8 @@ export function InventoryDocumentsPage({
             }
             onSearch={processingUnitOptions.onSearch}
             options={processingUnitOptions.options}
-            showSearch={{ filterOption: false }}
+            filterOption={false}
+            showSearch
           />
         </Form.Item>
         {activeType === "FINISHED_SHIPMENT" ? (
@@ -509,7 +510,8 @@ export function InventoryDocumentsPage({
               }
               onSearch={receivingUnitOptions.onSearch}
               options={receivingUnitOptions.options}
-              showSearch={{ filterOption: false }}
+              filterOption={false}
+              showSearch
             />
           </Form.Item>
         ) : null}

@@ -35,15 +35,13 @@ export default function DeleteUserMenuItem({
 
   const mutation = useMutation({
     mutationFn: async (userId: string) => UsersService.deleteUser({ userId }),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["users"] })
       showSuccessToast("The user was deleted successfully")
       setIsOpen(false)
       onSuccess()
     },
     onError: handleError.bind(showErrorToast),
-    onSettled: () => {
-      queryClient.invalidateQueries()
-    },
   })
 
   const onSubmit = async () => {
