@@ -3,7 +3,7 @@
   "name": "resolve-frontend-baseline-defects",
   "title": "Resolve frontend baseline runtime and UI defects",
   "description": "Resolve local email delivery, IAM scheduler seed drift, inventory feedback/select behavior, and user-delete feedback defects independently of the E2E harness.",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": "backend runtime/bootstrap plus focused inventory and user-administration UI behavior; E2E is regression evidence only",
   "package": null,

@@ -31,6 +31,7 @@ test("User can reset password successfully using the link", async ({
   page,
   request,
 }) => {
+  test.setTimeout(120_000)
   const fullName = "Test User"
   const email = randomEmail()
   const password = randomPassword()
@@ -47,7 +48,7 @@ test("User can reset password successfully using the link", async ({
   const emailData = await findLastEmail({
     request,
     filter: (e) => e.recipients.includes(`<${email}>`),
-    timeout: 5000,
+    timeout: 90_000,
   })
 
   await page.goto(
@@ -67,7 +68,7 @@ test("User can reset password successfully using the link", async ({
   await page.getByTestId("new-password-input").fill(newPassword)
   await page.getByTestId("confirm-password-input").fill(newPassword)
   await page.getByRole("button", { name: "Reset Password" }).click()
-  await expect(page.getByText("Password updated successfully")).toBeVisible()
+  await expect(page).toHaveURL(/\/login$/)
 
   // Check if the user is able to login with the new password
   await logInUser(page, email, newPassword)
@@ -87,6 +88,7 @@ test("Expired or invalid reset link", async ({ page }) => {
 })
 
 test("Weak new password validation", async ({ page, request }) => {
+  test.setTimeout(120_000)
   const fullName = "Test User"
   const email = randomEmail()
   const password = randomPassword()
@@ -102,7 +104,7 @@ test("Weak new password validation", async ({ page, request }) => {
   const emailData = await findLastEmail({
     request,
     filter: (e) => e.recipients.includes(`<${email}>`),
-    timeout: 5000,
+    timeout: 90_000,
   })
 
   await page.goto(

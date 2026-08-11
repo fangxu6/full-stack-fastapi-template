@@ -40,6 +40,12 @@ def test_celery_urls_omit_authentication_without_a_redis_password() -> None:
     assert settings.redis_cache_url == "redis://redis:6379/2"
 
 
+def test_password_token_secret_falls_back_to_secret_key() -> None:
+    settings = make_settings(SECRET_KEY="shared-secret")
+
+    assert settings.PASSWORD_TOKEN_SECRET_KEY == "shared-secret"
+
+
 def test_read_replica_uri_is_none_without_a_replica_host() -> None:
     settings = make_settings()
 

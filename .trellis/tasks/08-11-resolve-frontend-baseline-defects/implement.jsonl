@@ -1,4 +1,4 @@
-{"file": ".trellis/tasks/08-11-reconcile-frontend-e2e-baseline/research/e2e-baseline-evidence.md", "reason": "Use the recorded failure classification and runtime evidence without reopening the mailbox task."}
+{"file": ".trellis/tasks/archive/2026-08/08-11-reconcile-frontend-e2e-baseline/research/e2e-baseline-evidence.md", "reason": "Use the recorded failure classification and runtime evidence without reopening the mailbox task."}
 {"file": ".trellis/spec/backend/async-task-guidelines.md", "reason": "Preserve the outbox, Celery, Redis, and SMTP delivery boundary while repairing local runtime configuration."}
 {"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Use the documented bootstrap and migration rules for IAM permission reconciliation."}
 {"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Keep focused browser regression coverage tied to visible user behavior."}

@@ -664,6 +664,10 @@ attempt state after SMTP returns.
   records the result in a new transaction only if its lease is still current.
 - Retries are every 15 minutes with at most eight attempts. SMTP acceptance
   before worker loss can duplicate email but must not silently lose delivery.
+- Backend, Celery Worker, and Celery Beat must load the same stable signing
+  configuration. `PASSWORD_TOKEN_SECRET_KEY` may be set explicitly, but when
+  omitted it falls back to the shared `SECRET_KEY`; never let each process
+  generate an independent password-token key.
 - Link delivery re-reads the User and requires active, non-System status plus
   an unchanged email. Otherwise it records terminal `RECIPIENT_INVALID`.
 - The initial human creator remains the audit actor for the first claim/result;
@@ -676,6 +680,7 @@ attempt state after SMTP returns.
 | --- | --- |
 | SMTP is unavailable | Keep the row and move it to `RETRY_WAIT` with `SMTP_NOT_CONFIGURED`. |
 | SMTP send raises | Keep the row and move it to `RETRY_WAIT` with `SMTP_DELIVERY_FAILED`. |
+| Backend and Worker use different password-token keys | Prevent startup/runtime drift by sharing `SECRET_KEY` or an explicit `PASSWORD_TOKEN_SECRET_KEY`; recovery links must validate in both processes. |
 | Delivery lease expires | System Actor moves it to `RETRY_WAIT`, or terminal `FAILED` on attempt eight. |
 | Link User is missing, inactive, System, or has a different email | Mark `FAILED/RECIPIENT_INVALID`; do not send. |
 | Row is `DELIVERED` or `FAILED` | Do not claim or send it again. |

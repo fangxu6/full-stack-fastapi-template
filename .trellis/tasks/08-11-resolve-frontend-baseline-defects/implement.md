@@ -40,3 +40,15 @@
 - User-delete mutation feedback: protect confirmation, error handling, and
   table invalidation.
 - Do not start implementation until this plan receives explicit approval.
+
+## Password Recovery Verification (2026-08-11)
+
+- Isolated PostgreSQL, Redis, Celery worker/beat, and loopback SMTP mailbox
+  completed the two password recovery flows: `3 passed` including Playwright
+  setup.
+- Backend password-token configuration and reset regression checks passed.
+- Full frontend TypeScript checking remains blocked by the existing missing
+  `bun:test` declarations; targeted Biome, Python compilation, task validation,
+  spec lint, and `git diff --check` pass.
+- The parent task remains `in_progress` for its scheduler, inventory, and
+  user-administration deliverables.

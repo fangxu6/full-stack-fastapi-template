@@ -6,6 +6,10 @@ type Email = {
   subject: string
 }
 
+function normalizeRecipient(recipient: string) {
+  return recipient.includes("<") ? recipient : `<${recipient}>`
+}
+
 async function findEmail({
   request,
   filter,
@@ -15,7 +19,10 @@ async function findEmail({
 }) {
   const response = await request.get(`${process.env.MAILCATCHER_HOST}/messages`)
 
-  let emails = await response.json()
+  let emails = ((await response.json()) as Email[]).map((email) => ({
+    ...email,
+    recipients: email.recipients.map(normalizeRecipient),
+  }))
 
   if (filter) {
     emails = emails.filter(filter)

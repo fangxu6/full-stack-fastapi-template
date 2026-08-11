@@ -44,6 +44,7 @@ module.exports = {
       restart_delay: 3000,
       time: false,
       env: {
+        APP_ENV_FILE: productionEnvFile,
         PYTHONUNBUFFERED: "1"
       },
       env_production: {
@@ -82,6 +83,7 @@ module.exports = {
       restart_delay: 3000,
       time: false,
       env: {
+        APP_ENV_FILE: productionEnvFile,
         PYTHONUNBUFFERED: "1"
       },
       env_production: {
@@ -99,6 +101,7 @@ module.exports = {
       restart_delay: 3000,
       time: false,
       env: {
+        APP_ENV_FILE: productionEnvFile,
         PYTHONUNBUFFERED: "1"
       },
       env_production: {

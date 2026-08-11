@@ -81,6 +81,38 @@ uv run celery -A app.core.celery:celery_app worker --concurrency=1
 
 不要在 worker 终端设置外部 SMTP；mailbox 只监听 loopback。若需要使用外部 Mailcatcher 调试，可在启动 Playwright 前显式设置 `$env:E2E_MAILBOX_EXTERNAL = 'true'` 和 `$env:MAILCATCHER_HOST`，此时 global setup 会复用该地址，不会启动本地 mailbox。
 
+Linux/macOS 使用非 Docker环境时，必须先在另一个终端启动固定端口的 mailbox，再启动 backend 和 worker；Playwright global setup 设置的环境变量不会注入已经运行的 backend/worker：
+
+```bash
+cd frontend
+bun tests/utils/mailbox.ts
+```
+
+然后在 backend 和 worker 终端都设置：
+
+```bash
+export APP_ENV_FILE=../.env_dev
+export SMTP_HOST=127.0.0.1
+export SMTP_PORT=2525
+export SMTP_TLS=false
+export SMTP_SSL=false
+# Password-token signing must be shared by backend and Celery. It falls back
+# to the stable SECRET_KEY when PASSWORD_TOKEN_SECRET_KEY is omitted.
+# Loopback mailbox does not provide SMTP AUTH; do not inherit SMTP_USER/PASSWORD from an external SMTP file.
+unset SMTP_USER SMTP_PASSWORD
+```
+
+如果 `APP_ENV_FILE` 指向的文件仍包含外部 SMTP 用户名和密码，请使用一个不包含这两个变量的 E2E 环境文件；仅 `unset` 当前 shell 变量不会覆盖 `BaseSettings` 从 env 文件读取的值。
+
+运行 Playwright 时复用这个 mailbox：
+
+```bash
+cd frontend
+E2E_MAILBOX_EXTERNAL=true MAILCATCHER_HOST=http://127.0.0.1:1080 bunx playwright test --project=chromium
+```
+
+使用 PM2 启动时，`ecosystem.config.js` 会默认将 `APP_ENV_FILE` 指向根目录 `.env_dev`；修改配置后需重启 backend、worker 和 beat，环境变量才会生效。
+
 ## 5. 运行 E2E（终端 B）
 
 在第二个 PowerShell 终端运行。前端无需提前启动：测试配置会自动启动或复用 `http://localhost:5173` 的 Vite 服务。

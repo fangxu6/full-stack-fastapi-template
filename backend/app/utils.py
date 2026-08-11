@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import emails
+from emails.backend.smtp.backend import SMTPBackend
 from jinja2 import Template
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
@@ -42,7 +43,10 @@ def send_email(
         html=html_content,
         mail_from=(settings.EMAILS_FROM_NAME, settings.EMAILS_FROM_EMAIL),
     )
-    smtp_options = {"host": settings.SMTP_HOST, "port": settings.SMTP_PORT}
+    smtp_options: dict[str, Any] = {
+        "host": settings.SMTP_HOST,
+        "port": settings.SMTP_PORT,
+    }
     if settings.SMTP_TLS:
         smtp_options["tls"] = True
     elif settings.SMTP_SSL:
@@ -51,8 +55,9 @@ def send_email(
         smtp_options["user"] = settings.SMTP_USER
     if settings.SMTP_PASSWORD:
         smtp_options["password"] = settings.SMTP_PASSWORD
+    smtp_backend = SMTPBackend(fail_silently=False, **smtp_options)
     try:
-        message.send(to=email_to, smtp=smtp_options)
+        message.send(to=email_to, smtp=smtp_backend)
     except Exception:
         log_event(
             event_name="dependency.failed",
@@ -60,6 +65,8 @@ def send_email(
             dependency="smtp",
         )
         raise
+    finally:
+        smtp_backend.close()
 
 
 def generate_test_email(email_to: str) -> EmailData:
