@@ -1,6 +1,6 @@
 import uuid
 
-from sqlmodel import Session, col, func, select
+from sqlmodel import Session, col, delete, func, select
 
 from app import crud
 from app.core.exceptions import (
@@ -9,7 +9,7 @@ from app.core.exceptions import (
     UserNotFoundError,
 )
 from app.core.security import get_password_hash, verify_password
-from app.models import User
+from app.models import EmailOutbox, User
 from app.modules.auth import session as auth_session
 from app.modules.iam import service as iam_service
 from app.schemas.security import Message
@@ -156,5 +156,6 @@ def delete_user(*, session: Session, user_id: uuid.UUID) -> Message:
     iam_service.ensure_user_deactivation_is_safe(session=session, user=user)
     auth_session.revoke_all_user_sessions(session=session, user_id=user.id)
     crud.delete_items_by_owner(session=session, owner_id=user_id)
+    session.exec(delete(EmailOutbox).where(col(EmailOutbox.user_id) == user_id))
     crud.delete_user(session=session, db_user=user)
     return Message(message="User deleted successfully")

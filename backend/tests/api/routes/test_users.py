@@ -695,6 +695,33 @@ def test_delete_user_super_user(
     assert result is None
 
 
+def test_delete_user_removes_account_setup_email(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    email = random_email()
+    create_response = client.post(
+        f"{settings.API_V1_STR}/users/",
+        headers=superuser_token_headers,
+        json={"email": email, "password": random_lower_string()},
+    )
+    assert create_response.status_code == 200
+    user = crud.get_user_by_email(session=db, email=email)
+    assert user is not None
+    outbox = db.exec(select(EmailOutbox).where(EmailOutbox.user_id == user.id)).one()
+    assert outbox.id is not None
+    user_id = user.id
+    outbox_id = outbox.id
+
+    delete_response = client.delete(
+        f"{settings.API_V1_STR}/users/{user_id}", headers=superuser_token_headers
+    )
+
+    assert delete_response.status_code == 200
+    db.expire_all()
+    assert db.get(User, user_id) is None
+    assert db.get(EmailOutbox, outbox_id) is None
+
+
 def test_delete_user_not_found(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
