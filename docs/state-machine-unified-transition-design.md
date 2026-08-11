@@ -197,9 +197,9 @@
 | `(新建)` | `CREATE_RECIPIENT_DELIVERY` | `PENDING` | Report 收件人解析成功。 | 保存邮箱和首次尝试时间。 | Report/email 唯一约束防止重复收件人行。 |
 | `PENDING`/`RETRY_WAIT` | `CLAIM_DELIVERY` | `DELIVERING` | 到期且尝试次数未达 8 次。 | 增加尝试次数，设置 delivery lease，提交后执行 SMTP。 | 行锁；有效投递 lease 期间重复领取无副作用。 |
 | `PENDING`/`RETRY_WAIT` | `MAX_ATTEMPTS_EXCEEDED` | `FAILED` | 领取前发现达到最大次数。 | 保存失败类别并清除 lease；刷新 Report 摘要。 | 行锁；终态重复任务无副作用。 |
-| `DELIVERING` | `DELIVER_SUCCESS` | `DELIVERED` | SMTP 调用成功。 | 写入 delivered 时间并清除 lease/错误；刷新 Report。 | 结果落库独立短事务；重复结果不会重复发送。 |
-| `DELIVERING` | `DELIVER_FAILURE` | `RETRY_WAIT` | SMTP 未配置或发送异常，且次数未达上限。 | 清 lease，保存错误类别和下一次尝试时间；刷新 Report。 | 领取、SMTP、结果落库三段事务；结果失败不回滚外部发送。 |
-| `DELIVERING` | `LEASE_EXPIRED` / `DELIVER_FAILURE` | `FAILED` | 租约过期或发送失败且已达 8 次。 | 清 lease，保存失败类别；刷新 Report。 | 扫描用行锁和 skip-locked；过期 worker 的迟到结果不应覆盖新状态。 |
+| `DELIVERING` | `DELIVER_SUCCESS` | `DELIVERED` | SMTP 调用成功，且状态仍为 DELIVERING、lease 与领取 payload 完全一致。 | 写入 delivered 时间并清除 lease/错误；刷新 Report。 | 结果落库独立短事务；lease 不匹配的迟到或重复结果无副作用。 |
+| `DELIVERING` | `DELIVER_FAILURE` | `RETRY_WAIT` | SMTP 未配置或发送异常，状态仍为 DELIVERING、lease 与领取 payload 完全一致，且次数未达上限。 | 清 lease，保存错误类别和下一次尝试时间；刷新 Report。 | 领取、SMTP、结果落库三段事务；lease 不匹配的结果不回滚外部发送，也不刷新 Report。 |
+| `DELIVERING` | `LEASE_EXPIRED` / `DELIVER_FAILURE` | `FAILED` | 扫描发现租约过期，或发送失败且状态仍为 DELIVERING、lease 与领取 payload 完全一致、次数已达 8 次。 | 清 lease，保存失败类别；刷新 Report。 | 扫描用行锁和 skip-locked；结果落库锁行并精确比对 lease，迟到 worker 不覆盖新状态。 |
 | `DELIVERED`/`FAILED` | `ANY_DELIVERY_EVENT` | `不变/拒绝` | Delivery 已是终态。 | 无。 | 重复 retry 任务无副作用。 |
 
 ## 4. 为什么不新增数据库表

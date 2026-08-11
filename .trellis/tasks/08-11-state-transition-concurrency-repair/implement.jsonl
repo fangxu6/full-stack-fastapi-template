@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/08-11-state-transition-concurrency-repair/prd.md","reason":"Approved scope and acceptance criteria."}
+{"file":".trellis/tasks/08-11-state-transition-concurrency-repair/design.md","reason":"Lease fencing, row-lock, and rollback design."}
+{"file":".trellis/spec/backend/state-transition-guidelines.md","reason":"Lease-token and row-lock transition contract."}
+{"file":"docs/state-machine-unified-transition-design.md","reason":"Canonical transition matrices to align with code."}
