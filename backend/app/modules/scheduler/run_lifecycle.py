@@ -199,10 +199,12 @@ def cancel_queued_runs(
 ) -> int:
     current = utc_now(now)
     queued = session.exec(
-        select(SchedulerRun).where(
+        select(SchedulerRun)
+        .where(
             SchedulerRun.job_id == job_id,
             SchedulerRun.status == SchedulerRunStatus.QUEUED,
-        ).with_for_update()
+        )
+        .with_for_update()
     ).all()
     for run in queued:
         run.status = SchedulerRunStatus.CANCELLED
