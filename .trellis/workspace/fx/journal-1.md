@@ -1693,3 +1693,24 @@ Fenced daily-report delivery results by active lease, locked scheduler cancellat
 ### Status
 
 [OK] **Completed**
+
+
+## Session 56: Fence scheduler terminal outcomes
+
+**Date**: 2026-08-11
+**Task**: Fence scheduler terminal outcomes
+**Branch**: `master`
+
+### Summary
+
+Fenced SchedulerRun terminal writes with the execution lease, added stale-worker and alert regressions, and updated scheduler lifecycle contracts.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d5fe2bd` | (see git log) |
+
+### Status
+
+[OK] **Completed**
