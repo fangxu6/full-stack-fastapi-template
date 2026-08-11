@@ -202,7 +202,7 @@ def cancel_queued_runs(
         select(SchedulerRun).where(
             SchedulerRun.job_id == job_id,
             SchedulerRun.status == SchedulerRunStatus.QUEUED,
-        )
+        ).with_for_update()
     ).all()
     for run in queued:
         run.status = SchedulerRunStatus.CANCELLED

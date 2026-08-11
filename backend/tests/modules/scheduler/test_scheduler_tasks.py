@@ -1,11 +1,13 @@
 from datetime import UTC, datetime, timedelta
 from inspect import getsource
+from threading import Event, Thread
 from unittest.mock import patch
 
 import pytest
 from sqlmodel import Session, select
 
 from app.core.audit import bind_audit_actor
+from app.core.db import engine
 from app.models import EmailOutbox, User
 from app.models.scheduler import (
     SchedulerJob,
@@ -93,6 +95,100 @@ def test_run_lifecycle_owns_claim_and_terminal_persistence(db: Session) -> None:
     assert finished.status is SchedulerRunStatus.SUCCEEDED
     assert finished.lease_expires_at is None
     assert finished.next_dispatch_at is None
+
+
+def test_cancel_queued_runs_locks_before_execution_claim(db: Session) -> None:
+    now = datetime(2026, 8, 11, 0, 0, tzinfo=UTC)
+    job = create_job(session=db, now=now)
+    run = run_lifecycle.create_run(
+        session=db,
+        job=job,
+        trigger=SchedulerRunTrigger.MANUAL_NOW,
+        planned_at=now,
+        requested_by=job.created_by,
+        now=now,
+    )
+    assert job.id is not None
+    assert run.id is not None
+    db.commit()
+
+    cancel_session = Session(engine)
+    claim_session = Session(engine)
+    cancel_selected = Event()
+    release_cancel = Event()
+    claim_started = Event()
+    claim_finished = Event()
+    cancelled: list[int] = []
+    claimed: list[bool] = []
+    errors: list[BaseException] = []
+    original_cancel_exec = cancel_session.exec
+    original_claim_exec = claim_session.exec
+
+    def pause_cancel_after_select(*args: object, **kwargs: object) -> object:
+        result = original_cancel_exec(*args, **kwargs)
+        cancel_selected.set()
+        assert release_cancel.wait(timeout=5)
+        return result
+
+    def note_claim_start(*args: object, **kwargs: object) -> object:
+        claim_started.set()
+        return original_claim_exec(*args, **kwargs)
+
+    cancel_session.exec = pause_cancel_after_select  # type: ignore[method-assign]
+    claim_session.exec = note_claim_start  # type: ignore[method-assign]
+
+    def cancel() -> None:
+        try:
+            cancelled.append(
+                run_lifecycle.cancel_queued_runs(
+                    session=cancel_session, job_id=job.id or 0, now=now
+                )
+            )
+            cancel_session.commit()
+        except BaseException as error:
+            cancel_session.rollback()
+            errors.append(error)
+        finally:
+            cancel_session.close()
+
+    def claim() -> None:
+        try:
+            claimed.append(
+                run_lifecycle.claim_execution(
+                    session=claim_session, run_id=run.id or 0, now=now
+                )
+                is not None
+            )
+            claim_session.commit()
+        except BaseException as error:
+            claim_session.rollback()
+            errors.append(error)
+        finally:
+            claim_finished.set()
+            claim_session.close()
+
+    cancel_thread = Thread(target=cancel)
+    claim_thread = Thread(target=claim)
+    cancel_thread.start()
+    assert cancel_selected.wait(timeout=5)
+    claim_thread.start()
+    assert claim_started.wait(timeout=5)
+    try:
+        assert not claim_finished.wait(timeout=0.2)
+    finally:
+        release_cancel.set()
+        cancel_thread.join(timeout=5)
+        claim_thread.join(timeout=5)
+
+    assert not cancel_thread.is_alive()
+    assert not claim_thread.is_alive()
+    assert errors == []
+    assert cancelled == [1]
+    assert claimed == [False]
+    db.expire_all()
+    persisted = db.get(SchedulerRun, run.id)
+    assert persisted is not None
+    assert persisted.status is SchedulerRunStatus.CANCELLED
 
 
 def test_scheduler_alerts_reset_job_failure_and_overlap_throttles(
