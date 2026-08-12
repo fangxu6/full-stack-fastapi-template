@@ -1714,3 +1714,24 @@ Fenced SchedulerRun terminal writes with the execution lease, added stale-worker
 ### Status
 
 [OK] **Completed**
+
+
+## Session 57: Complete Trellis spec architecture refresh
+
+**Date**: 2026-08-12
+**Task**: Complete Trellis spec architecture refresh
+**Branch**: `master`
+
+### Summary
+
+Completed parent integration review for the 2026-08-07 Trellis spec refresh: all three child corrections were archived, active specs passed stale-term and consistency checks, and the parent task was archived.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `31ac58b` | (see git log) |
+
+### Status
+
+[OK] **Completed**
