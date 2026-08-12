@@ -1,53 +1,70 @@
-# Configure frontend query retry policy
+# Frontend Query Retry Policy
 
 ## Goal
 
-Make frontend read requests retry only transient failures, without retrying
-write operations or direct file downloads.
+Make frontend read requests resilient to transient failures without replaying
+writes, authentication failures, validation failures, downloads, or cancelled
+requests.
+
+## Confirmed Current State
+
+- The shared singleton `QueryClient` is owned by
+  `frontend/src/app/query-client.ts` and is provided by `frontend/src/main.tsx`.
+- TanStack Query v5's client default is three retries; the app now overrides it
+  with `shouldRetryQuery` and `queryRetryDelay`.
+- Generated OpenAPI `ApiError` does not retain response headers. The app-owned
+  `OpenAPI.interceptors.response` hook converts HTTP 429 responses into a
+  `RateLimitError` carrying the request method and `Retry-After` value without
+  editing generated client files.
+- Mutations retain TanStack Query's no-retry default. Scheduler queries with
+  `retry: false` remain authoritative per-query overrides.
+- Direct XLSX downloads use the generated request boundary and are outside
+  QueryClient retry behavior.
+- Implementation landed in `af11708` (`fix(frontend): scope automatic query
+  retries`).
 
 ## Requirements
 
-- Configure the shared TanStack Query client for at most two retries after the
-  initial request.
-- Retry network failures and HTTP 408, 429, and 5xx responses only.
-- Fail immediately for every other HTTP 4xx response.
-- Only retry `GET`, `HEAD`, and `OPTIONS` requests. Never retry an unknown or
-  write-method request, even when it was started through `useQuery`.
-- Never retry cancelled or aborted requests.
-- Use a 1-second delay before the first retry and a 2-second delay before the
-  second retry. For HTTP 429, a valid `Retry-After` response header overrides
-  the corresponding delay.
-- Accept both delta-seconds and HTTP-date `Retry-After` values only when the
-  resulting delay is between 0 and 30 seconds. Absent, invalid, past, or
-  over-limit values use the normal exponential backoff.
-- Preserve the existing per-query `retry: false` overrides and mutation
-  behavior.
-- Do not add a dependency or alter generated OpenAPI client files.
-- Do not add backend rate limiting or change the API contract. The frontend
-  must honor a `429` and `Retry-After` header when a service introduces them.
-- Do not add a global retry progress indicator or countdown. Existing loading
-  and error surfaces remain unchanged.
-- Do not add a global request timeout. This policy retries only failures
-  reported by the browser or server.
+1. Apply the shared policy only to QueryClient queries: maximum two retries
+   after the initial request, with 1,000 ms then 2,000 ms delays.
+2. Retry only `GET`, `HEAD`, and `OPTIONS` requests when the failure is a
+   response-less Axios network error or HTTP 408, 429, or 5xx.
+3. Fail immediately for HTTP 4xx other than 408/429, unknown methods, write
+   methods, cancelled requests, and aborted requests.
+4. For HTTP 429, accept `Retry-After` delta-seconds or HTTP-date only when the
+   computed delay is between 0 and 30 seconds inclusive; otherwise use the
+   normal retry delay.
+5. Preserve per-query `retry: false`, mutation no-retry behavior, existing
+   401/403 session handling, and current loading/error surfaces.
+6. Do not add dependencies, backend rate limiting, API schema changes, global
+   retry UI, countdowns, or a global request timeout.
 
 ## Acceptance Criteria
 
-- [ ] A query retries a network error, HTTP 408, HTTP 429, and HTTP 5xx error
-      at most two times.
-- [ ] A query does not retry HTTP 400, 401, 403, 404, or 422 errors.
-- [ ] A `POST`, `PUT`, `PATCH`, `DELETE`, or unknown-method request never
-      retries.
-- [ ] A cancelled or aborted request does not retry.
-- [ ] A valid `Retry-After` header controls the delay for HTTP 429.
-- [ ] Invalid or absent `Retry-After` values fall back to the normal retry
-      delay.
-- [ ] Both standard `Retry-After` formats are supported, and a delay longer
-      than 30 seconds falls back to the normal retry delay.
-- [ ] Existing scheduler queries with `retry: false` remain non-retrying.
-- [ ] A user-triggered query refetch receives a new two-retry budget.
-- [ ] Frontend type-check and focused tests pass.
+- [x] Network errors and HTTP 408, 429, and 5xx retry at most twice.
+- [x] HTTP 400, 401, 403, 404, and 422 do not retry.
+- [x] POST, PUT, PATCH, DELETE, and unknown-method requests do not retry.
+- [x] Cancelled and aborted requests do not retry.
+- [x] Valid delta-seconds and HTTP-date `Retry-After` values control 429 delay.
+- [x] Missing, invalid, past, or over-30-second values use 1,000/2,000 ms
+      backoff.
+- [x] Per-query `retry: false`, mutation behavior, and manual refetch retry
+      budgets remain intact.
+- [x] Focused retry tests pass; no generated client files or backend contracts
+      changed.
 
-## Notes
+## Out Of Scope
 
-- The current QueryClient has no default options, so read queries use TanStack
-  Query's broad default retry behavior. Mutations already default to no retry.
+- Retrying mutations or direct file downloads.
+- Client-side request timeouts, circuit breakers, global retry indicators, or
+  user-visible countdowns.
+- Backend rate limiting, `Retry-After` production policy, API schema changes,
+  or generated-client regeneration.
+
+## Decision
+
+Use one app-owned retry predicate and delay function at the QueryClient
+boundary. Keep 429 header capture in the existing OpenAPI response interceptor;
+do not alter generated transport code. This is the smallest boundary that
+protects all React Query consumers while preserving explicit per-query escape
+hatches.

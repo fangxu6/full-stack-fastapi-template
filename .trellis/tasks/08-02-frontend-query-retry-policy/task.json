@@ -2,7 +2,7 @@
   "id": "frontend-query-retry-policy",
   "name": "frontend-query-retry-policy",
   "title": "Configure frontend query retry policy",
-  "description": "Restrict frontend query retries to safe transient read failures.",
+  "description": "Restrict frontend query retries to safe transient read failures; implementation is complete and awaiting final quality verification.",
   "status": "in_progress",
   "dev_type": null,
   "scope": "frontend request reliability",
