@@ -26,15 +26,16 @@ implementation.
 | D-003 | Semantic change audit | High-value permission changes need durable, reusable evidence. | D-001, D-002 | Event model/migration, same-transaction writer, retention controls, tests. |
 | D-004 | Managed scheduled jobs | Recurring business work requires durable execution, idempotency, retry, and audit behavior. | D-001, D-002, D-003 | Job model, runner choice, operational controls, tests, rollback/runbook. |
 | D-005 | External API boundary | The system has no current need for a managed external-consumer API. ADR-0011 explicitly defers it; its completed planning artifacts are archived for future restoration. | D-001, D-002, D-003 | Restore and revalidate the archived plan, then provide consumer identity/scopes, rate limits/quotas, versioning, docs, audit, and contract tests only when the need is approved. |
-| D-007 | Business workflow platform | A generic workflow runtime should be driven by a real cross-role process, not framework speculation. | D-001, D-003, D-004 | First-process PRD, state machine, assignments/approvals, timeout/retry, work-item UI/API, tests. |
+| D-007 | Workflow capability YAGNI audit and abstraction triggers | Audit existing workflow-like capabilities and require a second concrete consumer before any shared runtime or abstraction. | D-001, D-003, D-004 | Capability inventory, reuse-vs-domain boundary, abstraction trigger criteria, and comparison validation. |
 | D-008 | Alert rule and notification delivery | D-002 defines only a channel-neutral alerting contract; no owned business signal has selected thresholds, recipients, escalation, retry, or delivery channel. | D-002 plus a concrete alert and approved response policy | Rule model, selected email/WeCom/Feishu/DingTalk/in-app adapter, delivery/retry semantics, tests, operations runbook. |
 | D-009 | External logging-platform operations | D-002 emits exporter-ready JSON but does not operate a collector, search, dashboard, reader access, or retention enforcement. | D-002 plus an operations-owned platform choice | Collector/export configuration, authorized reader access, 30-day production/14-day staging retention, dashboards, and runbooks. |
 
 ## Planning Child Status
 
-- D-003, D-007, D-008, and D-009 have linked planning children. Their current
-  PRDs record confirmed constraints and the product decisions required before
-  activation; none authorizes implementation.
+- D-003, D-008, and D-009 have linked planning children. Their current PRDs
+  record confirmed constraints and the product decisions required before
+  activation; none authorizes implementation. D-007 was evaluated and
+  deferred because no second concrete consumer exists.
 - D-005's planning child is archived under ADR-0011 because the system does
   not currently need this external API. Restore the archived task and
   revalidate its plan only when a concrete consumer need is approved.
@@ -49,7 +50,8 @@ implementation.
 3. D-003 Semantic change audit
 4. D-004 Managed scheduled jobs
 5. D-005 External API boundary
-6. D-007 Business workflow platform
+6. D-007 Workflow capability YAGNI audit and abstraction triggers (evaluated;
+   deferred until a second concrete consumer exists)
 7. D-008 Alert rule and notification delivery, once a concrete alert owner and
    response policy exist
 8. D-009 External logging-platform operations, once operations selects the
@@ -71,8 +73,9 @@ the shared contracts and validation scope are compatible.
 - Before D-005 is restored, the product owner must name the first external
   consumer and contractual API use case, then revalidate the archived plan
   against current code and operations under ADR-0011.
-- D-007 must name the first cross-role business process and its acceptance
-  conditions before selecting a workflow model or engine.
+- D-007 must audit the first concrete cross-role process and define the
+  evidence threshold before selecting a workflow model, engine, or shared
+  abstraction.
 - D-008 must name an important-business or timeout signal, an accountable
   recipient, escalation, and response policy before choosing a delivery adapter.
 - D-009 must enforce the D-002 JSON/retention/reader-access contract and test

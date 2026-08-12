@@ -1,1 +1,6 @@
 {"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/tasks/08-03-business-workflow-platform/research/inventory-workflow-handoff.md", "reason": "Completed inventory workflow evidence and explicit second-handler promotion gate."}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend placement and ownership boundaries for any future workflow implementation."}
+{"file": ".trellis/spec/backend/state-transition-guidelines.md", "reason": "Domain-local lifecycle matrix, concurrency, idempotency, and promotion constraints."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Backend-to-client/UI boundary and generated-client requirements."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend route, permission, generated-client, and page ownership rules."}

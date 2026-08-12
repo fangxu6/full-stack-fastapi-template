@@ -1,8 +1,8 @@
 {
   "id": "business-workflow-platform",
   "name": "business-workflow-platform",
-  "title": "Business workflow platform",
-  "description": "D-007: plan the first approved cross-role business workflow before selecting generic runtime mechanics.",
+  "title": "Workflow capability YAGNI audit and abstraction triggers",
+  "description": "D-007: audit existing workflow-like capabilities and define evidence required before any shared abstraction.",
   "status": "planning",
   "dev_type": null,
   "scope": null,

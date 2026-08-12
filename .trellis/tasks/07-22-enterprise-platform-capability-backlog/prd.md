@@ -44,7 +44,7 @@ required planning artifacts are reviewed.
 The dependency-aware order, stable IDs, and future planning gates are defined
 in [deferred-iterations.md](deferred-iterations.md): authorization foundation,
 structured observability, semantic change audit, managed scheduled
-jobs, external API boundary, and business workflow platform.
+jobs, external API boundary, and workflow capability YAGNI audit.
 
 ## Acceptance Criteria
 
