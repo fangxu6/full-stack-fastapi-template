@@ -330,3 +330,7 @@ Added domain-local state transition rules, normalized matrix naming, enum versus
 ## [2026-08-11 10:21:12] update | Document async user forms and Docker-free E2E mailbox
 
 Record reset-after-current-user form initialization and the Playwright loopback mailbox SMTP/HTTP contract.
+
+## [2026-08-12 14:07:22] update | Document OpenAPI generator upgrade boundary
+
+Recorded that @hey-api/openapi-ts upgrades are generated-contract migrations; the legacy/axios configuration produced zero files at 0.99.0 and must be migrated before Dependabot can update it.
