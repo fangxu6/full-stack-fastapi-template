@@ -32,10 +32,12 @@ implementation.
 
 ## Planning Child Status
 
-- D-003, D-008, and D-009 have linked planning children. Their current PRDs
-  record confirmed constraints and the product decisions required before
-  activation; none authorizes implementation. D-007 was evaluated and
-  deferred because no second concrete consumer exists.
+- D-003 and D-008 have linked planning children whose PRDs record confirmed
+  constraints and product decisions required before activation. D-009 was
+  evaluated and deferred because no usable logging platform or accountable
+  operations owner exists; its planning child must remain inactive until the
+  recorded promotion inputs are available. D-007 was evaluated and deferred
+  because no second concrete consumer exists.
 - D-005's planning child is archived under ADR-0011 because the system does
   not currently need this external API. Restore the archived task and
   revalidate its plan only when a concrete consumer need is approved.
