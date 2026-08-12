@@ -1777,3 +1777,35 @@ Completed and archived 08-02 frontend query retry policy planning artifacts; foc
 ### Status
 
 [OK] **Completed**
+
+
+## Session 60: Frontend dependency security repair
+
+**Date**: 2026-08-12
+**Task**: Frontend dependency security repair
+**Branch**: `master`
+
+### Summary
+
+Upgraded Axios to 1.19.0, removed the accidental npm lockfile, recorded the deferred OpenAPI generator migration and audit evidence, verified frontend quality gates, and archived the Trellis task.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `792a809` | (see git log) |
+| `b204aad` | (see git log) |
+| `db3ea53` | (see git log) |
+
+### Testing
+
+- [OK] bun ci, client generation, frontend build, lint, retry tests, quality hooks, task validation, and spec lint passed
+- [OK] Docker and Docker-backed Playwright validation blocked because docker is absent from PATH
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Create a dedicated OpenAPI generator plugin migration task before removing the Dependabot ignore
