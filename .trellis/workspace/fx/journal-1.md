@@ -1809,3 +1809,32 @@ Upgraded Axios to 1.19.0, removed the accidental npm lockfile, recorded the defe
 ### Next Steps
 
 - Create a dedicated OpenAPI generator plugin migration task before removing the Dependabot ignore
+
+
+## Session 61: Defer external logging platform operations
+
+**Date**: 2026-08-12
+**Task**: Defer external logging platform operations
+**Branch**: `master`
+
+### Summary
+
+Applied a Ponytail review to D-009, reduced it to an operations-owned promotion gate, and archived it because no usable logging platform or accountable owner exists.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e2d2eb9` | (see git log) |
+
+### Testing
+
+- [OK] Trellis task context validation and git diff check passed
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Restore or recreate D-009 only after operations supplies a platform, accountable owner, deployment topology, reader policy, and validation environment
