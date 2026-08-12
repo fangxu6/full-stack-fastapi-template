@@ -1735,3 +1735,24 @@ Completed parent integration review for the 2026-08-07 Trellis spec refresh: all
 ### Status
 
 [OK] **Completed**
+
+
+## Session 58: Defer workflow abstraction pending second consumer
+
+**Date**: 2026-08-12
+**Task**: Defer workflow abstraction pending second consumer
+**Branch**: `master`
+
+### Summary
+
+Evaluated D-007 with Ponytail: existing work-item, attempt, lease, idempotency, and audit mechanics remain domain/platform-local; no second consumer justifies a generic workflow engine, so the task was documented as deferred and archived.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ed3cd24` | (see git log) |
+
+### Status
+
+[OK] **Completed**

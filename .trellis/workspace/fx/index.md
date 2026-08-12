@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 57
+- **Total Sessions**: 58
 - **Last Active**: 2026-08-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1737 | Active |
+| `journal-1.md` | ~1758 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 58 | 2026-08-12 | Defer workflow abstraction pending second consumer | `ed3cd24` | `master` |
 | 57 | 2026-08-12 | Complete Trellis spec architecture refresh | `31ac58b` | `master` |
 | 56 | 2026-08-11 | Fence scheduler terminal outcomes | `d5fe2bd` | `master` |
 | 55 | 2026-08-11 | Harden state transition concurrency | `d7031fd`, `08695ec`, `d6ed3e6`, `e016e47` | `master` |
