@@ -2,8 +2,8 @@
   "id": "external-logging-platform-operations",
   "name": "external-logging-platform-operations",
   "title": "External logging-platform operations",
-  "description": "D-009: plan operations-owned collection, reader access, retention, and dashboards for structured logs.",
-  "status": "planning",
+  "description": "D-009: evaluated and deferred because no usable logging platform or accountable operations owner exists; reopen when the recorded promotion inputs are available.",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "fx",
   "assignee": "fx",
   "createdAt": "2026-08-03",
-  "completedAt": null,
+  "completedAt": "2026-08-12",
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "",
+  "notes": "2026-08-12: deferred in planning. Do not provision a platform, collector, temporary owner, or application-side substitute until operations supplies the approved platform, owner, topology, reader policy, and validation environment.",
   "meta": {}
 }

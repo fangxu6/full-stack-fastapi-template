@@ -63,15 +63,15 @@ Out of scope:
       separately own F-001, F-002, and F-003 through F-006.
 - [x] Each child records its complete source-backed findings, scope, explicit
       product-source exclusions, and testable acceptance criteria.
-- [ ] Every P1, P2, and P3 finding in the evidence register has a completed
+- [x] Every P1, P2, and P3 finding in the evidence register has a completed
       child-task correction and no active contradiction remains.
-- [ ] Cross-child integration confirms the hybrid backend, scheduler
+- [x] Cross-child integration confirms the hybrid backend, scheduler
       lifecycle, frontend permission, feature-boundary, and governance
       contracts are mutually consistent.
-- [ ] Child and final integration validation passes `spec_wiki.py lint`,
+- [x] Child and final integration validation passes `spec_wiki.py lint`,
       relevant stale-term searches, path-scoped task validation, and
       `git diff --check`.
-- [ ] The Trellis catalog and maintenance log describe the final spec tree.
+- [x] The Trellis catalog and maintenance log describe the final spec tree.
 
 ## Decisions And Constraints
 

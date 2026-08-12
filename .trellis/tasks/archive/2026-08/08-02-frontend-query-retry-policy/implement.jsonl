@@ -1,0 +1,3 @@
+{"file":".trellis/spec/frontend/state-management.md","reason":"Defines the QueryClient retry boundary, safe methods, bounded Retry-After handling, mutation defaults, and required unit coverage."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Defines frontend generated-client discipline, focused quality checks, and delivery-gate expectations."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Confirms that transport-only frontend behavior must preserve generated API boundaries and requires no client regeneration when backend contracts are unchanged."}

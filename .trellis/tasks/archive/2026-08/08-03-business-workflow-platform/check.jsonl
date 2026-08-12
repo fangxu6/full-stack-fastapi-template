@@ -1,0 +1,5 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/tasks/08-03-business-workflow-platform/research/inventory-workflow-handoff.md", "reason": "Check the D-007 boundary against the archived inventory contract."}
+{"file": ".trellis/spec/backend/state-transition-guidelines.md", "reason": "Review lifecycle matrices and concurrency semantics."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Review API/UI/generated-client boundary coverage."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Review frontend permission and route boundary requirements."}

@@ -1714,3 +1714,127 @@ Fenced SchedulerRun terminal writes with the execution lease, added stale-worker
 ### Status
 
 [OK] **Completed**
+
+
+## Session 57: Complete Trellis spec architecture refresh
+
+**Date**: 2026-08-12
+**Task**: Complete Trellis spec architecture refresh
+**Branch**: `master`
+
+### Summary
+
+Completed parent integration review for the 2026-08-07 Trellis spec refresh: all three child corrections were archived, active specs passed stale-term and consistency checks, and the parent task was archived.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `31ac58b` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 58: Defer workflow abstraction pending second consumer
+
+**Date**: 2026-08-12
+**Task**: Defer workflow abstraction pending second consumer
+**Branch**: `master`
+
+### Summary
+
+Evaluated D-007 with Ponytail: existing work-item, attempt, lease, idempotency, and audit mechanics remain domain/platform-local; no second consumer justifies a generic workflow engine, so the task was documented as deferred and archived.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ed3cd24` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 59: Complete frontend query retry policy task
+
+**Date**: 2026-08-12
+**Task**: Complete frontend query retry policy task
+**Branch**: `master`
+
+### Summary
+
+Completed and archived 08-02 frontend query retry policy planning artifacts; focused retry tests passed, build blocked only by missing installed @vitejs/plugin-react; preserved unrelated package-lock.json change.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3bbe69f` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 60: Frontend dependency security repair
+
+**Date**: 2026-08-12
+**Task**: Frontend dependency security repair
+**Branch**: `master`
+
+### Summary
+
+Upgraded Axios to 1.19.0, removed the accidental npm lockfile, recorded the deferred OpenAPI generator migration and audit evidence, verified frontend quality gates, and archived the Trellis task.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `792a809` | (see git log) |
+| `b204aad` | (see git log) |
+| `db3ea53` | (see git log) |
+
+### Testing
+
+- [OK] bun ci, client generation, frontend build, lint, retry tests, quality hooks, task validation, and spec lint passed
+- [OK] Docker and Docker-backed Playwright validation blocked because docker is absent from PATH
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Create a dedicated OpenAPI generator plugin migration task before removing the Dependabot ignore
+
+
+## Session 61: Defer external logging platform operations
+
+**Date**: 2026-08-12
+**Task**: Defer external logging platform operations
+**Branch**: `master`
+
+### Summary
+
+Applied a Ponytail review to D-009, reduced it to an operations-owned promotion gate, and archived it because no usable logging platform or accountable owner exists.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e2d2eb9` | (see git log) |
+
+### Testing
+
+- [OK] Trellis task context validation and git diff check passed
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Restore or recreate D-009 only after operations supplies a platform, accountable owner, deployment topology, reader policy, and validation environment
