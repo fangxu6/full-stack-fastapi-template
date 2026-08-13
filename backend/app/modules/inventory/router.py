@@ -36,7 +36,7 @@ router = APIRouter(prefix="/inventory", tags=["inventory"])
 XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
-async def _read_xlsx_upload(upload: UploadFile) -> bytes:
+def _read_xlsx_upload(upload: UploadFile) -> bytes:
     filename = upload.filename or ""
     if not filename.casefold().endswith(".xlsx"):
         raise ExcelValidationError(
@@ -51,7 +51,7 @@ async def _read_xlsx_upload(upload: UploadFile) -> bytes:
             ]
         )
     content = bytearray()
-    while chunk := await upload.read(1024 * 1024):
+    while chunk := upload.file.read(1024 * 1024):
         content.extend(chunk)
         if len(content) > MAX_XLSX_BYTES:
             raise ExcelValidationError(
@@ -98,7 +98,7 @@ def download_document_template(current_user: CurrentUser) -> Response:
     response_model=InventoryExcelImportPublic,
     status_code=status.HTTP_201_CREATED,
 )
-async def import_documents_from_excel(
+def import_documents_from_excel(
     *,
     session: AuditedWriteSessionDep,
     _current_user: CurrentUser,
@@ -107,7 +107,7 @@ async def import_documents_from_excel(
 ) -> InventoryExcelImportPublic:
     return importer.import_document_workbook(
         session=session,
-        content=await _read_xlsx_upload(workbook),
+        content=_read_xlsx_upload(workbook),
         allowed_document_types=document_types,
     )
 
@@ -118,15 +118,15 @@ async def import_documents_from_excel(
     response_model=LegacyInventoryExcelImportPublic,
     status_code=status.HTTP_201_CREATED,
 )
-async def import_legacy_workbooks_from_excel(
+def import_legacy_workbooks_from_excel(
     *,
     session: AuditedWriteSessionDep,
     _current_user: CurrentUser,
     raw_workbook: UploadFile = File(...),
     finished_workbook: UploadFile = File(...),
 ) -> LegacyInventoryExcelImportPublic:
-    raw_content = await _read_xlsx_upload(raw_workbook)
-    finished_content = await _read_xlsx_upload(finished_workbook)
+    raw_content = _read_xlsx_upload(raw_workbook)
+    finished_content = _read_xlsx_upload(finished_workbook)
     return importer.import_legacy_workbooks(
         session=session,
         raw_content=raw_content,

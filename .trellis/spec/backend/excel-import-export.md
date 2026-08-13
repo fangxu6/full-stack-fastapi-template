@@ -18,6 +18,11 @@
 - Accept only macro-free `.xlsx` uploads. Enforce the 10 MiB source size and
   10,000 nonblank data-row limits before domain persistence. `defusedxml` is a
   direct dependency so `openpyxl` parses untrusted XML defensively.
+- When an HTTP import performs synchronous workbook parsing or uses a
+  synchronous SQLModel session, declare the path operation and its upload
+  reader with `def`. Read `UploadFile.file` in bounded chunks so FastAPI runs
+  the full blocking flow in its threadpool; do not `await UploadFile.read()`
+  and then run synchronous parsing or persistence in an `async def` handler.
 - Extra columns are ignored. Missing or duplicate declared headers, malformed
   workbooks, and row validation failures use `ExcelValidationError` with
   `worksheet`, `row`, `column`, `field`, and `message` for each issue.

@@ -334,3 +334,7 @@ Record reset-after-current-user form initialization and the Playwright loopback 
 ## [2026-08-12 14:07:22] update | Document OpenAPI generator upgrade boundary
 
 Recorded that @hey-api/openapi-ts upgrades are generated-contract migrations; the legacy/axios configuration produced zero files at 0.99.0 and must be migrated before Dependabot can update it.
+
+## [2026-08-13 16:54:34] update | Keep blocking Excel imports off FastAPI event loop
+
+Documented that synchronous XLSX parsing and SQLModel persistence require synchronous path operations and bounded UploadFile.file reads.
