@@ -1838,3 +1838,24 @@ Applied a Ponytail review to D-009, reduced it to an operations-owned promotion 
 ### Next Steps
 
 - Restore or recreate D-009 only after operations supplies a platform, accountable owner, deployment topology, reader policy, and validation environment
+
+
+## Session 62: Fix blocking inventory Excel imports
+
+**Date**: 2026-08-13
+**Task**: Fix blocking inventory Excel imports
+**Branch**: `master`
+
+### Summary
+
+Moved synchronous XLSX parsing and SQLModel persistence into FastAPI sync threadpool handlers; added regression coverage and updated Excel import spec.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c96a941` | (see git log) |
+
+### Status
+
+[OK] **Completed**
