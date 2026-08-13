@@ -1844,17 +1844,44 @@ Applied a Ponytail review to D-009, reduced it to an operations-owned promotion 
 
 **Date**: 2026-08-13
 **Task**: Migrate required FastAPI file parameters
+## Session 62: Fix blocking inventory Excel imports
+
+**Date**: 2026-08-13
+**Task**: Fix blocking inventory Excel imports
 **Branch**: `master`
 
 ### Summary
 
 Migrated the three inventory XLSX UploadFile parameters to Annotated[UploadFile, File()], added missing-file 422 regression coverage, verified multipart OpenAPI requiredness, and recorded the backend type-safety convention.
+Moved synchronous XLSX parsing and SQLModel persistence into FastAPI sync threadpool handlers; added regression coverage and updated Excel import spec.
 
 ### Git Commits
 
 | Hash | Message |
 |------|---------|
 | `b4459fb` | (see git log) |
+| `c96a941` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 63: Migrate FastAPI query parameters to Annotated
+
+**Date**: 2026-08-13
+**Task**: Migrate FastAPI query parameters to Annotated
+**Branch**: `master`
+
+### Summary
+
+Migrated 29 route query declarations to FastAPI Annotated metadata, added an AST regression guard, preserved targeted OpenAPI parameters, and documented the default-placement convention.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `495a8d1` | (see git log) |
 
 ### Status
 

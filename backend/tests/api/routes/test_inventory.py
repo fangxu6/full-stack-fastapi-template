@@ -1,3 +1,4 @@
+import inspect
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -11,10 +12,19 @@ from sqlmodel import Session
 from app.core.config import settings
 from app.models import InventoryDocument
 from app.models.base import get_datetime_utc
+from app.modules.inventory.router import (
+    import_documents_from_excel,
+    import_legacy_workbooks_from_excel,
+)
 from app.schemas.inventory import InventoryLinePublic
 
 INVENTORY_PATH = f"{settings.API_V1_STR}/inventory"
 XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def test_excel_import_handlers_are_synchronous() -> None:
+    assert not inspect.iscoroutinefunction(import_documents_from_excel)
+    assert not inspect.iscoroutinefunction(import_legacy_workbooks_from_excel)
 
 
 def _decimal(value: object) -> Decimal:

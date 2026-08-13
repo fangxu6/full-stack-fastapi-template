@@ -1,0 +1,641 @@
+{
+  "/api/v1/items/": {
+    "get": [
+      {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "title": "Skip"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "maximum": 100,
+          "minimum": 1,
+          "default": 100,
+          "title": "Limit"
+        }
+      }
+    ],
+    "post": []
+  },
+  "/api/v1/inventory/correction-requests/mine": {
+    "get": [
+      {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "title": "Skip"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "maximum": 100,
+          "minimum": 1,
+          "default": 20,
+          "title": "Limit"
+        }
+      }
+    ]
+  },
+  "/api/v1/inventory/correction-requests/work-items": {},
+  "/api/v1/inventory/correction-requests": {
+    "post": []
+  },
+  "/api/v1/inventory/processing-units": {
+    "get": [
+      {
+        "name": "name",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 255
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Name"
+        }
+      },
+      {
+        "name": "is_active",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Is Active"
+        }
+      },
+      {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "title": "Skip"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "maximum": 100,
+          "minimum": 1,
+          "default": 20,
+          "title": "Limit"
+        }
+      }
+    ],
+    "post": []
+  },
+  "/api/v1/inventory/receiving-units": {
+    "get": [
+      {
+        "name": "name",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 255
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Name"
+        }
+      },
+      {
+        "name": "is_active",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Is Active"
+        }
+      },
+      {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "title": "Skip"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "maximum": 100,
+          "minimum": 1,
+          "default": 20,
+          "title": "Limit"
+        }
+      }
+    ],
+    "post": []
+  },
+  "/api/v1/inventory/documents": {
+    "post": [],
+    "get": [
+      {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "title": "Skip"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "maximum": 100,
+          "minimum": 1,
+          "default": 20,
+          "title": "Limit"
+        }
+      },
+      {
+        "name": "document_type",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/InventoryDocumentType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Document Type"
+        }
+      },
+      {
+        "name": "business_date_from",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Business Date From"
+        }
+      },
+      {
+        "name": "business_date_to",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Business Date To"
+        }
+      },
+      {
+        "name": "processing_unit_id",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Processing Unit Id"
+        }
+      },
+      {
+        "name": "receiving_unit_id",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Receiving Unit Id"
+        }
+      },
+      {
+        "name": "document_number",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Document Number"
+        }
+      },
+      {
+        "name": "include_deleted",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "boolean",
+          "default": false,
+          "title": "Include Deleted"
+        }
+      }
+    ]
+  },
+  "/api/v1/inventory/balances/raw": {
+    "get": [
+      {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "title": "Skip"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "maximum": 100,
+          "minimum": 1,
+          "default": 20,
+          "title": "Limit"
+        }
+      },
+      {
+        "name": "processing_unit_id",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Processing Unit Id"
+        }
+      },
+      {
+        "name": "item_name",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Item Name"
+        }
+      }
+    ]
+  },
+  "/api/v1/inventory/balances/finished": {
+    "get": [
+      {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "title": "Skip"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "maximum": 100,
+          "minimum": 1,
+          "default": 20,
+          "title": "Limit"
+        }
+      },
+      {
+        "name": "processing_unit_id",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Processing Unit Id"
+        }
+      },
+      {
+        "name": "item_name",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Item Name"
+        }
+      }
+    ]
+  },
+  "/api/v1/inventory/ledger": {
+    "get": [
+      {
+        "name": "ledger_kind",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/InventoryLedgerKind"
+        }
+      },
+      {
+        "name": "processing_unit_id",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Processing Unit Id"
+        }
+      },
+      {
+        "name": "item_name",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "title": "Item Name"
+        }
+      },
+      {
+        "name": "wool_content",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "title": "Wool Content"
+        }
+      },
+      {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "title": "Skip"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "maximum": 100,
+          "minimum": 1,
+          "default": 20,
+          "title": "Limit"
+        }
+      },
+      {
+        "name": "item_code",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Item Code"
+        }
+      },
+      {
+        "name": "color_code",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Color Code"
+        }
+      },
+      {
+        "name": "dye_lot_no",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dye Lot No"
+        }
+      }
+    ]
+  },
+  "/api/v1/scheduler/cron-preview": {
+    "get": [
+      {
+        "name": "cron_expression",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "title": "Cron Expression"
+        }
+      }
+    ]
+  },
+  "/api/v1/scheduler/jobs": {
+    "get": [
+      {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "title": "Skip"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "maximum": 100,
+          "minimum": 1,
+          "default": 20,
+          "title": "Limit"
+        }
+      },
+      {
+        "name": "include_deleted",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "boolean",
+          "default": false,
+          "title": "Include Deleted"
+        }
+      }
+    ],
+    "post": []
+  },
+  "/api/v1/scheduler/jobs/{job_id}/runs": {
+    "get": [
+      {
+        "name": "job_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "title": "Job Id"
+        }
+      },
+      {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "title": "Skip"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "maximum": 100,
+          "minimum": 1,
+          "default": 20,
+          "title": "Limit"
+        }
+      }
+    ]
+  }
+}

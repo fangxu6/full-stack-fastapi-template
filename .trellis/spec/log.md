@@ -335,6 +335,14 @@ Record reset-after-current-user form initialization and the Playwright loopback 
 
 Recorded that @hey-api/openapi-ts upgrades are generated-contract migrations; the legacy/axios configuration produced zero files at 0.99.0 and must be migrated before Dependabot can update it.
 
+## [2026-08-13 16:54:34] update | Keep blocking Excel imports off FastAPI event loop
+
+Documented that synchronous XLSX parsing and SQLModel persistence require synchronous path operations and bounded UploadFile.file reads.
+
+## [2026-08-13 20:51:20] update | Document FastAPI Annotated query parameters
+
+Route Query metadata uses Annotated while Python defaults stay in signatures to preserve requiredness and OpenAPI.
+
 ## [2026-08-13 20:56:45] update | Use Annotated for required FastAPI file uploads
 
 Required UploadFile parameters use Annotated[UploadFile, File()] without an Ellipsis default; validate omitted multipart fields and OpenAPI requiredness.

@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import AuditedWriteSessionDep, CurrentUser, ReadSessionDep
@@ -43,7 +45,7 @@ def _run(run: object) -> SchedulerRunPublic:
     response_model=SchedulerCronPreviewPublic,
 )
 def preview_cron(
-    cron_expression: str = Query(min_length=1, max_length=128),
+    cron_expression: Annotated[str, Query(min_length=1, max_length=128)],
 ) -> SchedulerCronPreviewPublic:
     base_at, next_run_ats = service.preview_cron(cron_expression=cron_expression)
     return SchedulerCronPreviewPublic(
@@ -60,8 +62,8 @@ def preview_cron(
 )
 def read_jobs(
     session: ReadSessionDep,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
     include_deleted: bool = False,
 ) -> SchedulerJobsPublic:
     jobs, count = service.list_jobs(
@@ -192,8 +194,8 @@ def backfill(
 def read_runs(
     job_id: int,
     session: ReadSessionDep,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> SchedulerRunsPublic:
     runs, count = service.list_runs(
         session=session, job_id=job_id, skip=skip, limit=limit

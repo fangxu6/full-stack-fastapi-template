@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/type-safety.md", "reason": "Check that the declaration-only refactor preserves route typing and generated OpenAPI contracts."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Check scope discipline, route behavior, client-sync decision, lint, type-check, and regression coverage."}
