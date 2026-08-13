@@ -1838,3 +1838,24 @@ Applied a Ponytail review to D-009, reduced it to an operations-owned promotion 
 ### Next Steps
 
 - Restore or recreate D-009 only after operations supplies a platform, accountable owner, deployment topology, reader policy, and validation environment
+
+
+## Session 62: Migrate required FastAPI file parameters
+
+**Date**: 2026-08-13
+**Task**: Migrate required FastAPI file parameters
+**Branch**: `master`
+
+### Summary
+
+Migrated the three inventory XLSX UploadFile parameters to Annotated[UploadFile, File()], added missing-file 422 regression coverage, verified multipart OpenAPI requiredness, and recorded the backend type-safety convention.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b4459fb` | (see git log) |
+
+### Status
+
+[OK] **Completed**
