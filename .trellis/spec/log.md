@@ -334,3 +334,7 @@ Record reset-after-current-user form initialization and the Playwright loopback 
 ## [2026-08-12 14:07:22] update | Document OpenAPI generator upgrade boundary
 
 Recorded that @hey-api/openapi-ts upgrades are generated-contract migrations; the legacy/axios configuration produced zero files at 0.99.0 and must be migrated before Dependabot can update it.
+
+## [2026-08-13 20:56:45] update | Use Annotated for required FastAPI file uploads
+
+Required UploadFile parameters use Annotated[UploadFile, File()] without an Ellipsis default; validate omitted multipart fields and OpenAPI requiredness.

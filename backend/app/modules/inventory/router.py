@@ -102,7 +102,7 @@ async def import_documents_from_excel(
     *,
     session: AuditedWriteSessionDep,
     _current_user: CurrentUser,
-    workbook: UploadFile = File(...),
+    workbook: Annotated[UploadFile, File()],
     document_types: Annotated[list[InventoryDocumentType] | None, Query()] = None,
 ) -> InventoryExcelImportPublic:
     return importer.import_document_workbook(
@@ -122,8 +122,8 @@ async def import_legacy_workbooks_from_excel(
     *,
     session: AuditedWriteSessionDep,
     _current_user: CurrentUser,
-    raw_workbook: UploadFile = File(...),
-    finished_workbook: UploadFile = File(...),
+    raw_workbook: Annotated[UploadFile, File()],
+    finished_workbook: Annotated[UploadFile, File()],
 ) -> LegacyInventoryExcelImportPublic:
     raw_content = await _read_xlsx_upload(raw_workbook)
     finished_content = await _read_xlsx_upload(finished_workbook)

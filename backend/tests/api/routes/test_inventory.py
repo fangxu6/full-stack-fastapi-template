@@ -783,6 +783,44 @@ def test_excel_document_template_and_import_create_multiple_documents(
     }
 
 
+@pytest.mark.parametrize(
+    ("endpoint", "missing_file", "files"),
+    [
+        (
+            "documents",
+            "workbook",
+            {"ignored": ("ignored.xlsx", b"", XLSX_MEDIA_TYPE)},
+        ),
+        (
+            "legacy",
+            "raw_workbook",
+            {"finished_workbook": ("finished.xlsx", b"", XLSX_MEDIA_TYPE)},
+        ),
+        (
+            "legacy",
+            "finished_workbook",
+            {"raw_workbook": ("raw.xlsx", b"", XLSX_MEDIA_TYPE)},
+        ),
+    ],
+)
+def test_excel_imports_require_uploaded_workbooks(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    endpoint: str,
+    missing_file: str,
+    files: dict[str, tuple[str, bytes, str]],
+) -> None:
+    response = client.post(
+        f"{INVENTORY_PATH}/excel/imports/{endpoint}",
+        headers=superuser_token_headers,
+        files=files,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", missing_file]
+    assert response.json()["request_id"]
+
+
 def test_excel_document_import_rolls_back_the_whole_workbook(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:

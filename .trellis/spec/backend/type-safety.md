@@ -63,6 +63,19 @@ Reference anchors:
 - Keep `models/*` imports focused on ORM entities and `schemas/*` imports
   focused on API DTOs.
 
+### FastAPI File Parameters
+
+Declare required file uploads with `Annotated` and an omitted Python default:
+
+```python
+workbook: Annotated[UploadFile, File()]
+```
+
+Do not use `UploadFile = File(...)`. `File()` preserves the multipart field
+metadata, while the missing default preserves requiredness. For an existing
+upload endpoint, verify the generated OpenAPI schema still marks every file
+field required and add a `422` regression test for each omitted field.
+
 ---
 
 ## Cross-Layer Contract

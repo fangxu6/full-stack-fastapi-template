@@ -3,7 +3,7 @@
   "name": "remove-fastapi-file-ellipsis",
   "title": "Remove Ellipsis from FastAPI file parameters",
   "description": "",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
