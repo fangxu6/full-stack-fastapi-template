@@ -3,7 +3,7 @@
   "name": "migrate-fastapi-query-annotated",
   "title": "Migrate FastAPI query parameters to Annotated",
   "description": "",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

@@ -177,10 +177,10 @@ def export_inventory_ledger(
 def read_processing_units(
     session: ReadSessionDep,
     current_user: CurrentUser,
-    name: str | None = Query(default=None, max_length=255),
-    is_active: bool | None = Query(default=None),
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=20, ge=1, le=100),
+    name: Annotated[str | None, Query(max_length=255)] = None,
+    is_active: Annotated[bool | None, Query()] = None,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> Any:
     del current_user
     return units.list_processing_units(
@@ -233,10 +233,10 @@ def update_processing_unit(
 def read_receiving_units(
     session: ReadSessionDep,
     current_user: CurrentUser,
-    name: str | None = Query(default=None, max_length=255),
-    is_active: bool | None = Query(default=None),
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=20, ge=1, le=100),
+    name: Annotated[str | None, Query(max_length=255)] = None,
+    is_active: Annotated[bool | None, Query()] = None,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> Any:
     del current_user
     return units.list_receiving_units(
@@ -303,8 +303,8 @@ def create_inventory_document(
 def read_inventory_documents(
     session: ReadSessionDep,
     current_user: CurrentUser,
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=20, ge=1, le=100),
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
     document_type: InventoryDocumentType | None = None,
     business_date_from: date | None = None,
     business_date_to: date | None = None,
@@ -389,8 +389,8 @@ def restore_inventory_document(
 def read_raw_balances(
     session: ReadSessionDep,
     current_user: CurrentUser,
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=20, ge=1, le=100),
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
     processing_unit_id: uuid.UUID | None = None,
     item_name: str | None = None,
 ) -> Any:
@@ -413,8 +413,8 @@ def read_raw_balances(
 def read_finished_balances(
     session: ReadSessionDep,
     current_user: CurrentUser,
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=20, ge=1, le=100),
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
     processing_unit_id: uuid.UUID | None = None,
     item_name: str | None = None,
 ) -> Any:
@@ -441,8 +441,8 @@ def read_inventory_ledger(
     processing_unit_id: uuid.UUID,
     item_name: str,
     wool_content: str,
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=20, ge=1, le=100),
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
     item_code: str | None = None,
     color_code: str | None = None,
     dye_lot_no: str | None = None,

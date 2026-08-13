@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.deps import AuditedWriteSessionDep, CurrentUser, SessionDep
@@ -42,8 +44,8 @@ def create_correction_request(
 def read_my_correction_requests(
     session: SessionDep,
     current_user: CurrentUser,
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=20, ge=1, le=100),
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> InventoryCorrectionRequestsPublic:
     return correction_service.list_mine(
         session=session,
@@ -61,8 +63,8 @@ def read_my_correction_requests(
 def read_correction_review_queue(
     session: SessionDep,
     current_user: CurrentUser,
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=20, ge=1, le=100),
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> InventoryCorrectionRequestsPublic:
     del current_user
     return correction_service.list_review_queue(session=session, skip=skip, limit=limit)
@@ -149,8 +151,8 @@ def withdraw_correction_request(
 def read_correction_recovery_queue(
     session: SessionDep,
     current_user: CurrentUser,
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=20, ge=1, le=100),
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> InventoryCorrectionWorkItemsPublic:
     del current_user
     return correction_service.list_recovery_queue(

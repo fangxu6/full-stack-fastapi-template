@@ -51,6 +51,9 @@ Reference anchors:
   `get_datetime_utc` in the model layer.
 - Keep nullable fields explicit with `| None`; do not rely on implicit optional
   behavior.
+- Declare FastAPI route query metadata with `Annotated[..., Query(...)]`.
+  Keep any parameter default in the function signature, not inside `Query`, so
+  requiredness, default values, and generated OpenAPI schemas stay explicit.
 - Use schema classes for API boundaries instead of route-local dictionaries.
 - Use typed service signatures instead of broad `dict[str, Any]` payloads when
   the shape is known.

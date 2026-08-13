@@ -1,5 +1,5 @@
 import uuid
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Query
 
@@ -15,8 +15,8 @@ router = APIRouter(prefix="/items", tags=["items"])
 def read_items(
     session: SessionDep,
     current_user: CurrentUser,
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=100, ge=1, le=100),
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 100,
 ) -> Any:
     """
     Retrieve items.

@@ -338,3 +338,7 @@ Recorded that @hey-api/openapi-ts upgrades are generated-contract migrations; th
 ## [2026-08-13 16:54:34] update | Keep blocking Excel imports off FastAPI event loop
 
 Documented that synchronous XLSX parsing and SQLModel persistence require synchronous path operations and bounded UploadFile.file reads.
+
+## [2026-08-13 20:51:20] update | Document FastAPI Annotated query parameters
+
+Route Query metadata uses Annotated while Python defaults stay in signatures to preserve requiredness and OpenAPI.
