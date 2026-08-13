@@ -19,7 +19,7 @@
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": "07-22-enterprise-platform-capability-backlog",
+  "parent": null,
   "relatedFiles": [],
   "notes": "2026-08-12: deferred in planning. Do not provision a platform, collector, temporary owner, or application-side substitute until operations supplies the approved platform, owner, topology, reader policy, and validation environment.",
   "meta": {}
