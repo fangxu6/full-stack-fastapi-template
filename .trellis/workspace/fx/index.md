@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 62
+- **Total Sessions**: 63
 - **Last Active**: 2026-08-13
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1861 | Active |
+| `journal-1.md` | ~1882 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 63 | 2026-08-13 | Migrate FastAPI query parameters to Annotated | `495a8d1` | `master` |
 | 62 | 2026-08-13 | Fix blocking inventory Excel imports | `c96a941` | `master` |
 | 61 | 2026-08-12 | Defer external logging platform operations | `e2d2eb9` | `master` |
 | 60 | 2026-08-12 | Frontend dependency security repair | `792a809`, `b204aad`, `db3ea53` | `master` |

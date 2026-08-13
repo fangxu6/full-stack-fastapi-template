@@ -1859,3 +1859,24 @@ Moved synchronous XLSX parsing and SQLModel persistence into FastAPI sync thread
 ### Status
 
 [OK] **Completed**
+
+
+## Session 63: Migrate FastAPI query parameters to Annotated
+
+**Date**: 2026-08-13
+**Task**: Migrate FastAPI query parameters to Annotated
+**Branch**: `master`
+
+### Summary
+
+Migrated 29 route query declarations to FastAPI Annotated metadata, added an AST regression guard, preserved targeted OpenAPI parameters, and documented the default-placement convention.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `495a8d1` | (see git log) |
+
+### Status
+
+[OK] **Completed**
