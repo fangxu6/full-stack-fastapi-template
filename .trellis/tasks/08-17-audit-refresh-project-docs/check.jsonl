@@ -1,0 +1,2 @@
+{"file":"docs/llm-wiki/SCHEMA.md","reason":"Check LLM-Wiki frontmatter, source traceability, navigation impact, and append-only log behavior."}
+{"file":".trellis/spec/guides/index.md","reason":"Check scoped documentation edits against shared repository guidance."}

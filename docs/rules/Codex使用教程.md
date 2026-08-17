@@ -81,7 +81,7 @@ Codex 不只有一种入口。不同入口适合不同工作方式。
 5. 运行与风险匹配的检查。
 6. 让 Codex 总结改动、验证结果、剩余风险。
 
-当前 Trellis/Codex 默认是 `inline`：主 Codex 会话直接实现和检查，不默认派发 `trellis-implement` 或 `trellis-check` 子代理。只有你明确要求并行或隔离工作时，才使用 subagent。
+当前 Trellis/Codex 默认是 `auto`：主会话负责协调，实施、检查和研究工作默认可派发给 `trellis-implement`、`trellis-check` 和 `trellis-research`。显式设置 `inline` 才由主会话直接实施和检查；旧值 `sub-agent` 仍兼容，但等同于 `auto`。
 
 ## 5. App 中怎么用
 

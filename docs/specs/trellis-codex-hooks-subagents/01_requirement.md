@@ -1,47 +1,41 @@
-# Requirement Spec - Trellis Codex Hooks And Subagents
+# Current Contract - Trellis Codex Hooks And Subagents
 
 ## Background
 
-- 当前项目已经接入 Trellis beta，并存在 `.codex/hooks.json`、`.codex/hooks/*.py`、`.codex/agents/*.toml`、`.trellis/workflow.md` 等 Codex/Trellis 集成文件。
-- 本轮讨论只完成了方案研究和 LLM-Wiki 知识沉淀，尚未真正实施 Codex hooks 与 Trellis subagent 的落地改造。
-- 后续仍需要在保持 `codex.dispatch_mode` 默认 `inline` 的前提下，补齐可选 `sub-agent` 模式的 hook、测试与文档化能力。
+- 项目已实现 Trellis/Codex 集成：`.codex/hooks.json` 注册工作流状态、子代理上下文和停止质量门禁；`.codex/hooks/*.py` 与 `.codex/agents/*.toml` 提供对应行为。
+- `.trellis/config.yaml` 与 `.codex/hooks/inject-workflow-state.py` 约定 `codex.dispatch_mode` 缺失时默认 `auto`；`inline` 是主会话直接实施/检查的显式退出模式，旧值 `sub-agent` 等同于 `auto`。
+- 本文保留当时的设计理由和验收边界，作为当前契约和后续回归检查的依据，不再是待实施方案。
 
-## Goals
+## Current Goals
 
-- 为后续实施 Trellis/Codex hooks 与 subagents 提供可接续的本地方案。
-- 明确 Codex hooks 与 Claude Code hooks 的差异，避免把 Claude 的 `PreToolUse(Task/Agent)` 直接迁移到 Codex。
-- 保持 Codex 默认 `inline`：主会话直接实现、检查，不默认派发 `trellis-implement` / `trellis-check`。
-- 在显式设置 `codex.dispatch_mode: sub-agent` 时，支持 Codex `SubagentStart` 为 Trellis subagents 注入或校验任务上下文。
-- 为 hooks 和 agent 配置补充测试，降低后续更新 Trellis 模板或平台配置时的回归风险。
+- 保持 Codex hooks 与 Claude Code hooks 的事件语义分离，避免把 Claude 的 `PreToolUse(Task/Agent)` 直接迁移到 Codex。
+- 在 `auto` 模式下，让 `SubagentStart` 为 Trellis 子代理提供任务上下文，并保留子代理自行加载任务上下文的后备路径。
+- 在 `inline` 模式下，由主会话直接实施和检查，不派发 implement/check 子代理。
+- 保持 hooks、agent 配置和调度语义可验证，避免 Trellis 模板或平台配置更新后静默漂移。
 
-## Scope
+## Current Scope
 
-- In scope:
-  - 规划 `.codex/hooks.json` 注册 `SessionStart`、`UserPromptSubmit`、可选 `SubagentStart` 的目标形态。
-  - 规划新增或完善 `.codex/hooks/inject-subagent-context.py`。
-  - 规划更新 `.codex/config.toml` 中关于 hooks 默认启用、可信项目、`/hooks` review 的说明。
-  - 规划补充 `.trellis/tests/` 或等价测试目录，覆盖 hook manifest、hook 输出、dispatch mode、agent recursion guard。
-  - 保留 `.codex/agents/trellis-research.toml`、`trellis-implement.toml`、`trellis-check.toml` 的 agent-pull fallback。
-  - 同步更新 `docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode.md` 中形成的 durable 决策。
-- Out of scope:
-  - 不默认修改 `.trellis/scripts`。
-  - 不默认启用 `codex.dispatch_mode: sub-agent`。
-  - 不实现 Ralph Loop、自动重派发、或通过 `SubagentStop` 强行关闭 subagent。
-  - 不复制 Claude Code 的 `PreToolUse` matcher `Task` / `Agent` 到 Codex。
+- `.codex/hooks.json` 当前注册 `UserPromptSubmit`、`SubagentStart` 和 `Stop`；`SubagentStop` 未默认注册。
+- `.codex/hooks/inject-subagent-context.py` 解析原生 `SubagentStart` 输入，为受支持的 Trellis 子代理注入 active task、任务 artifacts 和 JSONL 清单上下文。
+- `.codex/agents/trellis-research.toml`、`trellis-implement.toml`、`trellis-check.toml` 保留子代理角色和 child-side context fallback。
+- `docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode.md` 记录同一份可复用结论。
+
+## Out Of Scope
+
+- 不修改 `.trellis/scripts`，除非独立任务证明现有接口无法支持该集成。
+- 不通过 `SubagentStop` 自动关闭、重试或重派发子代理。
+- 不将 Claude Code 的 `PreToolUse` matcher `Task` / `Agent` 复制到 Codex。
 
 ## Acceptance Criteria
 
-- AC1: Codex 默认路径仍为 `inline`，不会在普通任务中派发 `trellis-implement` / `trellis-check`。
-- AC2: Codex hooks 配置使用官方事件语义：`PreToolUse` 只按工具名过滤，subagent 上下文使用 `SubagentStart`。
-- AC3: `SubagentStop` 不默认注册；如未来添加，只能用于日志或轻量校验，不做自动关闭或重试。
-- AC4: `SubagentStart` 对 `trellis-research|trellis-implement|trellis-check` 生效，并能提供 active task、任务 artifacts、JSONL manifest、recursion guard 等上下文。
-- AC5: 子代理在缺少 hook 注入时仍能通过 agent-pull fallback 读取 `task.py current --source`、`prd.md`、`design.md`、`implement.md`、`implement.jsonl` / `check.jsonl`。
-- AC6: 测试能在本地验证 hook JSON 结构、hook 脚本输出形态、dispatch mode 行为和 agent recursion guard。
+- AC1: 缺失 `codex.dispatch_mode` 时使用 `auto`；`sub-agent` 仍解析为 `auto`；无效显式值安全回退到 `inline`。
+- AC2: `PreToolUse` 仅按工具名过滤；Trellis 子代理上下文由 `SubagentStart` 处理。
+- AC3: `SubagentStop` 不默认注册；如未来添加，只能用于日志或轻量校验，不做生命周期控制。
+- AC4: `SubagentStart` 仅为 `trellis-research`、`trellis-implement`、`trellis-check` 提供上下文，且子代理不会递归派发 implement/check 角色。
+- AC5: native context injection 不可用时，子代理仍可从 active task、任务 artifacts 和 JSONL manifests 读取所需上下文。
 
 ## Constraints
 
-- Codex hooks 默认启用，但项目级 `.codex/` hooks 仍依赖项目 trusted 状态和 `/hooks` review。
+- 项目级 `.codex/` hooks 依赖项目 trusted 状态和 `/hooks` review。
 - `codex.dispatch_mode` 是 Trellis/Codex 本地约定，不是 OpenAI Codex 官方配置键。
-- Codex subagents 会产生额外 token 和执行复杂度，只在用户显式选择 `sub-agent` 时使用。
-- 当前活动 workflow-state 是 Codex inline，实施时不得违反 “Do not dispatch implement/check sub-agents in inline mode”。
-
+- `auto` 模式下子代理会消耗额外 token 和调度时间；上下文注入受 `.trellis/config.yaml` 中的大小限制约束。

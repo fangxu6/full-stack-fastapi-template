@@ -1,46 +1,40 @@
-# Test Spec - Trellis Codex Hooks And Subagents
+# Validation Spec - Trellis Codex Hooks And Subagents
 
 ## Validation Scope
 
-Validate that Codex/Trellis hook integration is configured correctly, produces valid hook output, preserves inline default behavior, and keeps subagent mode safe when explicitly enabled.
+Validate the deployed Codex/Trellis hook integration: its manifest, dispatch-mode normalization, native context injection, role recursion guard, and `inline` opt-out behavior.
 
-## Automated Tests
+## Automated Regression Targets
 
 - TC1: Hook manifest parses as JSON and contains `UserPromptSubmit`.
-- TC2: Hook manifest contains `SessionStart` with matcher `startup|resume|clear|compact` after implementation.
-- TC3: Hook manifest contains `SubagentStart` with matcher `trellis-research|trellis-implement|trellis-check` after implementation.
-- TC4: Hook manifest does not contain `SubagentStop` by default.
-- TC5: `inject-workflow-state.py` emits inline mode banner when `codex.dispatch_mode` is missing or invalid.
-- TC6: `inject-workflow-state.py` emits sub-agent mode banner only when `.trellis/config.yaml` explicitly sets `codex.dispatch_mode: sub-agent`.
-- TC7: `session-start.py` emits valid Codex hook JSON for startup/resume/clear/compact-like inputs.
-- TC8: `inject-subagent-context.py` ignores non-Trellis subagent types.
-- TC9: `inject-subagent-context.py` emits context for `trellis-implement` from active task artifacts and `implement.jsonl`.
-- TC10: `inject-subagent-context.py` emits context for `trellis-check` from active task artifacts and `check.jsonl`.
-- TC11: `inject-subagent-context.py` emits context for `trellis-research` and preserves research-only write guidance.
-- TC12: Agent TOML files keep `[features] multi_agent = false` and `[features.multi_agent_v2] enabled = false`.
+- TC2: Hook manifest contains `SubagentStart` with matcher `^(?:trellis-implement|trellis-check|trellis-research)$`.
+- TC3: Hook manifest contains `Stop` and does not contain `SubagentStop`.
+- TC4: `inject-workflow-state.py` emits the `auto` mode banner when `codex.dispatch_mode` is missing or `sub-agent`.
+- TC5: `inject-workflow-state.py` emits the `inline` mode banner only for explicit `inline` or an invalid explicit value.
+- TC6: `inject-subagent-context.py` ignores non-Trellis roles and context-less native start events.
+- TC7: `inject-subagent-context.py` emits bounded implement/check context from the matching JSONL manifest and task artifacts.
+- TC8: Injected Trellis role instructions prohibit recursive implementation/check dispatch.
+- TC9: Agent TOML files keep `[features] multi_agent = false` and `[features.multi_agent_v2] enabled = false`.
+
+## Current Coverage Note
+
+The current repository has no direct automated test covering the dispatch-mode resolver or native `SubagentStart` context injection. The targets above are regression requirements, not a claim that those tests already exist.
 
 ## Manual Verification
 
-- MV1: Start a trusted Codex session and confirm `/hooks` shows project hooks pending review or trusted.
-- MV2: In default inline mode, confirm workflow breadcrumbs say the main session implements/checks directly.
-- MV3: In default inline mode, confirm the main session does not dispatch `trellis-implement` or `trellis-check`.
-- MV4: Temporarily set `codex.dispatch_mode: sub-agent` in a controlled branch and confirm breadcrumbs switch to sub-agent mode.
-- MV5: Spawn a `trellis-research` agent and confirm it receives or can pull the active task and writes only under `{TASK_DIR}/research/`.
-- MV6: Spawn `trellis-implement` / `trellis-check` only in explicit sub-agent test mode and confirm they do not recursively spawn more agents.
-- MV7: Confirm completed subagents naturally return results to the parent; do not rely on `SubagentStop` for closure.
+- MV1: Start a trusted Codex session with no `codex.dispatch_mode` setting and confirm the workflow banner reports `auto`.
+- MV2: Start a Trellis role in `auto` mode and confirm `SubagentStart` receives the active task context or uses the documented child-side fallback.
+- MV3: Explicitly set `codex.dispatch_mode: inline` in a controlled branch and confirm the main session implements/checks directly without Trellis implement/check dispatch.
+- MV4: Set the legacy `sub-agent` value in a controlled branch and confirm it behaves as `auto`.
+- MV5: Confirm completed subagents return results to the parent without relying on `SubagentStop`.
 
 ## Regression Checks
 
-- RC1: `python ./.trellis/scripts/task.py current --source` still works.
-- RC2: Existing `.codex/hooks/inject-workflow-state.py` behavior remains backward-compatible.
+- RC1: `python3 ./.trellis/scripts/task.py current --source` still works.
+- RC2: `.codex/hooks.json` continues to scope `SubagentStart` to Trellis roles.
 - RC3: `.trellis/scripts` has no unrelated changes.
 - RC4: LLM-Wiki index still links `docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode.md`.
 
 ## Acceptance Review
 
-- Reviewers should compare implementation against:
-  - `docs/specs/trellis-codex-hooks-subagents/01_requirement.md`
-  - `docs/specs/trellis-codex-hooks-subagents/02_interface.md`
-  - `docs/specs/trellis-codex-hooks-subagents/03_implementation.md`
-  - `docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode.md`
-
+- Review this contract against `01_requirement.md`, `02_interface.md`, `03_implementation.md`, and `docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode.md`.

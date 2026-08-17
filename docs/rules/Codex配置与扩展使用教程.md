@@ -18,7 +18,7 @@
 | 控制哪些命令可在沙箱外运行 | `.codex/rules/*.rules` 或用户级 rules | 例如允许、提示或禁止某类命令 |
 | 可复用的任务流程 | skill | 例如 `kb-ingest`、`trellis-check` 这类操作流程 |
 
-本项目的默认原则是：能用 prompt 解决的不要写配置，能用 `AGENTS.md` 表达的不要写 hook，能 inline 完成的不要默认派发 subagent。
+本项目的默认原则是：能用 prompt 解决的不要写配置，能用 `AGENTS.md` 表达的不要写 hook；任务执行方式由 `.trellis/config.yaml` 的 `codex.dispatch_mode` 决定，不要假定默认是 `inline`。
 
 ## 2. 配置文件怎么放
 
@@ -48,15 +48,16 @@ Codex 有多层配置：
 
 ## 3. 本项目推荐的 Codex 工作模式
 
-当前仓库和 Trellis 的默认 Codex 模式是 `inline`：
+当前仓库和 Trellis 的默认 Codex 模式是 `auto`：
 
 ```text
-主 Codex 会话直接读取任务、规范和上下文，然后自己实施和检查。
+主 Codex 会话协调任务；Trellis 默认派发研究、实施和检查角色，
+由原生 SubagentStart 注入上下文，子代理仍保留自行加载任务上下文的后备路径。
 ```
 
-也就是说，普通开发任务不要默认派发 `trellis-implement` 或 `trellis-check` 子代理。
+需要主会话直接实施和检查时，才显式设置 `codex.dispatch_mode: inline`。
 
-只有当你明确需要并行、隔离上下文，或者让不同角色分别处理研究、实现、检查时，才考虑 `sub-agent` 模式。即使启用 subagent，也应该由用户明确要求，不能让配置悄悄改变默认行为。
+`sub-agent` 是兼容旧配置的别名，等同于 `auto`，不是第三种执行模式。缺失配置使用 `auto`；无效的显式值会安全回退到 `inline`。
 
 ## 4. Hooks 怎么用
 
@@ -261,9 +262,9 @@ forbidden > prompt > allow
 
 Codex 本身负责等待、收集和关闭子代理结果。`SubagentStop` 更适合做观察、记录或有限校验。把它当作自动关闭、自动重试或自动重派发机制，会让流程变得难以预测。
 
-### 8.4 什么时候应该启用 subagent？
+### 8.4 什么时候应该使用 `inline`？
 
-当任务确实可以拆成独立角色并行处理，且你愿意接受额外 token、等待时间和调度复杂度时，再启用。普通 Trellis 开发任务默认走 inline。
+无需设置即可使用默认 `auto`。只有任务必须在主会话连续迭代、或明确不希望派发实施和检查角色时，才设置 `inline`。`auto` 与旧值 `sub-agent` 都会走 Trellis 子代理调度。
 
 ### 8.5 Rules 和 Hooks 有什么区别？
 
@@ -275,7 +276,7 @@ Rules 解决“这个命令能不能在沙箱外运行”的问题。Hooks 解�
 - [ ] 选用的配置面足够小：prompt、`AGENTS.md`、config、hook、subagent、rules 没有混用。
 - [ ] 项目级配置没有包含个人密钥、代理地址、通知命令或 telemetry。
 - [ ] Hooks 的事件和 matcher 语义符合 Codex 官方行为。
-- [ ] Subagent 仍是显式使用，不改变本项目默认 inline 工作流。
+- [ ] `codex.dispatch_mode` 与预期一致：缺失值为 `auto`，`inline` 是显式退出，`sub-agent` 仅是兼容别名。
 - [ ] Rules 有 `justification`、`match` 和 `not_match`。
 - [ ] 更新后已经重启或新开会话，并完成必要的 `/hooks` review。
 

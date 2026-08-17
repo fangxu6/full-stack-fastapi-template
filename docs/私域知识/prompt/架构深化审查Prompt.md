@@ -33,7 +33,7 @@ rtk git log --oneline -12
 - CONTEXT.md
 - 与候选模块相关的 docs/adr/
 - 相关 .trellis/tasks/archive/ 任务记录
-- 项目已有的 CodeGraph 结果（如果仓库存在 .codegraph/）
+- 与候选模块相关的当前源码、调用方和测试检索结果
 
 请按以下顺序工作：
 

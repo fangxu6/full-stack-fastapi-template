@@ -1,75 +1,38 @@
-# Implementation Spec - Trellis Codex Hooks And Subagents
+# Implementation Record - Trellis Codex Hooks And Subagents
 
 ## Goal Summary
 
-Implement Codex hook support for Trellis context injection without changing the default Codex `inline` workflow. The implementation should make future `sub-agent` mode reliable while keeping inline mode simple and stable.
+The Codex hook integration is implemented. It provides Trellis context injection for native subagents while keeping `inline` available as an explicit main-session mode; missing dispatch configuration defaults to `auto`.
 
-## Planned Changes
+## Implemented Components
 
-- Add or update `.codex/hooks/inject-subagent-context.py`.
-- Update `.codex/hooks.json` to register:
-  - `SessionStart`
-  - `UserPromptSubmit`
-  - `SubagentStart`
-- Update `.codex/config.toml` comments so they match current Codex hook behavior:
-  - Hooks are enabled by default.
-  - Project hooks require trusted project config.
-  - Non-managed hooks require `/hooks` review before running.
-- Keep `.trellis/config.yaml` default effectively `inline`; do not uncomment or set `codex.dispatch_mode: sub-agent` by default.
-- Add tests under `.trellis/tests/` or another agreed test location for hook scripts and config shape.
-- Update LLM-Wiki pages if implementation decisions differ from this spec.
+- `.codex/hooks/inject-subagent-context.py` materializes role-specific JSONL context and task artifacts for native `SubagentStart` events.
+- `.codex/hooks.json` registers `UserPromptSubmit`, scoped `SubagentStart`, and `Stop` handlers.
+- `.codex/hooks/inject-workflow-state.py` normalizes `auto`, `inline`, and the `sub-agent` compatibility alias for both banner and breadcrumb behavior.
+- `.codex/agents/trellis-*.toml` keep role boundaries and child-side context fallback available if native injection is unavailable.
+- `.trellis/config.yaml` documents the default and payload-limit configuration comments.
 
-## Detailed Implementation Notes
+## Dispatch Mode Behavior
 
-### Hook Registration
+- `auto` (default): the main session coordinates; Trellis dispatches research, implementation, and check roles. Native `SubagentStart` injection is preferred and child-side loading is the fallback.
+- `inline`: the main session implements and checks directly. Do not dispatch implement/check subagents.
+- `sub-agent`: legacy alias for `auto`.
+- Invalid explicit values: safely use `inline`.
 
-- Prefer `hooks.json` over inline `[hooks]` in `.codex/config.toml` to avoid duplicate hook-source warnings.
-- Use git-root-stable commands if feasible, because Codex may start from a subdirectory.
-- Keep Windows-compatible command forms, using `python -X utf8`.
-- Do not add `SubagentStop` unless a future task defines an explicit audit-only contract.
+## Safety Rules
 
-### Subagent Context Hook
-
-- Use existing `.codex/hooks/session-start.py` and `.codex/hooks/inject-workflow-state.py` patterns for:
-  - repo root discovery
-  - safe file reads
-  - JSON output
-  - readable failure messages
-- Do not duplicate large Trellis task parsing logic when existing `.trellis/scripts/common/*` modules can be imported safely.
-- Treat missing active task as a visible context warning, not a hard crash.
-- Treat seed-only JSONL manifests as valid but low-context; subagents already have fallback instructions.
-
-### Dispatch Mode Behavior
-
-- `inline`:
-  - User prompt breadcrumbs should say the main session implements/checks directly.
-  - Main session should use `trellis-before-dev`, `trellis-check` skill, validation, `trellis-update-spec`, commit, and finish-work.
-  - Do not dispatch implement/check subagents.
-- `sub-agent`:
-  - User prompt breadcrumbs may instruct main session to dispatch Trellis subagents.
-  - Dispatch prompt must start with `Active task: <task path>`.
-  - `SubagentStart` may provide context, but each agent must retain agent-pull fallback.
-
-### Safety Rules
-
-- Do not modify `.trellis/scripts` unless tests prove an existing script cannot support the hook integration.
 - Do not add lifecycle behavior that automatically retries, redispatches, or closes subagents.
-- Preserve the current recursion guard in `.codex/agents/*.toml`.
-- Keep subagent multi-agent features disabled inside Trellis subagents.
+- Preserve the recursion guard in the injected native subagent context and keep subagent multi-agent features disabled.
+- Keep task-context byte limits in effect so automatic dispatch does not inject unbounded context.
 
-## Rollout Plan
+## Verification Status
 
-1. Add tests first for expected hook manifest and current hook outputs.
-2. Implement `inject-subagent-context.py`.
-3. Register `SessionStart` and `SubagentStart` in `.codex/hooks.json`.
-4. Update `.codex/config.toml` comments.
-5. Run tests and manually inspect `/hooks` state in Codex.
-6. Keep `codex.dispatch_mode` as `inline` unless explicitly testing subagent mode.
+- The hook manifest and implementation files above are the source of truth for the deployed behavior.
+- Repository inspection found no direct automated test covering `_resolve_codex_dispatch_mode` or native `SubagentStart` context injection. `04_test_spec.md` records the regression checks that should cover this contract when test coverage is added or refreshed.
 
 ## Non-Goals
 
 - No runtime application feature work.
 - No Trellis upstream template changes unless a separate task scopes template synchronization.
-- No default switch to subagent dispatch.
-- No Claude/Cursor/OpenCode hook changes in this Codex-focused task.
-
+- No automatic lifecycle control through `SubagentStop`.
+- No Claude/Cursor/OpenCode hook changes in this Codex-focused integration.

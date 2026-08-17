@@ -1,0 +1,2 @@
+{"file":"docs/llm-wiki/SCHEMA.md","reason":"LLM-Wiki traceability, frontmatter, index, and append-only log contract for the scoped documentation updates."}
+{"file":".trellis/spec/guides/index.md","reason":"Shared development guidance to load before editing repository documentation."}

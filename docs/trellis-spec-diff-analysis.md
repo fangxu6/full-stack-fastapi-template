@@ -207,7 +207,7 @@
 
 当前 `guides/code-reuse-thinking-guide.md` 已经很好：
 
-- 要先用 CodeGraph / `rg` 搜索。
+- 对已知路径、字面量和规范先直接读取或用窄范围 `rg` 检索。
 - 抽象条件和 false sharing 风险更贴合当前项目。
 - 后端 services/crud、前端 shared/features/platform 的边界清楚。
 

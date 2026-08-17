@@ -1,7 +1,7 @@
 ---
 title: Codex official configuration source
 created: 2026-06-07
-updated: 2026-06-07
+updated: 2026-08-17
 type: source
 tags:
   - llm-wiki
@@ -52,7 +52,7 @@ source_count: 5
 - Use hooks for deterministic lifecycle checks or context injection, especially when the behavior must happen around tool calls, prompts, session start, compaction, or subagent lifecycle events.
 - Use rules for command-execution policy outside the sandbox, not for general coding style or workflow narration.
 - Use custom agents for specialized subagent roles only when parallel or isolated work is worth the extra token and orchestration cost.
-- In this repository, keep Trellis `codex.dispatch_mode` inline unless a user explicitly opts into subagent dispatch. Source: [[docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode|Trellis Codex hooks and dispatch mode]].
+- This repository's dispatch behavior is a local Trellis contract, not an OpenAI Codex setting: missing `codex.dispatch_mode` defaults to `auto`, `inline` is an explicit opt-out, and `sub-agent` is a compatibility alias for `auto`. Source: [[docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode|Trellis Codex hooks and dispatch mode]], `.trellis/config.yaml`, and `.codex/hooks/inject-workflow-state.py`.
 
 ## Constraints And Risks
 

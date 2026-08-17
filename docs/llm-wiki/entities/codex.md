@@ -1,7 +1,7 @@
 ---
 title: Codex
 created: 2026-06-07
-updated: 2026-06-07
+updated: 2026-08-17
 type: entity
 tags:
   - llm-wiki
@@ -33,7 +33,7 @@ Codex is the coding-agent runtime used in this repository. Its durable customiza
 - Treat project-local `.codex/` behavior as trust-gated. Hooks, rules, and project config are skipped until the project layer is trusted.
 - Scope hooks by their native Codex matcher semantics. `PreToolUse` matches tool names; `SubagentStart` and `SubagentStop` match subagent type.
 - Use command rules to control commands outside the sandbox. Use hook scripts or Trellis skills for workflow context and validation.
-- Keep subagent workflows explicit. Codex only spawns subagents when asked, and this repository's Trellis default remains inline execution unless a user opts into subagent dispatch.
+- Trellis dispatch is a repository-local layer over Codex: missing `codex.dispatch_mode` uses `auto`, `inline` is an explicit opt-out, and legacy `sub-agent` is an alias for `auto`. Keep role boundaries and context limits explicit even when `auto` dispatches subagents.
 
 ## Local Integration Guidance
 

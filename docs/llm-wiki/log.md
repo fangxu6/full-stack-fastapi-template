@@ -1,7 +1,7 @@
 ---
 title: LLM-Wiki Log
 created: 2026-06-04
-updated: 2026-07-27
+updated: 2026-08-17
 type: log
 tags:
   - llm-wiki
@@ -78,3 +78,14 @@ Append new records at the end. Do not rewrite historical entries except for obvi
   evidence-first troubleshooting.
 - Updated the usage guide and repository AI R&D workflow to remove obsolete
   skill references.
+
+## [2026-08-17] maintenance | Refresh Codex and workflow documentation
+
+- Corrected active workflow documentation after CodeGraph-first guidance was
+  removed from Trellis specs; the maintained guidance now requires current
+  source inspection and narrow retrieval without mandating a replacement tool.
+- Updated Codex/Trellis docs and the durable dispatch query to reflect the
+  implemented local contract: `auto` is the default, `inline` is an explicit
+  opt-out, and `sub-agent` remains a compatibility alias.
+- Refreshed LLM-Wiki scope and affected page metadata without changing its
+  navigation or historical/raw source clippings.
