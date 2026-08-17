@@ -1907,3 +1907,24 @@ Replaced unconditional CodeGraph-first guidance with task-shape retrieval routin
 ### Status
 
 [OK] **Completed**
+
+
+## Session 66: Remove CodeGraph guidance from specs
+
+**Date**: 2026-08-17
+**Task**: Remove CodeGraph guidance from specs
+**Branch**: `master`
+
+### Summary
+
+Removed all tool-specific CodeGraph guidance and examples from Trellis specs, cleaned prior log references, and verified the spec tree has zero matches.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a62f1d3` | (see git log) |
+
+### Status
+
+[OK] **Completed**
