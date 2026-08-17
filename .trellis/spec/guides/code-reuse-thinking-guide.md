@@ -22,9 +22,17 @@ When you copy-paste or rewrite existing logic:
 
 ### Step 1: Search First
 
-Use CodeGraph first when you need to understand a code path or symbol impact in
-this indexed repository. Use `rg` for lightweight text checks, generated-file
-boundaries, and spec/document searches.
+Choose the smallest retrieval that can answer the question:
+
+- Known file/path, exact literal, migration, generated file, or spec/doc
+  lookup: read directly or use narrow `rg`.
+- Known symbol when callers or impact matter: use `codegraph node
+  <symbol-or-file>`.
+- Unknown ownership, multi-hop call path, cross-layer wiring, or dynamic
+  dispatch: use `codegraph explore "<symbols or question>"`.
+
+Fewer tool calls alone do not prove an improvement. Preserve answer quality
+and consider total retrieval cost, including context and follow-up lookups.
 
 ```bash
 codegraph explore "functionName domainKeyword"

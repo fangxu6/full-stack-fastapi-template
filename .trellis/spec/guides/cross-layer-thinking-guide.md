@@ -22,9 +22,22 @@ Common cross-layer bugs in this repo:
 
 ## Before Implementing Cross-Layer Features
 
-Use CodeGraph first to trace symbols and call paths in this indexed repository.
-Reserve `rg` for narrow text, specification, and link checks after the code
-boundary is understood.
+Choose the smallest retrieval that can answer the question:
+
+- Known file/path, exact literal, migration, generated file, or spec/doc
+  lookup: read directly or use narrow `rg`.
+- Known symbol when callers or impact matter: use `codegraph node
+  <symbol-or-file>`.
+- Unknown ownership, multi-hop call path, cross-layer wiring, or dynamic
+  dispatch: use `codegraph explore "<symbols or question>"`.
+
+Fewer tool calls alone do not prove an improvement. Preserve answer quality
+and consider total retrieval cost, including context and follow-up lookups.
+
+```bash
+codegraph node request_id
+codegraph explore "request_id"
+```
 
 ### Step 1: Map the Data Flow
 

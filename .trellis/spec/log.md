@@ -346,3 +346,7 @@ Route Query metadata uses Annotated while Python defaults stay in signatures to 
 ## [2026-08-13 20:56:45] update | Use Annotated for required FastAPI file uploads
 
 Required UploadFile parameters use Annotated[UploadFile, File()] without an Ellipsis default; validate omitted multipart fields and OpenAPI requiredness.
+
+## [2026-08-17 11:52:27] update | Route CodeGraph retrieval by task shape
+
+Documented the smallest-sufficient router for narrow reads, codegraph node, and conditional codegraph explore, with answer quality and total retrieval cost as the optimization criteria.
