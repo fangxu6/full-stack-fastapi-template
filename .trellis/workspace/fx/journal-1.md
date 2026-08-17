@@ -1928,3 +1928,24 @@ Removed all tool-specific CodeGraph guidance and examples from Trellis specs, cl
 ### Status
 
 [OK] **Completed**
+
+
+## Session 67: Refresh stale project documentation
+
+**Date**: 2026-08-17
+**Task**: Refresh stale project documentation
+**Branch**: `master`
+
+### Summary
+
+Updated active workflow, Codex/Trellis dispatch, hook-contract, and LLM-Wiki docs to reflect source inspection guidance and the auto-default dispatch contract; preserved historical and vendored material.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c945809` | (see git log) |
+
+### Status
+
+[OK] **Completed**
