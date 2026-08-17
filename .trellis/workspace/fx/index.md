@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 64
-- **Last Active**: 2026-08-13
+- **Total Sessions**: 65
+- **Last Active**: 2026-08-17
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1889 | Active |
+| `journal-1.md` | ~1909 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 65 | 2026-08-17 | Route CodeGraph retrieval guidance | `cf83b57` | `master` |
 | 64 | 2026-08-13 | Migrate FastAPI query parameters to Annotated | `495a8d1` | `master` |
 | 63 | 2026-08-13 | Fix blocking inventory Excel imports | `c96a941` | `master` |
 | 62 | 2026-08-13 | Migrate required FastAPI file parameters | `b4459fb` | `master` |

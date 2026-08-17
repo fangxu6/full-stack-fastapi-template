@@ -1886,3 +1886,24 @@ Migrated 29 route query declarations to FastAPI Annotated metadata, added an AST
 ### Status
 
 [OK] **Completed**
+
+
+## Session 65: Route CodeGraph retrieval guidance
+
+**Date**: 2026-08-17
+**Task**: Route CodeGraph retrieval guidance
+**Branch**: `master`
+
+### Summary
+
+Replaced unconditional CodeGraph-first guidance with task-shape retrieval routing, recorded the durable spec update, and verified Markdown/spec consistency.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cf83b57` | (see git log) |
+
+### Status
+
+[OK] **Completed**
