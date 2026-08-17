@@ -319,7 +319,7 @@ Updated the active async-task scenario to match the current thin tasks.py adapte
 ## [2026-08-10 10:16:46] update | Refresh frontend and guide spec contracts
 
 Updated permission-query, thin-route, action-capability, feature-boundary, and
-CodeGraph-first guidance. Preserved the hybrid backend and scheduler lifecycle
+guide navigation. Preserved the hybrid backend and scheduler lifecycle
 contracts while deferring backend-guide splitting without a concrete usability
 or duplicate-contract failure.
 
@@ -347,6 +347,6 @@ Route Query metadata uses Annotated while Python defaults stay in signatures to 
 
 Required UploadFile parameters use Annotated[UploadFile, File()] without an Ellipsis default; validate omitted multipart fields and OpenAPI requiredness.
 
-## [2026-08-17 11:52:27] update | Route CodeGraph retrieval by task shape
+## [2026-08-17 16:16:44] update | Simplify source inspection guidance
 
-Documented the smallest-sufficient router for narrow reads, codegraph node, and conditional codegraph explore, with answer quality and total retrieval cost as the optimization criteria.
+Removed retired tool-specific retrieval instructions from shared guides while retaining direct-read and narrow-search advice.
