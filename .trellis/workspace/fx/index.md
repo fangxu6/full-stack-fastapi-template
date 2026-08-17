@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 67
+- **Total Sessions**: 68
 - **Last Active**: 2026-08-17
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1951 | Active |
+| `journal-1.md` | ~1972 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 68 | 2026-08-17 | Add complex refactor planning prompt | `48d7596` | `master` |
 | 67 | 2026-08-17 | Refresh stale project documentation | `c945809` | `master` |
 | 66 | 2026-08-17 | Remove CodeGraph guidance from specs | `a62f1d3` | `master` |
 | 65 | 2026-08-17 | Route CodeGraph retrieval guidance | `cf83b57` | `master` |

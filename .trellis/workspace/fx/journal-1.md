@@ -1949,3 +1949,24 @@ Updated active workflow, Codex/Trellis dispatch, hook-contract, and LLM-Wiki doc
 ### Status
 
 [OK] **Completed**
+
+
+## Session 68: Add complex refactor planning prompt
+
+**Date**: 2026-08-17
+**Task**: Add complex refactor planning prompt
+**Branch**: `master`
+
+### Summary
+
+Added a reusable Chinese prompt template for evidence-led complex-refactor planning, conditional impact analysis, task-boundary decisions, and an explicit implementation approval gate.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `48d7596` | (see git log) |
+
+### Status
+
+[OK] **Completed**
