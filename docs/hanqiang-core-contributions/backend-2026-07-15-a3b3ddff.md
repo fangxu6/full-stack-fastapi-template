@@ -1,0 +1,25 @@
+# fix(scheduled-task): persist beat last-run baseline
+
+> 来源总览：[hanqiang 通用与核心提交整理](../hanqiang-core-contributions.md)
+
+## 提交信息
+
+- 仓库：`JSECommon`
+- SHA：`a3b3ddff`
+- 日期：`2026-07-15`
+- 分类：后端：计划任务、服务通信与外部集成
+- 原始主题：fix(scheduled-task): persist beat last-run baseline
+
+## 主要改动路径
+
+Celery Beat 运行基线持久化
+
+## 归档说明
+
+该提交满足总览的公共层筛选规则，按上述分类归档；路径为核心影响范围摘要，完整变更以 Git 历史为准。
+
+## 复核
+
+```bash
+git -C backend/JSECommon show --stat --oneline a3b3ddff
+```
