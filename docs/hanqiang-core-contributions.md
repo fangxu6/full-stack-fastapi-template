@@ -6,7 +6,7 @@
 
 ## 结论
 
-在本次可读取的历史中，筛出 **98 条**系统通用功能、通用组件或核心能力相关提交：后端 59 条、前端 39 条。它们集中在权限与身份、运行时与可观测性、文件与异步处理、通知、事件回调、审批流、计划任务、服务通信、外部集成，以及前端应用壳和通用组件。
+在本次可读取的历史中，筛出 **94 条**系统通用功能、通用组件或核心能力相关提交：后端 56 条、前端 38 条。它们集中在权限与身份、运行时与可观测性、文件与异步处理、通知、事件回调、审批流、计划任务、服务通信、外部集成，以及前端应用壳和通用组件。
 
 这不是作者全部提交的罗列。清单只收录满足下列任一条件的非合并提交：
 
@@ -60,10 +60,7 @@ git -C frontend/JSE_UI_AI show --stat --oneline <SHA>
 | [`3946d900`](hanqiang-core-contributions/backend-2025-12-17-3946d900.md) | 2025-12-17 | fix(security): 实现简化版SSRF防护（适用于局域网环境） | `app/utils/url_validator.py`、文件监控 API 调用器 |
 | [`438dedc8`](hanqiang-core-contributions/backend-2025-12-17-438dedc8.md) | 2025-12-17 | fix(security): 增强ReDoS防护（使用regex库+timeout） | `app/services/file_monitor/regex_matcher.py` |
 | [`4d848398`](hanqiang-core-contributions/backend-2025-12-17-4d848398.md) | 2025-12-17 | perf(file-processor): 异步I/O + 避免重复MD5计算 | `app/services/file_monitor/file_processor.py` |
-| [`5da1ecb8`](hanqiang-core-contributions/backend-2025-12-18-5da1ecb8.md) | 2025-12-18 | refactor(arch): 重构FileMonitor任务模块解耦职责 | `app/services/file_monitor/*_service.py`、`app/tasks/file_monitor_tasks.py` |
-| [`96de28ae`](hanqiang-core-contributions/backend-2025-12-18-96de28ae.md) | 2025-12-18 | refactor(arch): 重构FileProcessor解决上帝对象 | `app/services/file_monitor/{attachment_lifecycle_handler,file_upload_coordinator}.py` |
 | [`731b714f`](hanqiang-core-contributions/backend-2025-12-18-731b714f.md) | 2025-12-18 | refactor(structure): 移动依赖注入到 app/dependencies | `app/dependencies/file_monitor.py` |
-| [`80479603`](hanqiang-core-contributions/backend-2025-12-18-80479603.md) | 2025-12-18 | fix(arch): Service层通过CRUD层访问数据库 | 文件监控配置、邮件与 FTP CRUD 边界 |
 | [`d7a7858c`](hanqiang-core-contributions/backend-2025-12-18-d7a7858c.md) | 2025-12-18 | refactor(config): 拆分 ConfigService | `app/services/file_monitor/{config_factory,config_manager,config_service}.py` |
 | [`83211001`](hanqiang-core-contributions/backend-2025-12-18-83211001.md) | 2025-12-18 | refactor(api): 拆分 API Caller 长函数并完善文档 | `app/services/file_monitor/api_caller.py` |
 | [`3c10511b`](hanqiang-core-contributions/backend-2025-12-19-3c10511b.md) | 2025-12-19 | refactor(file): 优化配置验证模块 | `app/services/file_monitor/{config_validator,file_matcher}.py` |
@@ -74,7 +71,6 @@ git -C frontend/JSE_UI_AI show --stat --oneline <SHA>
 | SHA | 日期 | 原始主题 | 主要路径 |
 | --- | --- | --- | --- |
 | [`4d916409`](hanqiang-core-contributions/backend-2025-12-02-4d916409.md) | 2025-12-02 | 完成企业微信通知模块开发，完成IsActive/is_active->IsEnabled/is_enabled统一化改造。 | `app/services/wxwork/**`、`app/tasks/wxwork_tasks.py`、`app/utils/encryption.py` |
-| [`e5708f7e`](hanqiang-core-contributions/backend-2026-02-09-e5708f7e.md) | 2026-02-09 | 企业微信跳转后台地址由config配置 | `app/core/config.py`、环境配置文件 |
 | [`5b65edac`](hanqiang-core-contributions/backend-2026-06-10-5b65edac.md) | 2026-06-10 | fix: retry expired wxwork access tokens | 企微访问令牌刷新服务 |
 | [`ff4db2d4`](hanqiang-core-contributions/backend-2026-06-10-ff4db2d4.md) | 2026-06-10 | feat: support custom wxwork retry recipients | 企微重试接收人配置与通知服务 |
 | [`72589c64`](hanqiang-core-contributions/backend-2026-01-04-72589c64.md) | 2026-01-04 | 事件回调初版 | `app/services/event/**`、`app/tasks/callback_worker.py`、DataFile 回调 |
@@ -128,7 +124,6 @@ git -C frontend/JSE_UI_AI show --stat --oneline <SHA>
 
 | SHA | 日期 | 原始主题 | 主要路径 |
 | --- | --- | --- | --- |
-| [`5fcd5306`](hanqiang-core-contributions/frontend-2025-12-17-5fcd5306.md) | 2025-12-17 | 文件监控前端风格化完成 | `components/FileMonitor/**`、任务状态组件 |
 | [`c076b877`](hanqiang-core-contributions/frontend-2025-12-19-c076b877.md) | 2025-12-19 | refactor(frontend): 拆分 FileMonitor 前端大组件 | FileMonitor 表单分区、解析历史组合式函数与服务 |
 | [`88d8a596`](hanqiang-core-contributions/frontend-2026-01-04-88d8a596.md) | 2026-01-04 | 事件回调初版 | `components/event/**`、事件配置/日志页面与服务 |
 | [`9c55b00b`](hanqiang-core-contributions/frontend-2026-01-06-9c55b00b.md) | 2026-01-06 | 事件回调初版 | 事件回调前端流程与日志展示 |
