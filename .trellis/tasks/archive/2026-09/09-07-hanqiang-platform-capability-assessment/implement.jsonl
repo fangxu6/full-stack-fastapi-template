@@ -1,0 +1,3 @@
+{"file":".trellis/spec/backend/async-task-guidelines.md","reason":"评估事件回调、外部集成和现有 Scheduler 时遵守 Celery 只传 ID、至少一次投递、幂等和 Outbox 约束。"}
+{"file":".trellis/spec/backend/state-transition-guidelines.md","reason":"为候选事件、投递和审批能力定义领域本地状态迁移、并发、重试和陈旧结果边界。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"评估报告需要保留当前请求关联、统一错误契约和外部失败恢复要求。"}
