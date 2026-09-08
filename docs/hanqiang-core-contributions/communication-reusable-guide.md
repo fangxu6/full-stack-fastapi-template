@@ -93,4 +93,4 @@ rtk codegraph explore "ServiceCommunicationChainService list_chains get_chain_de
 rtk codegraph explore "ServiceCommunicationRecordManagement ServiceCommunicationChainListTable ServiceCommunicationRecordDetailDrawer"
 ```
 
-更详细的运行与接入说明见 [`docs/service-communication-integration.md`](service-communication-integration.md)；本文件重点是跨项目拆分、依赖顺序和验收边界。
+更详细的生产接入边界见 [`prod/prod-service-communication.md`](prod/prod-service-communication.md)；本文件重点是跨项目拆分、依赖顺序和验收边界。

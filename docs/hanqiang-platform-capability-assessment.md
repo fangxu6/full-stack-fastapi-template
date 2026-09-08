@@ -1,112 +1,108 @@
 # hanqiang 平台能力引入评估
 
-> 状态：评估完成，未实施。  
-> 依据：`docs/hanqiang-core-contributions/` 的可复用指南，以及当前模板的 CodeGraph 调用关系与源码。  
-> 定位：把本仓库发展为可扩展的平台底座，而不是复制另一套业务系统。
+> 状态：全量评估完成，未实施运行时代码。
+> 事实源：`docs/hanqiang-core-contributions/` 下的提交级文档、当前模板源码、`.trellis/spec/` 和 [全量能力矩阵](hanqiang-core-contributions/capability-matrix.md)。
 
-## 结论
+## 范围与证据
 
-可以引入，但应分期建设，且不重复实现已有底座。
+本轮逐文件复核目录中的 98 个提交级文档：后端 59 个、前端 39 个；另有 7 个历史汇总/复用指南。矩阵每行保留原始文件、SHA、主题、能力归属、复用结论、风险、决策和 prod 文档映射，没有用旧总索引的 94 条计数替代实际文件清单。
 
-当前模板已经有 IAM、请求关联、语义审计、带租约/重试的邮件 Outbox、Celery 和可配置 Scheduler。最合适的演进顺序是：
+矩阵决策统计如下：
 
-```text
-现有基础设施
-  -> 事件回调内核 + 最小出站 Webhook
-  -> 外部集成能力
-  -> 审批流（以真实业务作为第一个消费者）
-```
+| 决策 | 行数 | 含义 |
+| --- | ---: | --- |
+| `reuse-existing` | 42 | 当前模板已有接缝，只吸收契约、边界和验收要求 |
+| `candidate` | 16 | 有真实消费者后可独立建任务实施 |
+| `defer` | 40 | 有价值但缺少消费者、外部契约或前置安全能力 |
 
-服务通信、WeCom、文件监控等不应默认进入模板：它们只有在第二个独立服务、明确组织通知渠道或具体文件处理需求出现时才有价值。
+历史业务字段、FT/PMS 专属场景、页面展示细节和任意执行器没有升级成独立平台能力；它们只在矩阵中作为来源证据或风险说明保留。
 
-## 当前能力与文档候选
+## 当前模板基线
 
-| 能力 | 当前模板 | 引入结论 | 依据 |
+| 能力 | 当前事实 | 评估动作 |
+| --- | --- | --- |
+| IAM、RBAC、路由授权 | 已有 `backend/app/models/iam.py`、`backend/app/modules/iam/`，前端有集中 guards/navigation/permission helpers | 复用，不重建权限系统 |
+| 审计与请求关联 | 已有 `AuditEvent`、Request ID 和统一异常/日志链路 | 复用为所有未来能力的审计出口 |
+| 异步投递 | 已有 `EmailOutbox`、Celery；Worker 重新读取数据库事实 | 复用 Outbox、租约、重试原则，不把 Broker 确认为业务完成 |
+| 计划任务 | 已有 `SchedulerJob`/`SchedulerRun` 和调度模块 | 复用运行时，不搬运另一套通用 Scheduler |
+| 配置、密钥、Redis、锁 | 已有配置和基础运行时接缝；具体密钥/缓存策略按能力约束 | 复用现有边界，补 fail-fast、TLS、TTL 和轮换要求 |
+| 文件与库存基础能力 | 已有局部导入/导出和库存纠错模块 | 不据此宣称已有通用文件平台或审批内核 |
+| 前端应用壳 | 已有 `app/*`、`platform/*`、`features/*`、`shared/*` 分层、集中导航和生成 client | 复用现有壳、薄路由和交互韧性约束 |
+| 后端分层 | 已有 `core/*`、`infra/*`、service-first 和模块化边界 | 继续按最小复杂度升级，不复制历史目录/Mixin |
+
+## 能力决策
+
+| 能力 | 决策 | 当前缺口/引入条件 | Prod 契约 |
 | --- | --- | --- | --- |
-| 身份、角色和权限 | 已有 | 复用，不重建 | `backend/app/models/iam.py`、`backend/app/modules/iam/` |
-| 语义审计与请求关联 | 已有 | 复用为平台审计出口 | `backend/app/models/audit.py`、`backend/app/modules/audit/` |
-| 邮件投递 | 已有 | 复用为首个通知 Adapter，不泛化成消息平台 | `backend/app/models/email.py`、`backend/app/services/email_outbox.py` |
-| 异步与计划任务 | 已有 | 复用任务执行、恢复和告警约束，不搬运另一套 Scheduler | `backend/app/modules/scheduler/` |
-| 事件回调与 Webhook | 未发现 | 第一候选 | [事件回调平台](hanqiang-core-contributions/event-callback-platform-2026-01.md) |
-| 外部集成中心 | 未发现 | 第二候选，依赖事件日志与幂等投递 | [外部集成复用指南](hanqiang-core-contributions/external-integration-reusable-guide.md) |
-| 通用审批流 | 未发现 | 第三候选，以库存调整作为首个消费者 | [审批流复用指南](hanqiang-core-contributions/approval-flow-reusable-guide.md) |
-| 服务通信管理 | 未发现 | 暂缓，等待多服务事实需求 | [服务通信复用指南](hanqiang-core-contributions/communication-reusable-guide.md) |
-| WeCom 通知 | 未发现 | 暂缓，未来只作为通知 Adapter | [WeCom 复用指南](hanqiang-core-contributions/wecom-reusable-guide.md) |
-| 通用定时任务平台 | 已有等价能力 | 不引入；只吸收状态与恢复原则 | [定时任务复用指南](hanqiang-core-contributions/scheduled-task-reusable-guide.md) |
+| IAM 与权限导航 | `reuse-existing` | 只需保持服务端唯一授权、权限键、菜单和路由同步 | [IAM 与权限导航](hanqiang-core-contributions/prod/prod-iam-navigation.md) |
+| 配置、密钥、Redis 与分布式锁 | `reuse-existing` | 继续统一配置来源、密钥加载、Redis 用途和锁租约 | [配置、密钥、Redis 与锁](hanqiang-core-contributions/prod/prod-config-secrets-redis-locks.md) |
+| 审计、请求关联与可观测性 | `reuse-existing` | 统一 `AuditEvent`、Request ID、结构化日志和异步上下文 | [审计与可观测性](hanqiang-core-contributions/prod/prod-observability-audit.md) |
+| Durable 异步投递 | `reuse-existing` | 继续以数据库事实/Outbox 为准，明确任务状态与恢复 | [Durable 异步投递](hanqiang-core-contributions/prod/prod-durable-async.md) |
+| 计划任务运行时 | `reuse-existing` | 沿用 `SchedulerJob`/`SchedulerRun`，吸收 pending、基线、租约和告警规则 | [计划任务运行时](hanqiang-core-contributions/prod/prod-scheduler-runtime.md) |
+| 前端应用壳与交互韧性 | `reuse-existing` | 沿用分层、薄路由、Tab 隔离、有限懒加载恢复和 shared admission | [前端应用壳](hanqiang-core-contributions/prod/prod-frontend-shell.md) |
+| 后端模块分层与依赖边界 | `reuse-existing` | 仅在复杂度达到阈值时新增模块/Adapter/依赖入口 | [后端模块分层](hanqiang-core-contributions/prod/prod-module-boundaries.md) |
+| 通用枚举与参考数据 | `candidate` | 有跨域稳定代码/标签且需要受控管理时再建；需租户、唯一约束和缓存版本 | [通用枚举与参考数据](hanqiang-core-contributions/prod/prod-reference-data.md) |
+| 文件导入、导出与安全存储 | `candidate` | 有多个消费者或长期批处理需求时再统一批次、存储引用和错误恢复 | [文件导入、导出与安全存储](hanqiang-core-contributions/prod/prod-file-import-export.md) |
+| 事件回调与最小 Webhook | `candidate` | 至少一个真实领域事件和一个消费者；需事件幂等、投递审计和 SSRF 策略 | [事件回调与最小 Webhook](hanqiang-core-contributions/prod/prod-event-callback-webhook.md) |
+| 文件监控与远程抓取 | `defer` | 需要明确外部文件来源、对象存储、资源授权、Path Traversal/SSRF/ReDoS 方案 | [文件监控与远程抓取](hanqiang-core-contributions/prod/prod-file-monitor.md) |
+| 通知 Adapter | `defer` | 需要真实组织渠道、收件人策略、密钥轮换和通知 Outbox | [通知 Adapter](hanqiang-core-contributions/prod/prod-notification-adapters.md) |
+| 审批工作流 | `defer` | 需要真实多级/可配置审批消费者；库存纠错只能作为未来首个适配器 | [审批工作流](hanqiang-core-contributions/prod/prod-approval-workflow.md) |
+| 服务通信 | `defer` | 需要第二个独立服务、端点身份、跨服务 Trace 和审计 | [服务通信](hanqiang-core-contributions/prod/prod-service-communication.md) |
+| 外部集成中心 | `defer` | 需要固定入站/出站契约，且应依赖稳定事件日志和密钥治理 | [外部集成中心](hanqiang-core-contributions/prod/prod-external-integration.md) |
 
-库存调整已拆分为 `correction_router.py`、`correction_service.py`、`correction_workflow.py` 和 `correction_attempts.py`，因此适合作为未来审批流的试点；它不是审批内核的字段来源。
-
-## 推荐分期
+## 分期路线
 
 ### 0. 保持并复用现有底座
 
-后续平台任务必须直接使用以下事实源：
+所有未来任务直接复用 IAM、`AuditEvent`、Request ID、`EmailOutbox`、Celery、`SchedulerJob`/`SchedulerRun` 和现有前后端分层。新增能力不得创建平行权限、平行任务事实、平行 API 类型或跨域全局状态机。
 
-- 权限由 IAM 服务端校验；前端仅据此控制可见性。
-- 审计继续写入 `AuditEvent`，关联现有请求 ID 和操作者。
-- 可恢复的邮件副作用继续写入 `EmailOutbox`；不能把 Celery 入队视为投递成功。
-- Celery 任务仅接收 ID 或 JSON 可序列化上下文，在 Worker 中重新读取 PostgreSQL 事实。
-- Scheduler 保持 `SchedulerJob`/`SchedulerRun` 的领域所有权；事件和审批不得改写其运行状态。
+### 1. 按真实需求落地参考数据或文件导入导出
 
-这些约束已经覆盖了另一项目定时任务文档中最有价值的部分：持久化状态、执行租约、重试恢复和“已入队不等于已完成”。
+这两项能力可以独立于事件平台启动，但必须先确认至少两个消费者或明确的长期导入需求。首版只做稳定代码/标签或批次导入的最小契约，不复制历史业务字段、FTP 业务目录或页面组件。
 
-### 1. 事件回调内核与最小出站 Webhook
+### 2. 事件回调内核与最小出站 Webhook
 
-这是第一个建议实施的独立任务，但仅在出现至少一个真实领域事件和一个真实消费者时启动。
+当出现真实领域事件和消费者时，新建独立 Trellis 任务。业务模块只发布事件快照和关联上下文；平台负责提交后登记、投递、租约、重试、死信、审计和受控 HTTP。首版不包含任意 Python 路径、完整 JSONPath 方言、级联事件或复杂编排器。
 
-建议对业务模块暴露一个小接口：发布事件代码、事件快照和关联上下文；模块不直接发 HTTP、不直接访问 Celery，也不自行维护回调状态。平台内部负责：
+### 3. 外部集成中心
 
-1. 保存待处理的事件/回调日志并生成 Trace；
-2. 提交后投递后台执行；
-3. 按固定顺序执行内部动作或经白名单的出站 HTTP；
-4. 持久化尝试、错误摘要、重试和死信/人工重放信息。
+仅在事件内核稳定且外部契约固定后建设。服务端拥有 schema、字段目录、条件运算符、版本和密钥绑定；前端只编辑结构化配置。入站需认证/幂等键，出站需超时/重试/响应摘要和投递记录。
 
-首版刻意不包括任意 Python 函数路径、完整 JSONPath 方言、级联事件、复杂可视化编辑器或多种消息渠道。先以一个稳定的事件类型和一个经服务端验证的 Webhook Adapter 验证接缝。
+### 4. 审批流试点
 
-**实施门槛**：事件日志有唯一/幂等边界；提交失败不产生投递；投递失败可恢复；重复消息不重复执行非幂等副作用；敏感字段在日志和管理接口中脱敏；外部 URL 受协议、解析地址、端口、重定向和网络出口策略约束。
+仅在业务确实需要多级或可配置审批时建设，以一个业务适配器验证流程版本、节点实例、待办、动作、超时和审计。库存纠错拥有业务状态和字段，审批内核只消费快照和命令；通知/集成副作用通过事件出口发生。
 
-### 2. 外部集成能力
+### 5. 条件触发的暂缓能力
 
-仅在事件内核已稳定后建设。目标不是“任意 HTTP 配置器”，而是有版本、密钥、审计和固定业务契约的集成模块。
+文件监控、通知 Adapter、服务通信分别等待自身事实需求，不提前创建占位 API、配置页面、密钥字段或后台菜单。每项启动门槛、依赖、禁止范围和未来拆分见对应 prod 文档。
 
-- 入站：固定请求/响应信封、严格 JSON 限制、认证/幂等键、处理租约和审计。
-- 出站：受控 HTTP Profile、超时、Header/Body 映射、响应摘要、幂等键和投递尝试记录。
-- 条件：后端是唯一判定者；前端编辑器只是辅助，字段目录和运算符由服务端白名单提供。
-- 配置更新：并发版本冲突明确返回，密钥和敏感绑定永不回显。
+## 生产落地共同门槛
 
-不要在这一步复刻另一项目中与 FT 设备事件、区域字段或特定业务场景相关的映射。
+任何候选或暂缓能力在进入代码前必须新建独立 Trellis 任务，并提供：
 
-### 3. 审批流
+- 领域所有权、数据模型、状态迁移矩阵、数据库约束和租户边界；
+- API/事件/任务/前端契约，以及错误响应中的 `detail` 和 `request_id`；
+- 服务端权限、敏感数据脱敏、输入校验和威胁模型；
+- 幂等键、条件更新/锁、租约、超时、重试、死信和人工恢复；
+- 审计事件、结构化日志、Request ID/Trace、指标、告警和容量上限；
+- 配置/密钥来源、迁移与兼容窗口、发布、灰度和回滚；
+- 单元、集成、API、UI、失败副作用和跨层回归验收。
 
-审批内核应等到真实业务有多级、可配置审批需求时再创建。库存调整是首个可验证的候选消费者，但审批内核只接收业务代码、业务快照和适配器命令。
+如果修改后端公开 schema，必须同步生成前端 client；如果变更路由或权限，必须同时验证服务端授权、前端 guards、菜单可见性和重定向。
 
-未来任务的最小范围应包括工作流版本、节点实例、待办分配、审批动作、流程审计和超时扫描；串行、AND/OR 并行、退回、重提、催办和可视化编排按真实需求逐项加入。
+## 不复制的历史实现
 
-每个流程、节点和投递状态必须有领域本地的状态迁移矩阵，明确权限、行锁/条件更新、重复命令、超时与陈旧 Worker 结果的行为。审批完成后的通知或外部副作用只通过第一阶段的事件接口发生。
+- 不复制另一项目的业务字段、目录、PascalCase 命名、Mixin 形状或 FT/PMS 场景；
+- 不允许任意 Python 路径、任意表达式、任意 URL、任意回调函数或前端条件解释器；
+- 不把前端按钮可见、Broker 入队、HTTP 2xx 或通知发送当作业务事实成功；
+- 不以用户名/前端权限绕过服务端 IAM，不以日志/缓存替代审计和数据库事实；
+- 不在没有消费者时提前建设 WeCom、服务通信、文件监控、审批或全量集成管理 UI。
 
-## 不应复制的内容
+## 文档入口与来源
 
-- 不以另一项目的目录、Mixin 拆分、字段命名或业务对象为模板契约。
-- 不创建跨领域的全局状态机、通用 `ALL_TRANSITIONS` 或允许配置任意 Python 调用的执行器。
-- 不为了“以后可能用到”提前建设 WeCom、服务通信后台、文件监控或全量集成管理 UI。
-- 不把前端权限、Broker 确认或 HTTP 2xx 当成业务状态成功。
+- [全量能力矩阵](hanqiang-core-contributions/capability-matrix.md)：98 个提交逐文件映射；
+- [prod 文档索引](hanqiang-core-contributions/prod/index.md)：15 项归并能力的生产契约；
+- [hanqiang 提交总索引](hanqiang-core-contributions.md)：历史分组、主要路径和 Git 复核命令；
+- 7 份历史专题/复用指南继续作为证据附录，不替代矩阵和 prod 契约。
 
-## 后续任务与验收门槛
-
-| 后续任务 | 开始条件 | 完成时至少验证 |
-| --- | --- | --- |
-| 事件回调与 Webhook | 一个真实事件和一个外部/内部消费者 | 幂等、失败恢复、执行审计、SSRF 防护、权限与脱敏 |
-| 外部集成 | 已有稳定事件日志；有固定外部契约 | 版本冲突、认证、入站幂等、出站超时/重试、审计 |
-| 审批流试点 | 业务需要多级或可配置审批 | 状态矩阵、并发审批、超时、审计、业务适配器隔离 |
-| WeCom Adapter | 组织明确采用 WeCom | Token 生命周期、收件人去重、投递日志和人工重试 |
-| 服务通信管理 | 出现第二个独立服务 | 端点身份、调用链、失败重试和跨服务审计 |
-
-对于任何 API 面的实施任务，另建 Trellis 子任务并提供数据库迁移、OpenAPI/前端类型更新、最小端到端用例和回滚说明；本报告本身不代表上述能力已经存在。
-
-## 参考
-
-- [hanqiang 通用与核心提交整理](hanqiang-core-contributions.md)
-- [事件回调平台](hanqiang-core-contributions/event-callback-platform-2026-01.md)
-- [外部集成中心可复用实现指南](hanqiang-core-contributions/external-integration-reusable-guide.md)
-- [审批流可复用实现指南](hanqiang-core-contributions/approval-flow-reusable-guide.md)
-- [通用定时任务平台复用指南](hanqiang-core-contributions/scheduled-task-reusable-guide.md)
+后续代码任务必须引用对应矩阵来源和 prod 文档，并在任务自身的 PRD、design、implement 中重新确认当前源码事实；本评估不代表任何候选或暂缓能力已经实现。

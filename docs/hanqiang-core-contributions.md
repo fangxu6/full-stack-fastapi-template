@@ -1,12 +1,12 @@
 # hanqiang 通用与核心提交整理
 
-> 生成日期：2026-09-01  
-> 作者：`hanqiang <240448317@qq.com>`  
+> 生成日期：2026-09-01
+> 作者：`hanqiang <240448317@qq.com>`
 > 范围：`backend/JSECommon`、`frontend/JSE_UI_AI` 的全部可达 Git 引用（`--all`）
 
 ## 结论
 
-在本次可读取的历史中，筛出 **94 条**系统通用功能、通用组件或核心能力相关提交：后端 56 条、前端 38 条。它们集中在权限与身份、运行时与可观测性、文件与异步处理、通知、事件回调、审批流、计划任务、服务通信、外部集成，以及前端应用壳和通用组件。
+在本次可读取的历史中，筛出 **98 条**系统通用功能、通用组件或核心能力相关提交：后端 59 条、前端 39 条。它们集中在权限与身份、运行时与可观测性、文件与异步处理、通知、事件回调、审批流、计划任务、服务通信、外部集成，以及前端应用壳和通用组件。全集以目录中的提交级文件为准，逐文件决策见[能力矩阵](hanqiang-core-contributions/capability-matrix.md)。
 
 这不是作者全部提交的罗列。清单只收录满足下列任一条件的非合并提交：
 
@@ -60,9 +60,12 @@ git -C frontend/JSE_UI_AI show --stat --oneline <SHA>
 | [`3946d900`](hanqiang-core-contributions/backend-2025-12-17-3946d900.md) | 2025-12-17 | fix(security): 实现简化版SSRF防护（适用于局域网环境） | `app/utils/url_validator.py`、文件监控 API 调用器 |
 | [`438dedc8`](hanqiang-core-contributions/backend-2025-12-17-438dedc8.md) | 2025-12-17 | fix(security): 增强ReDoS防护（使用regex库+timeout） | `app/services/file_monitor/regex_matcher.py` |
 | [`4d848398`](hanqiang-core-contributions/backend-2025-12-17-4d848398.md) | 2025-12-17 | perf(file-processor): 异步I/O + 避免重复MD5计算 | `app/services/file_monitor/file_processor.py` |
+| [`5da1ecb8`](hanqiang-core-contributions/backend-2025-12-18-5da1ecb8.md) | 2025-12-18 | refactor(arch): 重构FileMonitor任务模块解耦职责 | `app/services/file_monitor/**` |
 | [`731b714f`](hanqiang-core-contributions/backend-2025-12-18-731b714f.md) | 2025-12-18 | refactor(structure): 移动依赖注入到 app/dependencies | `app/dependencies/file_monitor.py` |
+| [`80479603`](hanqiang-core-contributions/backend-2025-12-18-80479603.md) | 2025-12-18 | fix(arch): Service层通过CRUD层访问数据库 | 文件监控、邮件与FTP CRUD边界 |
 | [`d7a7858c`](hanqiang-core-contributions/backend-2025-12-18-d7a7858c.md) | 2025-12-18 | refactor(config): 拆分 ConfigService | `app/services/file_monitor/{config_factory,config_manager,config_service}.py` |
 | [`83211001`](hanqiang-core-contributions/backend-2025-12-18-83211001.md) | 2025-12-18 | refactor(api): 拆分 API Caller 长函数并完善文档 | `app/services/file_monitor/api_caller.py` |
+| [`96de28ae`](hanqiang-core-contributions/backend-2025-12-18-96de28ae.md) | 2025-12-18 | refactor(arch): 重构FileProcessor解决上帝对象 | `app/services/file_monitor/{attachment_lifecycle_handler,file_upload_coordinator}.py` |
 | [`3c10511b`](hanqiang-core-contributions/backend-2025-12-19-3c10511b.md) | 2025-12-19 | refactor(file): 优化配置验证模块 | `app/services/file_monitor/{config_validator,file_matcher}.py` |
 | [`75a213a7`](hanqiang-core-contributions/backend-2025-12-19-75a213a7.md) | 2025-12-19 | refactor(core): config/logging/celery improvements + archive backup | `app/core/{celery_app,config,logging}.py`、归档备份服务 |
 
@@ -73,6 +76,7 @@ git -C frontend/JSE_UI_AI show --stat --oneline <SHA>
 | [`4d916409`](hanqiang-core-contributions/backend-2025-12-02-4d916409.md) | 2025-12-02 | 完成企业微信通知模块开发，完成IsActive/is_active->IsEnabled/is_enabled统一化改造。 | `app/services/wxwork/**`、`app/tasks/wxwork_tasks.py`、`app/utils/encryption.py` |
 | [`5b65edac`](hanqiang-core-contributions/backend-2026-06-10-5b65edac.md) | 2026-06-10 | fix: retry expired wxwork access tokens | 企微访问令牌刷新服务 |
 | [`ff4db2d4`](hanqiang-core-contributions/backend-2026-06-10-ff4db2d4.md) | 2026-06-10 | feat: support custom wxwork retry recipients | 企微重试接收人配置与通知服务 |
+| [`e5708f7e`](hanqiang-core-contributions/backend-2026-02-09-e5708f7e.md) | 2026-02-09 | 企业微信跳转后台地址由config配置 | `app/core/config.py`、环境配置文件 |
 | [`72589c64`](hanqiang-core-contributions/backend-2026-01-04-72589c64.md) | 2026-01-04 | 事件回调初版 | `app/services/event/**`、`app/tasks/callback_worker.py`、DataFile 回调 |
 | [`66ae2419`](hanqiang-core-contributions/backend-2026-01-06-66ae2419.md) | 2026-01-06 | 事件回调初版 | 事件路由、调度器、回调 Worker 与契约 |
 | [`0b5f74b5`](hanqiang-core-contributions/backend-2026-01-07-0b5f74b5.md) | 2026-01-07 | fix(event): 修复事件回调模块审查发现的16个问题 | `app/services/event/executors/external_executor.py`、`app/utils/url_validator.py` |
@@ -125,6 +129,7 @@ git -C frontend/JSE_UI_AI show --stat --oneline <SHA>
 | SHA | 日期 | 原始主题 | 主要路径 |
 | --- | --- | --- | --- |
 | [`c076b877`](hanqiang-core-contributions/frontend-2025-12-19-c076b877.md) | 2025-12-19 | refactor(frontend): 拆分 FileMonitor 前端大组件 | FileMonitor 表单分区、解析历史组合式函数与服务 |
+| [`5fcd5306`](hanqiang-core-contributions/frontend-2025-12-17-5fcd5306.md) | 2025-12-17 | 文件监控前端风格化完成 | `components/FileMonitor/**`、任务状态组件 |
 | [`88d8a596`](hanqiang-core-contributions/frontend-2026-01-04-88d8a596.md) | 2026-01-04 | 事件回调初版 | `components/event/**`、事件配置/日志页面与服务 |
 | [`9c55b00b`](hanqiang-core-contributions/frontend-2026-01-06-9c55b00b.md) | 2026-01-06 | 事件回调初版 | 事件回调前端流程与日志展示 |
 | [`f315a60f`](hanqiang-core-contributions/frontend-2026-01-26-f315a60f.md) | 2026-01-26 | 完成审批流功能 | 审批页面、路由、角色与工作流服务 |
@@ -161,6 +166,16 @@ git -C frontend/JSE_UI_AI show --stat --oneline <SHA>
 | [`7c6ca57c`](hanqiang-core-contributions/frontend-2026-08-26-7c6ca57c.md) | 2026-08-26 | feat(integration): show scenario callback variables | 外部集成回调变量展示 |
 | [`f75e5a09`](hanqiang-core-contributions/frontend-2026-08-27-f75e5a09.md) | 2026-08-27 | feat(integration): configure FT equipment master events | 外部集成事件配置 |
 | [`d7efa7e6`](hanqiang-core-contributions/frontend-2026-08-27-d7efa7e6.md) | 2026-08-27 | feat(integration): configure callback condition fields | `ConditionEditor.vue`、集成回调条件编解码 |
+
+## 能力分析与 prod 入口
+
+全量逐文件结论、引入决策和来源映射见[能力矩阵](hanqiang-core-contributions/capability-matrix.md)。归并后的生产落地契约见 [prod 文档索引](hanqiang-core-contributions/prod/index.md)，其中：
+
+- `reuse-existing`：沿用当前模板已有接缝，只补边界和验收约束；
+- `candidate`：有真实消费者后可新建 Trellis 实施任务；
+- `defer`：保留启动门槛，当前不建设运行时代码或占位 UI。
+
+矩阵和 prod 文档是对下方提交证据的归并，不替代逐提交文件中的 CodeGraph/Git 复核记录。
 
 ## 使用说明
 

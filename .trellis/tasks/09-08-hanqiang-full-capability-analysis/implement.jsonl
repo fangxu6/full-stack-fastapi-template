@@ -1,0 +1,7 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Document taxonomy must reuse existing platform seams and avoid duplicate abstractions."}
+{"file": ".trellis/spec/guides/deferred-iterations-thinking-guide.md", "reason": "Deferred capabilities need explicit prerequisites and separate future tasks."}
+{"file": ".trellis/spec/backend/async-task-guidelines.md", "reason": "Prod docs must preserve durable Celery/Redis task and outbox boundaries."}
+{"file": ".trellis/spec/backend/state-transition-guidelines.md", "reason": "Prod docs must specify local state matrices and concurrency semantics."}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Prod docs must include request correlation, redaction, and operational events."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Prod docs must cover SQLModel, migrations, constraints, and ownership."}
