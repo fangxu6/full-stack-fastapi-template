@@ -7,9 +7,9 @@
 ## Current Status
 
 <!-- @@@auto:current-status -->
-- **Active File**: `journal-1.md`
-- **Total Sessions**: 69
-- **Last Active**: 2026-09-07
+- **Active File**: `journal-2.md`
+- **Total Sessions**: 70
+- **Last Active**: 2026-09-08
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,8 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1993 | Active |
+| `journal-2.md` | ~28 | Active |
+| `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 70 | 2026-09-08 | 完成 Hanqiang 全量能力 prod 文档拆分 | `7893635` | `master` |
 | 69 | 2026-09-07 | 评估 hanqiang 平台能力引入 | `0e6d92c` | `master` |
 | 68 | 2026-08-17 | Add complex refactor planning prompt | `48d7596` | `master` |
 | 67 | 2026-08-17 | Refresh stale project documentation | `c945809` | `master` |
