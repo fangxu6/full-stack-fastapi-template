@@ -1,6 +1,6 @@
 ---
 name: kb-lint
-description: Check docs/llm-wiki health: index coverage, frontmatter, missing source paths, orphan pages, duplicate concepts, stale claims, broken wikilinks, and Trellis task lessons that should be ingested. Use when asked to lint, audit, maintain, or improve the repository LLM-Wiki.
+description: "Check docs/llm-wiki health: index coverage, frontmatter, missing source paths, orphan pages, duplicate concepts, stale claims, broken wikilinks, and Trellis task lessons that should be ingested. Use when asked to lint, audit, maintain, or improve the repository LLM-Wiki."
 ---
 
 # KB Lint
