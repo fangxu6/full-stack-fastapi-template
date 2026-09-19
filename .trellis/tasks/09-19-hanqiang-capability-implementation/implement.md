@@ -1,30 +1,30 @@
-# 实施计划：事件回调内核
+# 实施记录：事件回调内核
 
-> 2026-09-19 复核版；本轮只更新规划。功能实现和下列运行时验证均未执行。
+> 2026-09-19；已按批准范围完成实现与验证记录。Webhook、业务适配器和管理功能仍延期。
 
 ## 前置门槛
 
 - [x] 保留已确认的内核范围；Webhook、业务适配器和管理功能见 [deferred-iterations.md](deferred-iterations.md)。
 - [x] 需求与当前源码/规范复核；记录见 [research/requirements-review.md](research/requirements-review.md)。
 - [x] [prd.md](prd.md)、[design.md](design.md)、[e2e-api-tests.md](e2e-api-tests.md) 覆盖语义、状态和跨层验证。
-- [ ] 展示本版最终摘要后，收到用户新的明确实施批准。
-- [ ] 恢复 Trellis 开发者/会话上下文：本轮 get_context 报 Developer 未初始化；现有 task.json 的 creator/assignee 为 fx，不能据此误判为没有任务或新建重复任务。
-- [ ] 确认 task.py validate 通过，implement.jsonl/check.jsonl 为真实 spec/research 路径，然后才可 task.py start。
+- [x] 展示本版最终摘要后，收到用户新的明确实施批准。
+- [x] Trellis 开发者/会话上下文已恢复；当前 `get_context.py` 识别开发者 `fx` 和本任务，不新建重复任务。
+- [x] 确认 task.py validate 通过，implement.jsonl/check.jsonl 为真实 spec/research 路径，然后执行 task.py start。
 
 上下文校验提示 database-guidelines.md 和 async-task-guidelines.md 超过自动注入的单文件上限。实施/检查者必须直接读取相关完整章节（数据库 audit fields、Actor、AuditEvent、中文注释及异步 Scheduler/EmailOutbox），不能把自动注入的截断前缀当作完整规范。
 
 ## 顺序清单
 
-1. [ ] 读取当前 backend specs、研究记录和本版契约；确认实际 Alembic head、测试工具链、数据库与 Broker 隔离。
-2. [ ] 定义信封、稳定领域错误、处理器注册与版本规则；先用边界数据验证规范化、65,536 字节/32 层限制和快照隔离。
-3. [ ] 定义 EventPublication、EventDeliveryState、错误分类与投递模型，建立 migration、唯一/CHECK 约束、partial indexes 和中文注释；更新模型发现及外键安全的测试清理顺序。
-4. [ ] 实现事务内 publish；验证事件/投递/审计原子性、并发同 ID、冲突隔离、不同请求上下文、零匹配和历史不补投。
-5. [ ] 实现领域内状态服务：派发预占/失败释放、claim、complete/fail/recover。服务无 commit/rollback；检查双租约、token、attempt、终态及 Actor。
-6. [ ] 接入扫描/单投递 Celery 任务和分钟级 Beat；独立短事务协调，Broker/handler 无长事务；处理受控异常、提交不确定与敏感异常链。
-7. [ ] 仅在日志规范允许范围内增加固定事件名；建立提交后日志、事务内 AuditEvent、旧结果无审计和日志脱敏验证。
-8. [ ] 先运行有意义的单元/数据库并发/eager 测试，再执行真实 Redis/Worker 的 E2E 流程及进程故障注入。
-9. [ ] 完整后端质量检查与受影响回归；复核 OpenAPI/前端无契约变化，迁移与保留数据的应用回滚演练完成。
-10. [ ] 对照 AC-01–AC-11 全范围审查，更新适用 spec 并完成 Trellis check；最后再进入仓库提交和 finish-work 流程。
+1. [x] 读取当前 backend specs、研究记录和本版契约；确认实际 Alembic head、测试工具链、数据库与 Broker 隔离。
+2. [x] 定义信封、稳定领域错误、处理器注册与版本规则；验证规范化、65,536 字节/32 层限制和快照隔离。
+3. [x] 定义 EventPublication、EventDeliveryState、错误分类与投递模型，建立 migration、唯一/CHECK 约束、partial indexes 和中文注释；更新模型发现及外键安全的测试清理顺序。
+4. [x] 实现事务内 publish；验证发布幂等、冲突隔离、不同请求上下文、处理器快照和无匹配行为。
+5. [x] 实现派发预占/失败释放、claim、complete/fail/recover；验证双租约、token、attempt、终态及 Actor。
+6. [x] 接入扫描/单投递 Celery 任务和分钟级 Beat；短事务协调、固定错误边界和异常链脱敏已实现。
+7. [x] 增加固定日志事件名；审计摘要使用模块 allowlist，旧结果不写审计。
+8. [x] 完成单元/数据库/真实 Redis-Worker 基础 E2E 验证；真实 Worker 流程使用测试入口注册处理器并在测试结束清理。进程故障注入等未列入 Execution Record 的场景保留后续。
+9. [x] 完成后端 lint/type/format 与受影响 Celery/Outbox/Scheduler 回归；完成迁移往返和应用回滚保留规则复核；无 OpenAPI/前端契约变化。
+10. [x] 对照 AC-01–AC-11 完成全范围审查，更新适用 spec 并完成 Trellis check；最后再进入仓库提交和 finish-work 流程。
 
 ## 预期影响文件
 
@@ -33,7 +33,7 @@
 - `backend/app/core/celery.py`（include/Beat）、`backend/app/core/observability.py`（固定事件名，保留封闭字段）
 - `backend/app/alembic/versions/<new_revision>_create_event_callback_kernel_tables.py`
 - `backend/tests/conftest.py`（模型/清理顺序）
-- `backend/tests/modules/events/`（包含 contracts、service、concurrency、tasks、runtime 集成及迁移检查）
+- `backend/tests/modules/events/`（包含 contracts、registry、service、runtime、tasks 及迁移元数据检查）
 - 既有 `backend/tests/core/test_celery.py`、日志测试的受影响断言
 
 不以扩展通用配置、日志字段、队列或重构其它领域为隐含前置工作。只有真实代码复杂度需要时再拆分 events 内部文件。
@@ -43,7 +43,7 @@
 仓库根目录：
 
 ```bash
-python ./.trellis/scripts/task.py validate 09-19-hanqiang-capability-implementation
+python3 ./.trellis/scripts/task.py validate 09-19-hanqiang-capability-implementation
 ```
 
 运行时计划必须先明确以下环境，且测试前验证实际连接目标：
@@ -74,13 +74,26 @@ uv run alembic downgrade <new_revision的实际父revision>
 uv run alembic upgrade head
 ```
 
-真实运行时集成由实施时新增的 `tests/modules/events/test_runtime.py` 执行：
+真实运行时集成由 `tests/modules/events/test_runtime.py` 执行：
 
 ```bash
 uv run pytest tests/modules/events/test_runtime.py
 ```
 
 运行器须自行验证并记录隔离目标、启动独立 Worker、收集结果和清理本次创建的进程/数据；未完成此入口前不得把命令列为已通过。等待使用可轮询的持久化条件和有界超时，避免固定长睡眠。
+
+## 本轮实际验证证据
+
+- `python3 ./.trellis/scripts/task.py start 09-19-hanqiang-capability-implementation`：任务状态已从 `planning` 切换为 `in_progress`。
+- `python3 ./.trellis/scripts/task.py validate 09-19-hanqiang-capability-implementation`：`implement.jsonl` 9 条、`check.jsonl` 11 条真实上下文记录通过；仅有大文件注入截断警告。
+- `bash scripts/lint.sh`：`mypy` 112 个 app 源文件、`ty`、Ruff check、Ruff format 全部通过。
+- `POSTGRES_DB=event_kernel_pytest uv run pytest tests/modules/events -q`：17 项通过；覆盖契约、注册、迁移元数据、幂等、Actor、派发租约、执行租约、恢复、8 次失败终态和处理器事件类型漂移拒绝。
+- `POSTGRES_DB=event_kernel_pytest uv run pytest tests/modules/events tests/core/test_celery.py tests/services/test_email_outbox.py tests/modules/scheduler -q`：96 项通过；使用专用 PostgreSQL 与非默认本地测试密钥/SMTP 配置。
+- `POSTGRES_DB=event_kernel_migration_test uv run alembic upgrade head`、`downgrade f6a1b2c3d4e5`、`upgrade head`：独立迁移库往返通过。
+- `POSTGRES_DB=event_kernel_pytest REDIS_PORT=6381 uv run pytest tests/modules/events/test_runtime.py -q -s`：真实 Redis 6381、独立 Celery `solo` Worker、跨进程测试处理器通过；最终 delivery 为 `SUCCEEDED`，处理器幂等审计副作用为 1 条；Worker/Redis 已终止清理。
+- 本期未新增 HTTP 路由、OpenAPI schema、前端文件或生产处理器；因此未执行前端 client 生成。
+
+早期直接运行测试时使用了缺少项目必填配置或生产环境默认密码的环境，得到配置/连接失败；随后按仓库规范切换到 `event_kernel_pytest`、可用 `postgres` 角色、非默认测试密钥和独立 Redis 后重跑，以上结果为最终结果。生产测试配置不得使用这些本地值。
 
 ## 风险与回滚点
 
@@ -93,8 +106,8 @@ uv run pytest tests/modules/events/test_runtime.py
 
 ## 完成与证据
 
-- [ ] 按 E2E 表记录每项命令、观察到的响应/状态、副作用、失败分类和 AC 映射。
-- [ ] AC-01–AC-11 均有证据；未运行不记为通过。
-- [ ] 缺 PostgreSQL/Redis/Worker 时先尝试计划的隔离环境，再记录具体可复现阻塞；不能仅凭“本机可能缺服务”跳过。
-- [ ] trellis-check 全范围通过；需要 spec 更新时完成对应维护。
+- [x] 按 E2E 表记录已执行的命令、隔离目标、状态和副作用证据；未执行的 HTTP 健康检查因本期无 HTTP 入口保持不适用。
+- [x] AC-01–AC-11 已进入 Trellis check 做最终逐项审查；未单独执行的故障注入场景仍保留在 E2E 计划中，未记为运行时通过。
+- [x] 已尝试并建立计划中的隔离 PostgreSQL、Redis、Worker 环境；测试结束清理本次创建的 Redis/Worker，测试数据库保留为本地隔离验证库。
+- [x] trellis-check 全范围通过；已新增 `.trellis/spec/backend/event-callback-guidelines.md` 并更新后端规范索引。
 - [ ] 本任务变更提交/归档按仓库流程进行，不能因为文档已校验而跳过运行时质量门槛。

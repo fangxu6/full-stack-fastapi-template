@@ -1,6 +1,6 @@
 # 事件内核跨层 E2E 验证计划
 
-> 无新增 HTTP API。本文件按仓库跨层任务契约记录内部 publish → PostgreSQL → Redis → Worker → AuditEvent 流程；不为测试创建产品路由。当前所有用例均为计划，未执行。
+> 无新增 HTTP API。本文件按仓库跨层任务契约记录内部 publish → PostgreSQL → Redis → Worker → AuditEvent 流程；不为测试创建产品路由。表中仍保留完整验收计划，已执行范围见下方记录。
 
 ## Environment
 
@@ -31,9 +31,21 @@
 | E2E-013 / AC-10 | 迁移与应用回滚 | 一次性迁移库；独立有数据应用测试库 | 迁移库 upgrade/downgrade/upgrade；应用库暂停事件派发并回退代码 | 约束/索引/注释完整；应用回滚后新增事实保留 | 两表和 enum 在迁移库按预期变化；应用库记录不丢 | 不对有数据库执行 drop-table downgrade；不删除未处理/失败记录 |
 | E2E-014 / AC-01,11 | 无事件注册与既有任务回归 | 生产空注册表、既有 EmailOutbox/Scheduler fixture | 导入应用/Worker/Beat；事件空扫描；运行受影响回归 | 无 SMTP/HTTP 依赖新增；既有任务契约不变 | 无额外业务事件、前端/API 改动 | 事件扫描空闲不制造投递或假事件；测试清理 delivery 在 publication/User 前 |
 
+## Execution Record
+
+已执行的验证不把未实现的完整故障注入矩阵标记为通过：
+
+| Scope | Command / runtime | Result |
+|---|---|---|
+| Event kernel unit/database/task coverage | `uv run pytest tests/modules/events -q` | 17 passed; isolated `event_kernel_pytest` |
+| Existing Celery/EmailOutbox/Scheduler regression | `uv run pytest tests/modules/events tests/core/test_celery.py tests/services/test_email_outbox.py tests/modules/scheduler -q` | 96 passed; isolated PostgreSQL and SMTP test configuration |
+| Real broker/worker path | `REDIS_PORT=6381 uv run pytest tests/modules/events/test_runtime.py -q -s` | 1 passed; independent Redis and Celery solo worker; persisted delivery reached `SUCCEEDED` and test handler audit side effect stayed at 1 |
+| Migration round trip | `uv run alembic upgrade head`, `downgrade f6a1b2c3d4e5`, `upgrade head` | Passed on isolated `event_kernel_migration_test` |
+| HTTP health check | Not applicable | No HTTP entry point was added for the kernel |
+
 ## Execution
 
-执行入口、命令、隔离与回滚限制见 [implement.md](implement.md)。集成入口需要在实施阶段补齐，当前不存在可宣称已通过的事件测试。
+执行入口、命令、隔离与回滚限制见 [implement.md](implement.md)。未列入 Execution Record 的故障注入、并发和旧 Worker 场景仍是后续补充验证，不因单元测试通过而宣称完成。
 
 每项保存：测试命令、运行模式（eager/真实 Worker）、隔离目标、观察到的状态/审计/副作用和失败日志反向断言。使用可控时钟验证服务边界时间，真实运行时通过短的测试租约、明确同步屏障和有限轮询验证恢复；不得为测试增加生产管理 API。
 

@@ -53,6 +53,7 @@ celery_app: Any = Celery(
         "app.core.tasks",
         "app.modules.audit.tasks",
         "app.modules.inventory.tasks",
+        "app.modules.events.tasks",
         "app.modules.scheduler.tasks",
     ],
 )
@@ -69,6 +70,10 @@ celery_app.conf.update(
         },
         "email-outbox-scan-due": {
             "task": "email_outbox.scan_due",
+            "schedule": crontab(minute="*"),
+        },
+        "event-callback-scan-due": {
+            "task": "events.scan_due_deliveries",
             "schedule": crontab(minute="*"),
         },
         "scheduler-scan-due-jobs": {

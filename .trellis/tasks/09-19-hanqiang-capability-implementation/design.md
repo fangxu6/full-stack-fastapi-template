@@ -1,6 +1,6 @@
 # 技术设计：事件回调内核
 
-> 2026-09-19 复核版；对应 [prd.md](prd.md) R1–R8。当前为规划，不表示实现或验证已完成。
+> 2026-09-19 复核版；对应 [prd.md](prd.md) R1–R8。实现已按本设计落地；验证证据见 [implement.md](implement.md)。
 
 ## 1. 目标、边界与复用
 
@@ -72,20 +72,20 @@ BIGINT identity 主键；publication_id 外键限制删除；`(publication_id, h
 | `state` | `EventDeliveryState`：PENDING、LEASED、RETRY_WAIT、SUCCEEDED、FAILED |
 | `attempt_count` | 0..8；每次成功 claim 加 1，包括 claim 后发现处理器不可用 |
 | `next_attempt_at` | PENDING/RETRY_WAIT 必填；其余为空 |
-| `next_dispatch_at` | PENDING/RETRY_WAIT 必填；表示下一次允许向 Broker 派发的时刻 |
+| `next_dispatch_at` | PENDING/RETRY_WAIT 必填；同时是当前派发租约的到期时间和条件更新凭据 |
 | `lease_token`、`lease_expires_at` | LEASED 时均必填，其余均为空；token 每次 claim 新生成 UUID |
 | `last_error_category` | 可空，闭集 EventDeliveryErrorCategory；只保存分类，不保存异常文本 |
 | `completed_at`、`failed_at` | 分别仅在 SUCCEEDED、FAILED 时必填且互斥 |
 
-创建时 next_attempt_at/next_dispatch_at 使用登记时间，不使用可能早于现在的 occurred_at。用数据库 CHECK 约束状态与字段组合、attempt 范围、payload object；partial indexes 支撑 due 和 expired-lease 查询。所有新表/列/enum/约束具有明确名称和中文表列注释。
+创建时 next_attempt_at/next_dispatch_at 使用登记时间，不使用可能早于现在的 occurred_at。扫描预占时必须保存原 next_dispatch_at；发送失败释放时以 delivery ID、状态和该精确时间做条件更新。这样无需新增派发 token 字段，也能阻止过期的旧扫描器覆盖新预占。用数据库 CHECK 约束状态与字段组合、attempt 范围、payload object；partial indexes 支撑 due 和 expired-lease 查询。所有新表/列/enum/约束具有明确名称和中文表列注释。
 
-仅有一个**状态 enum**；错误分类另用本地 StrEnum 与命名 PostgreSQL enum：HANDLER_NOT_REGISTERED、SCHEMA_VERSION_UNSUPPORTED、HANDLER_REJECTED、HANDLER_EXECUTION_FAILED、EXECUTION_LEASE_EXPIRED。Broker 派发失败不是 handler attempt，不覆盖上次执行错误。
+仅有一个**状态 enum**；错误分类另用本地 StrEnum 与命名 PostgreSQL enum：HANDLER_NOT_REGISTERED、HANDLER_EVENT_TYPE_MISMATCH、SCHEMA_VERSION_UNSUPPORTED、HANDLER_REJECTED、HANDLER_EXECUTION_FAILED、EXECUTION_LEASE_EXPIRED。Broker 派发失败不是 handler attempt，不覆盖上次执行错误。
 
 ## 5. 处理器注册及调用契约
 
 注册项包含稳定 handler_key、明确 event_type/支持的 schema_version 集合和同步 handler。使用固定导入的代码声明；不读取数据库 import 路径，不接受外部 callable 配置，不自动发现插件。启动时装配完成后保持稳定，重复键/非法注册失败。发布端和 Worker 必须加载同一应用版本的声明。
 
-发布只匹配确切 event_type 和受支持版本，并在同一事务中创建 delivery；无匹配只保存 publication，以后注册变更不触发历史补投。Worker 再校验已持久化 handler_key 与版本，缺失或不支持时不调用 handler，记录终态分类。
+发布只匹配确切 event_type 和受支持版本，并在同一事务中创建 delivery；无匹配只保存 publication，以后注册变更不触发历史补投。Worker 再校验已持久化 handler_key、event_type 与版本，缺失、映射改变或不支持时不调用 handler，记录终态分类。
 
 最小协议为 `handler(envelope) -> None`：正常返回是 SUCCEEDED；专用 `PermanentEventError` 是 HANDLER_REJECTED；其它普通异常是 HANDLER_EXECUTION_FAILED 并走有限重试。错误文本不作为分类，不采用自由文本结果或返回值 payload。进程终止/Worker 丢失由 lease 恢复。
 
@@ -97,10 +97,10 @@ BIGINT identity 主键；publication_id 外键限制删除；`(publication_id, h
 
 每分钟扫描；先恢复最多 100 条到期执行租约，再预占最多 100 条 due delivery，两个查询均稳定排序并使用 FOR UPDATE SKIP LOCKED。due 条件为 state=PENDING/RETRY_WAIT、next_attempt_at<=now 且 next_dispatch_at<=now。
 
-预占只推进 next_dispatch_at=now+派发租约并提交，不改变执行状态和 attempt。派发租约首版沿用 CELERY_VISIBILITY_TIMEOUT_SECONDS。逐条 `events.process_delivery(delivery_id)`：
+预占只推进 next_dispatch_at=now+派发租约并提交，不改变执行状态和 attempt；该新时间值就是本次派发租约的条件凭据。派发租约首版沿用 CELERY_VISIBILITY_TIMEOUT_SECONDS。逐条 `events.process_delivery(delivery_id)`：
 
 - Celery 参数只有正整数 delivery_id；不用业务 ID 构造 task ID；不发送事件快照。
-- 一条发送异常不阻断其它已预占记录。在新事务中，仅当状态和原派发租约仍匹配，才将该条 next_dispatch_at 改为下一扫描分钟。
+- 一条发送异常不阻断其它已预占记录。在新事务中，仅当状态和原派发租约的精确 next_dispatch_at 仍匹配，才将该条 next_dispatch_at 改为下一扫描分钟；条件不匹配时不覆盖新预占。
 - 预占提交后、发送前崩溃，或 Broker 已收消息但发送者丢失确认：等待派发租约到期再发送；允许重复消息，不能丢记录。
 - 不创建新队列、全局 autoretry 或新的派发事实表。
 
@@ -122,12 +122,12 @@ BIGINT identity 主键；publication_id 外键限制删除；`(publication_id, h
 | 当前状态 | 事件 | 目标状态 | 前置条件 | 副作用 | 幂等/并发语义 |
 |---|---|---|---|---|---|
 | (新建) | REGISTER | PENDING | 新 publication 且代码注册匹配 | 两个 next_* 设为登记时间，attempt=0 | 唯一 publication/handler；随业务事务提交 |
-| PENDING/RETRY_WAIT | DISPATCH | 不变/拒绝 | 两个 next_* 均到期 | 推进 next_dispatch_at；提交后发消息 | SKIP LOCKED、批量 100；不增加 attempt |
-| PENDING/RETRY_WAIT | DISPATCH_FAILURE | 不变/拒绝 | 原派发租约仍匹配 | 改为下一扫描分钟 | 旧发送者不能覆盖新派发或已 claim 记录 |
+| PENDING/RETRY_WAIT | DISPATCH | 不变/拒绝 | 两个 next_* 均到期 | 保存原 next_dispatch_at，推进为派发租约到期时间；提交后发消息 | `SKIP LOCKED`、批量 100；不增加 attempt |
+| PENDING/RETRY_WAIT | DISPATCH_FAILURE | 不变/拒绝 | delivery、状态和原 next_dispatch_at 精确匹配 | 改为下一扫描分钟 | 旧发送者不能覆盖新派发或已 claim 记录 |
 | PENDING/RETRY_WAIT | CLAIM | LEASED | next_attempt_at 到期，attempt<8 | attempt+1、新 token/lease、清除 next_*、审计 | 行锁；重复消息 no-op；Broker 派发租约不阻止已到达的有效消息 |
 | LEASED | HANDLE_SUCCESS | SUCCEEDED | token 匹配且执行租约未过期 | 清理 lease、记录 completed_at、清错误、审计 | 旧结果/重复结果无状态与审计副作用 |
 | LEASED | HANDLE_FAILURE | RETRY_WAIT 或 FAILED | 当前有效租约 | 可重试且 attempt<8：next_*=now+15分钟；否则 failed_at；清 lease、审计 | 错误只保存稳定分类 |
-| LEASED | HANDLER_NOT_REGISTERED / SCHEMA_VERSION_UNSUPPORTED / HANDLER_REJECTED | FAILED | 当前有效租约 | 不执行缺失/不兼容 handler；终态分类与审计 | 修正原稿中“claim 后仍从 PENDING 失败”的矛盾 |
+| LEASED | HANDLER_NOT_REGISTERED / HANDLER_EVENT_TYPE_MISMATCH / SCHEMA_VERSION_UNSUPPORTED / HANDLER_REJECTED | FAILED | 当前有效租约 | 不执行缺失/不兼容 handler；终态分类与审计 | 修正原稿中“claim 后仍从 PENDING 失败”的矛盾 |
 | LEASED | LEASE_EXPIRED | RETRY_WAIT 或 FAILED | lease_expires_at<=now | attempt<8：next_*=now+15分钟；否则终态；清 lease、审计 | 回收不再增加 attempt，行锁/SKIP LOCKED |
 | SUCCEEDED/FAILED | 重复消息/旧结果 | 不变/拒绝 | 已终态 | 无 | 终态不复活，无人工重放入口 |
 

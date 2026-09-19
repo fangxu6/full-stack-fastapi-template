@@ -1,4 +1,5 @@
 {"file":".trellis/spec/backend/index.md","reason":"Backend package entry, conventions and complete quality gate."}
+{"file":".trellis/spec/backend/event-callback-guidelines.md","reason":"Implemented event publication, handler matching, delivery leases, error categories and worker recovery contract."}
 {"file":".trellis/spec/backend/database-guidelines.md","reason":"SQLModel, transactions, identity keys, enums, Actor, AuditEvent and Chinese database comments."}
 {"file":".trellis/spec/backend/async-task-guidelines.md","reason":"PostgreSQL source of truth, dispatch/execution leases, bounded scans, Actor attribution and real Worker validation."}
 {"file":".trellis/spec/backend/state-transition-guidelines.md","reason":"Domain-local matrix, current-token transitions, atomic side effects and terminal no-op semantics."}
