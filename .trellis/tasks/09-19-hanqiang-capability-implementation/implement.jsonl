@@ -1,0 +1,10 @@
+{"file": ".trellis/tasks/09-19-hanqiang-capability-implementation/prd.md", "reason": "Confirmed current scope: event callback kernel only; Webhook and business adapters are deferred."}
+{"file": ".trellis/tasks/09-19-hanqiang-capability-implementation/design.md", "reason": "Implementation boundaries, event envelope, delivery states, transactions, recovery, and rollback contract."}
+{"file": ".trellis/tasks/09-19-hanqiang-capability-implementation/deferred-iterations.md", "reason": "Keeps Webhook, business adapters, dynamic configuration, and future executors outside current acceptance."}
+{"file": "docs/hanqiang-core-contributions/prod/prod-event-callback-webhook.md", "reason": "Historical Hanqiang event callback contract; current implementation deliberately stops before HTTP/Webhook adapters."}
+{"file": "docs/hanqiang-platform-capability-assessment.md", "reason": "Source of candidate/deferred decisions and the platform reuse boundaries."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "SQLModel/Alembic, BIGINT identity, audit fields, enum persistence, and Chinese database comment requirements."}
+{"file": ".trellis/spec/backend/async-task-guidelines.md", "reason": "Celery JSON-only task arguments, PostgreSQL source of truth, at-least-once execution, leases, and recovery."}
+{"file": ".trellis/spec/backend/state-transition-guidelines.md", "reason": "Required local delivery state matrix, concurrency, stale worker, terminal state, and idempotency semantics."}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Structured event names, request correlation, redaction, and restricted exception logging."}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Module placement and service/model/task ownership for a durable event platform boundary."}

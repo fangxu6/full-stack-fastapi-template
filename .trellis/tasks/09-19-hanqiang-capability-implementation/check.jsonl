@@ -1,0 +1,9 @@
+{"file": ".trellis/tasks/09-19-hanqiang-capability-implementation/prd.md", "reason": "Check implementation against the confirmed kernel-only scope and explicit non-goals."}
+{"file": ".trellis/tasks/09-19-hanqiang-capability-implementation/design.md", "reason": "Check data model, state transitions, transaction handoff, and no-HTTP boundary."}
+{"file": ".trellis/tasks/09-19-hanqiang-capability-implementation/deferred-iterations.md", "reason": "Check that Webhook and other future capabilities do not leak into current acceptance."}
+{"file": "docs/hanqiang-core-contributions/prod/prod-event-callback-webhook.md", "reason": "Check which historical requirements belong to the kernel and which remain deferred to Webhook/adapters."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Check models, migrations, constraints, comments, audit fields, and enum persistence."}
+{"file": ".trellis/spec/backend/async-task-guidelines.md", "reason": "Check task arguments, PostgreSQL facts, at-least-once behavior, leases, and failure recovery."}
+{"file": ".trellis/spec/backend/state-transition-guidelines.md", "reason": "Check every delivery transition, illegal transition, duplicate command, stale worker, and terminal behavior."}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Check event identifiers and payload redaction in structured logs and exception boundaries."}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Check module ownership and prevent route/UI or generic registry sprawl."}
