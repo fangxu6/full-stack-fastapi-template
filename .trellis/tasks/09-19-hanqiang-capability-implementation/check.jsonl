@@ -1,9 +1,10 @@
-{"file": ".trellis/tasks/09-19-hanqiang-capability-implementation/prd.md", "reason": "Check implementation against the confirmed kernel-only scope and explicit non-goals."}
-{"file": ".trellis/tasks/09-19-hanqiang-capability-implementation/design.md", "reason": "Check data model, state transitions, transaction handoff, and no-HTTP boundary."}
-{"file": ".trellis/tasks/09-19-hanqiang-capability-implementation/deferred-iterations.md", "reason": "Check that Webhook and other future capabilities do not leak into current acceptance."}
-{"file": "docs/hanqiang-core-contributions/prod/prod-event-callback-webhook.md", "reason": "Check which historical requirements belong to the kernel and which remain deferred to Webhook/adapters."}
-{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Check models, migrations, constraints, comments, audit fields, and enum persistence."}
-{"file": ".trellis/spec/backend/async-task-guidelines.md", "reason": "Check task arguments, PostgreSQL facts, at-least-once behavior, leases, and failure recovery."}
-{"file": ".trellis/spec/backend/state-transition-guidelines.md", "reason": "Check every delivery transition, illegal transition, duplicate command, stale worker, and terminal behavior."}
-{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Check event identifiers and payload redaction in structured logs and exception boundaries."}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Check module ownership and prevent route/UI or generic registry sprawl."}
+{"file":".trellis/spec/backend/index.md","reason":"Backend package entry, conventions and complete quality gate."}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"SQLModel, transactions, identity keys, enums, Actor, AuditEvent and Chinese database comments."}
+{"file":".trellis/spec/backend/async-task-guidelines.md","reason":"PostgreSQL source of truth, dispatch/execution leases, bounded scans, Actor attribution and real Worker validation."}
+{"file":".trellis/spec/backend/state-transition-guidelines.md","reason":"Domain-local matrix, current-token transitions, atomic side effects and terminal no-op semantics."}
+{"file":".trellis/spec/backend/logging-guidelines.md","reason":"Closed logging facade, prohibition on business identifiers and reviewed traceback boundaries."}
+{"file":".trellis/spec/backend/directory-structure.md","reason":"Bounded module ownership; avoid a cross-domain runtime framework."}
+{"file":".trellis/spec/backend/type-safety.md","reason":"Strict Python/SQLModel typing, immutable contracts and validation boundaries."}
+{"file":".trellis/tasks/09-19-hanqiang-capability-implementation/research/requirements-review.md","reason":"Current-source evidence, severity, corrected gaps, scope precedence and acceptance mapping."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Full-scope mypy, ty, Ruff, test isolation and regression review."}
+{"file":".trellis/spec/templates/e2e-api-tests-template.md","reason":"Cross-layer E2E required even without a new HTTP endpoint; do not replace real runtime tests with eager."}
