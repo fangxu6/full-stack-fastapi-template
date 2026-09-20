@@ -3,6 +3,12 @@ from sqlmodel import SQLModel
 from .audit import AuditEvent
 from .auth_session import AuthSession
 from .email import EmailOutbox, EmailOutboxKind, EmailOutboxStatus
+from .event import (
+    EventDelivery,
+    EventDeliveryErrorCategory,
+    EventDeliveryState,
+    EventPublication,
+)
 from .iam import IamPermission, IamRole, IamRolePermission, IamUserRole
 from .inventory import (
     InventoryCorrectionAttempt,
@@ -29,6 +35,10 @@ __all__ = [
     "EmailOutbox",
     "EmailOutboxKind",
     "EmailOutboxStatus",
+    "EventDelivery",
+    "EventDeliveryErrorCategory",
+    "EventDeliveryState",
+    "EventPublication",
     "InventoryDocument",
     "InventoryDocumentLine",
     "InventoryCorrectionAttempt",

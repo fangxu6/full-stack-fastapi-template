@@ -30,6 +30,7 @@ Future work should preserve that direction instead of drifting back toward route
 | [Quality Guidelines](./quality-guidelines.md) | Review rules, forbidden regressions, validation expectations | Customized |
 | [Logging Guidelines](./logging-guidelines.md) | Structlog pipeline, request correlation, redaction, and operational-event contracts | Customized |
 | [Async Task Runtime](./async-task-guidelines.md) | Celery/Redis task boundaries, configuration, and verification | Customized |
+| [Event Callback Kernel](./event-callback-guidelines.md) | Transactional event publication, handler delivery, leases, and recovery | Customized |
 | [Cache Guidelines](./cache-guidelines.md) | Opt-in Redis Cache-Aside primitives, invalidation, and telemetry | Customized |
 
 ---

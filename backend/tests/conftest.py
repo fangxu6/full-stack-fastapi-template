@@ -15,6 +15,8 @@ from app.models import (
     AuditEvent,
     AuthSession,
     EmailOutbox,
+    EventDelivery,
+    EventPublication,
     IamPermission,
     IamRole,
     IamRolePermission,
@@ -83,6 +85,8 @@ def db() -> Generator[Session]:
         yield session
         for model in (
             AuditEvent,
+            EventDelivery,
+            EventPublication,
             AuthSession,
             EmailOutbox,
             SchedulerRun,

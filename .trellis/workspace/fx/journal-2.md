@@ -26,3 +26,24 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 71: Implement event callback kernel
+
+**Date**: 2026-09-19
+**Task**: Implement event callback kernel
+**Branch**: `master`
+
+### Summary
+
+Implemented the kernel-only event callback capability: immutable event publications, strict envelopes, code-registered handler matching, durable delivery state, dispatch and execution leases, bounded retries/recovery, AuditEvent/Actor integration, Celery scanning and real Redis/Worker verification. Added backend event callback spec and archived the Trellis task. Webhook and business adapters remain deferred.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ef16b14` | (see git log) |
+
+### Status
+
+[OK] **Completed**
