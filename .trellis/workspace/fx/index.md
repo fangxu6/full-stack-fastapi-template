@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 72
+- **Total Sessions**: 73
 - **Last Active**: 2026-09-23
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~71 | Active |
+| `journal-2.md` | ~93 | Active |
 | `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 73 | 2026-09-23 | Consolidate architecture decision docs | `bcc19e9` | `master` |
 | 72 | 2026-09-23 | Remove LLM-Wiki and knowledge-base skills | `7e288a5` | `master` |
 | 71 | 2026-09-19 | Implement event callback kernel | `ef16b14` | `master` |
 | 70 | 2026-09-08 | 完成 Hanqiang 全量能力 prod 文档拆分 | `7893635` | `master` |

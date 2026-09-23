@@ -69,3 +69,25 @@ Removed docs/llm-wiki and the three kb-* skills, cleaned active documentation re
 ### Status
 
 [OK] **Completed**
+
+
+## Session 73: Consolidate architecture decision docs
+<!-- trellis-session: v=2 fp=e6c4015019b3ef96 -->
+
+**Date**: 2026-09-23
+**Task**: Consolidate architecture decision docs
+**Branch**: `master`
+
+### Summary
+
+Removed docs/adr and docs/decisions, migrated current rules and historical decision references into Trellis specs and archived task records, updated decision-recording skill guidance, and passed spec wiki plus Trellis tests.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bcc19e9` | docs: consolidate architecture decisions into trellis |
+
+### Status
+
+[OK] **Completed**
