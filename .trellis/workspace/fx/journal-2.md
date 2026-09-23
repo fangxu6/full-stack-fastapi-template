@@ -47,3 +47,25 @@ Implemented the kernel-only event callback capability: immutable event publicati
 ### Status
 
 [OK] **Completed**
+
+
+## Session 72: Remove LLM-Wiki and knowledge-base skills
+<!-- trellis-session: v=2 fp=7911d017e40eeb66 -->
+
+**Date**: 2026-09-23
+**Task**: Remove LLM-Wiki and knowledge-base skills
+**Branch**: `master`
+
+### Summary
+
+Removed docs/llm-wiki and the three kb-* skills, cleaned active documentation references, preserved archived history and Trellis spec tooling, and verified stale-reference search, spec lint, and git diff check.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7e288a5` | chore: remove llm-wiki and kb skills |
+
+### Status
+
+[OK] **Completed**
