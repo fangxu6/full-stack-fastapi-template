@@ -1,7 +1,0 @@
-{
-  "source": "mastra-ai/mastra/.claude/skills/mastra-docs",
-  "sourceType": "git",
-  "repoUrl": "https://github.com/mastra-ai/mastra",
-  "subpath": ".claude/skills/mastra-docs",
-  "installedAt": "2026-07-16T03:36:22.016Z"
-}
