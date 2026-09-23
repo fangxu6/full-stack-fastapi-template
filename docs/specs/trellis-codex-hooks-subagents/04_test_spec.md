@@ -33,8 +33,7 @@ The current repository has no direct automated test covering the dispatch-mode r
 - RC1: `python3 ./.trellis/scripts/task.py current --source` still works.
 - RC2: `.codex/hooks.json` continues to scope `SubagentStart` to Trellis roles.
 - RC3: `.trellis/scripts` has no unrelated changes.
-- RC4: LLM-Wiki index still links `docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode.md`.
 
 ## Acceptance Review
 
-- Review this contract against `01_requirement.md`, `02_interface.md`, `03_implementation.md`, and `docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode.md`.
+- Review this contract against `01_requirement.md`, `02_interface.md`, and `03_implementation.md`.

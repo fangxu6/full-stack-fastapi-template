@@ -6,7 +6,7 @@
 
 - `backend/app/**`：FastAPI、SQLModel、服务层、错误契约、日志。
 - `frontend/src/**`：React、TanStack Router、React Query、OpenAPI client、页面与权限。
-- `.trellis/**`、`docs/specs/**`、`docs/llm-wiki/**`：任务、规范、可复用知识。
+- `.trellis/**`、`docs/specs/**`、`docs/rules/**`：任务、规范、可复用知识。
 
 ## 1. 默认原则
 
@@ -15,7 +15,7 @@
 3. **Trellis 管生命周期。** 复杂任务走 `.trellis/workflow.md`：需求、设计、实现计划、执行、检查、规范更新。小任务可以 inline，但也要保留完成标准和验证结果。
 4. **规范是门禁，不是建议。** Backend 读 `.trellis/spec/backend/index.md`，Frontend 读 `.trellis/spec/frontend/index.md`，跨层改动读 `.trellis/spec/guides/index.md`。
 5. **AI 输出必须被验证。** 任何代码改动至少跑与风险匹配的 lint、type-check、test 或 build。不要把“模型看起来合理”当成完成。
-6. **长期知识落文件。** 重复踩坑、跨层契约、审查发现要写回 `.trellis/spec/**`、`docs/specs/**` 或 `docs/llm-wiki/**`，不要只留在聊天里。
+6. **长期知识落文件。** 重复踩坑、跨层契约、审查发现要写回 `.trellis/spec/**`、`docs/specs/**` 或 `docs/rules/**`，不要只留在聊天里。
 
 ## 2. 任务分流
 
@@ -26,7 +26,7 @@
 | 新 API / 新页面 / 跨层契约 | Trellis planning | 是 | `prd.md`、必要时 `design.md`、`implement.md`、验证记录 |
 | 大重构 / 多交付 | Trellis parent + child tasks | 是 | 子任务拆分、每个子任务独立验收 |
 | Review | review stance | 否 | 真实风险优先，按严重程度列问题 |
-| 调研外部工具/库 | research artifact | 视情况 | 写入 `research/`、`docs/llm-wiki/` 或 `docs/rules/` |
+| 调研外部工具/库 | research artifact | 视情况 | 写入 `research/`、`docs/specs/` 或 `docs/rules/` |
 
 ## 3. 每次开工的上下文包
 
@@ -197,7 +197,7 @@ bunx playwright test
 5. 生成 frontend client。
 6. 前端接入页面、权限、导航。
 7. 跑后端测试、前端 lint/build、必要时 Playwright。
-8. 更新 spec / llm-wiki 中可复用知识。
+8. 更新 `.trellis/spec/**`、`docs/specs/**` 或 `docs/rules/**` 中的可复用知识。
 ```
 
 ### UI 改动

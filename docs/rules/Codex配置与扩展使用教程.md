@@ -16,7 +16,7 @@
 | 在生命周期事件中自动执行脚本 | `.codex/hooks.json` 或 `.codex/config.toml` 的 `[hooks]` | 例如会话开始、工具调用前后、提交 prompt 前注入上下文 |
 | 定义专门角色的子代理 | `.codex/agents/*.toml` | 只在需要显式并行或隔离工作时使用 |
 | 控制哪些命令可在沙箱外运行 | `.codex/rules/*.rules` 或用户级 rules | 例如允许、提示或禁止某类命令 |
-| 可复用的任务流程 | skill | 例如 `kb-ingest`、`trellis-check` 这类操作流程 |
+| 可复用的任务流程 | skill | 例如 `trellis-check` 这类操作流程 |
 
 本项目的默认原则是：能用 prompt 解决的不要写配置，能用 `AGENTS.md` 表达的不要写 hook；任务执行方式由 `.trellis/config.yaml` 的 `codex.dispatch_mode` 决定，不要假定默认是 `inline`。
 
@@ -283,8 +283,4 @@ Rules 解决“这个命令能不能在沙箱外运行”的问题。Hooks 解�
 ## 10. 参考资料
 
 - 人读总览教程：`docs/rules/Codex使用教程.md`
-- AI 可检索摘要：`docs/llm-wiki/sources/codex-official-configuration.md`
-- Codex 实体页：`docs/llm-wiki/entities/codex.md`
-- Trellis/Codex hooks 决策：`docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode.md`
 - 后续实施方案：`docs/specs/trellis-codex-hooks-subagents/`
-- 官方原始资料本地剪藏：`docs/llm-wiki/sources/codex/`

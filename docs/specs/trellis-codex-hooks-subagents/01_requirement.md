@@ -18,7 +18,6 @@
 - `.codex/hooks.json` 当前注册 `UserPromptSubmit`、`SubagentStart` 和 `Stop`；`SubagentStop` 未默认注册。
 - `.codex/hooks/inject-subagent-context.py` 解析原生 `SubagentStart` 输入，为受支持的 Trellis 子代理注入 active task、任务 artifacts 和 JSONL 清单上下文。
 - `.codex/agents/trellis-research.toml`、`trellis-implement.toml`、`trellis-check.toml` 保留子代理角色和 child-side context fallback。
-- `docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode.md` 记录同一份可复用结论。
 
 ## Out Of Scope
 

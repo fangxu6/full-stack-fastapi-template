@@ -1,0 +1,2 @@
+{"file":".trellis/spec/guides/index.md","reason":"Shared project guidance currently treats docs/llm-wiki as a required knowledge source and must be updated."}
+{"file":"docs/specs/trellis-codex-hooks-subagents/01_requirement.md","reason":"Current feature requirements contain a durable LLM-Wiki reference that becomes invalid after removal."}

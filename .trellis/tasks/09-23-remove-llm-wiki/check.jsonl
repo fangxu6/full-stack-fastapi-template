@@ -1,0 +1,2 @@
+{"file":".trellis/spec/guides/index.md","reason":"Quality check must verify the shared guidance no longer points to the removed wiki."}
+{"file":"docs/specs/trellis-codex-hooks-subagents/04_test_spec.md","reason":"Quality check must verify acceptance criteria no longer require a deleted LLM-Wiki index."}

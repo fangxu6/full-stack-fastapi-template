@@ -158,7 +158,7 @@
   - SQLModel/Alembic migration review
   - generated OpenAPI client regeneration
   - route/menu/permission alignment
-  - docs/llm-wiki 或 `.trellis/spec` 更新判断
+  - `.trellis/spec` 更新判断
   - Docker Compose / backend / frontend validation commands
 
 ### 5. 技术栈无关的“配置一致性”意识更强
@@ -307,7 +307,7 @@
 | 批处理和 N+1 检查 | 防止性能退化 | backend quality guidelines |
 | 配置一致性检查 | 防止路由/菜单/权限/API 漂移 | frontend/backend quality guidelines |
 | Polish 阶段同步 | 防止代码完成但文档/规范落后 | workflow + quality guidelines |
-| 任务后规则归档 | 让 bug fix 变成长期知识 | `.trellis/spec` + docs/llm-wiki |
+| 任务后规则归档 | 让 bug fix 变成长期知识 | `.trellis/spec` + docs/specs |
 
 ## 不应直接迁移的内容
 

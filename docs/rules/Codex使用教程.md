@@ -20,7 +20,6 @@ Codex 是面向软件开发的 coding agent。它适合：
 - `.trellis/spec/**`
 - `docs/rules/**`
 - `docs/specs/**`
-- `docs/llm-wiki/**` 中的 AI 可检索知识
 
 ## 2. 选择使用入口
 
@@ -230,7 +229,7 @@ Automations 用于定期、后台、重复执行的任务。
 | 能力 | 用途 | 例子 |
 | --- | --- | --- |
 | MCP | 连接外部工具和数据源 | GitHub、Figma、Sentry、OpenAI Docs、浏览器 |
-| Skill | 封装可复用工作流 | `kb-ingest`、`trellis-check`、日报生成 |
+| Skill | 封装可复用工作流 | `trellis-check`、日报生成 |
 | Plugin | 分发 skills、MCP、hooks、应用集成 | 团队共享插件、个人插件市场 |
 
 使用顺序建议：
@@ -280,7 +279,7 @@ Codex 安全控制主要由两层组成：
 
 1. 先确认当前代码和当前官方文档。
 2. 更新人读的教程或规则。
-3. 如果 AI 也需要检索，更新 `docs/llm-wiki/**`。
+3. 如果 AI 也需要检索，更新 `.trellis/spec/**` 或 `docs/specs/**`。
 4. 如果是工程执行规则，检查 `.trellis/spec/**` 是否也要同步。
 
 ## 14. 快速检查清单
@@ -297,7 +296,7 @@ Codex 安全控制主要由两层组成：
 - [ ] 是否查看了 diff？
 - [ ] 是否运行了对应测试、lint、type-check 或文档校验？
 - [ ] 是否让 Codex 说明验证结果和剩余风险？
-- [ ] 是否需要更新 `AGENTS.md`、`.trellis/spec/**`、`docs/rules/**` 或 `docs/llm-wiki/**`？
+- [ ] 是否需要更新 `AGENTS.md`、`.trellis/spec/**`、`docs/rules/**` 或 `docs/specs/**`？
 
 ## 15. 参考资料
 
@@ -307,4 +306,3 @@ Codex 安全控制主要由两层组成：
 - AGENTS.md 官方指南：https://developers.openai.com/codex/guides/agents-md
 - MCP 官方指南：https://developers.openai.com/codex/mcp
 - 本项目深入篇：`docs/rules/Codex配置与扩展使用教程.md`
-- AI 可检索摘要：`docs/llm-wiki/sources/codex-official-configuration.md`

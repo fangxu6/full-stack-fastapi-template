@@ -74,6 +74,5 @@ Current hook registrations:
 
 ## Source References
 
-- Local durable query: `docs/llm-wiki/queries/trellis-codex-hooks-and-dispatch-mode.md`.
 - Local implementation: `.trellis/config.yaml`, `.codex/hooks.json`, `.codex/hooks/inject-workflow-state.py`, `.codex/hooks/inject-subagent-context.py`, `.codex/agents/*.toml`.
 - Official docs: OpenAI Codex hooks/subagents and Trellis configuration/workflow documentation.
