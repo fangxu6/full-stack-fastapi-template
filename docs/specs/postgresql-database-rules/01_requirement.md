@@ -17,7 +17,7 @@
 - In scope:
   - 重写 `docs/rules/数据库规则.md`
   - 新增本 feature 的最小 spec 文档
-  - 更新 `docs/decisions/AI_CHANGELOG.md`
+  - 在当前 Trellis 任务中记录决策，并按需更新 `.trellis/spec/log.md`
 - Out of scope:
   - 修改运行时代码或现有数据库模型
   - 把现有 `UUID` 主键表整体迁移为 `BIGINT`

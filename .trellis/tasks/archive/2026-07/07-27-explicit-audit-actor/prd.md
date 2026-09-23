@@ -51,4 +51,4 @@
 
 - 前置：`07-27-request-unit-of-work` 已完成并提交（`9f69027`）。
 - 后续：`07-27-generic-email-outbox` 依赖本任务的 System Actor 和异步 actor 传播。
-- 决策依据：`docs/adr/0007-require-an-explicit-audit-actor.md` 与 `docs/adr/0006-use-request-scoped-unit-of-work-for-http-writes.md`。
+- 决策依据：`.trellis/spec/backend/database-guidelines.md` 与相关归档任务。

@@ -16,7 +16,7 @@
   - 重写 `docs/rules/需求文档编号规范示例.md`
   - 重写 `docs/rules/需求规则.md`
   - 重写 `docs/rules/项目宪章.md`
-  - 记录本次文档治理决策到 `docs/decisions/AI_CHANGELOG.md`
+  - 在当前 Trellis 任务中记录本次文档治理决策，并按需同步 `.trellis/spec/log.md`
 - Out of scope:
   - 修改后端或前端运行时代码
   - 新增数据库迁移、权限系统或新框架

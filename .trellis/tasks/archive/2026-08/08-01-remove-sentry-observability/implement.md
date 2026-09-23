@@ -4,7 +4,7 @@
 
 - 以 `rg -n -i sentry` 记录当前命中；将运行时、受版本控制配置、现行文档与历史记录分组。
 - 仅修改本计划列出的活动文件；不修改 `.trellis/tasks/archive/`、
-  `docs/decisions/AI_CHANGELOG.md` 或 `.trellis/spec/log.md`。
+  `.trellis/spec/log.md`。
 
 ## 2. 删除应用集成和专属测试
 
@@ -27,7 +27,7 @@
 
 ## 4. 清理现行文档
 
-- 删除 `docs/decisions/ADR-0001-internal-sentry-trace-correlation.md`。
+- 删除已废弃的 Sentry 决策记录，并保留 `.trellis/spec/log.md` 中的历史说明。
 - 更新 ADR-0002、`.trellis/spec/backend/logging-guidelines.md`、架构分析、企业脚手架评估、
   `README.md` 和 `deployment.md`，移除活跃 Sentry 契约、链接、示例和变量说明；保留 structlog
   stdout NDJSON 的现行说明。

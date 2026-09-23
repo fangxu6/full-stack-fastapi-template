@@ -43,7 +43,7 @@
 - `finish_outcome()` 在行锁和当前执行租约匹配后统一写入 `SUCCEEDED`、`SKIPPED`、`FAILED` 并清理租约。
 - `cancel_queued_runs()` 只取消 `QUEUED` 运行；`cleanup_runs()` 清理已完成且超过保留期的记录。
 
-实现位置和职责也记录在 `docs/adr/0012-concentrate-scheduler-run-lifecycle-state.md`。`async-task-guidelines.md` 中陈旧的 `finish_run(...)` 描述由活跃任务 `08-07-correct-scheduler-lifecycle-spec` 负责，本方案不修改该文件。
+实现位置和职责也记录在 `.trellis/spec/backend/state-transition-guidelines.md`。`async-task-guidelines.md` 中陈旧的 `finish_run(...)` 描述由归档任务 `08-07-correct-scheduler-lifecycle-spec` 负责，本方案不修改该文件。
 
 ### 2.2 库存纠错
 

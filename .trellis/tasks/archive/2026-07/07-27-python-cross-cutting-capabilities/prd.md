@@ -57,8 +57,7 @@
 
 ## References
 
-- `docs/adr/0003-item-service-owns-transactions.md`（已废止）
-- `docs/adr/0006-use-request-scoped-unit-of-work-for-http-writes.md`
-- `docs/adr/0007-require-an-explicit-audit-actor.md`
-- `docs/adr/0009-use-generic-email-outbox-for-non-report-mail.md`
-- `docs/adr/0010-use-safe-celery-task-observability-context.md`
+- 旧的 item service 事务规则（已废止）
+- `.trellis/spec/backend/database-guidelines.md`
+- `.trellis/spec/backend/state-transition-guidelines.md`
+- `.trellis/spec/backend/logging-guidelines.md`

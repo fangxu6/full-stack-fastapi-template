@@ -2,7 +2,7 @@
 
 ## 1. Task and documentation setup
 
-- Add the implementation note to `docs/decisions/AI_CHANGELOG.md`.
+- Add the implementation note to `.trellis/spec/log.md`.
 - Add the AI capability-removal note to `.trellis/spec/log.md`.
 - Remove `.trellis/spec/ai-sidecar-contract.md` and its entry from
   `.trellis/spec/index.md`.

@@ -168,7 +168,7 @@ After implementation:
 - [ ] Verified generated client/types are not stale when backend contracts changed
 - [ ] Verified `detail + request_id` still holds for changed error paths
 - [ ] Verified protected route access and menu visibility remain aligned
-- [ ] Verified docs, `.trellis/spec/**`, or `docs/llm-wiki/**` were updated when the change produced a reusable rule
+- [ ] Verified `.trellis/spec/**` or the owning Trellis task was updated when the change produced a reusable rule
 
 ---
 

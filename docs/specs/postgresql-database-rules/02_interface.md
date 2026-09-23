@@ -11,7 +11,7 @@
 - `docs/specs/postgresql-database-rules/02_interface.md`
 - `docs/specs/postgresql-database-rules/03_implementation.md`
 - `docs/specs/postgresql-database-rules/04_test_spec.md`
-- `docs/decisions/AI_CHANGELOG.md`
+- 当前 Trellis 任务的 `prd.md` / `design.md` 与 `.trellis/spec/log.md`
 
 ## Target Contract Assumptions
 

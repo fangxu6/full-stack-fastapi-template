@@ -6,7 +6,8 @@
 ## Planned Changes
 - 新增功能规格目录 `docs/specs/frontend-development-standards/`，记录本次文档化的需求、接口、实施与测试范围。
 - 更新 `docs/rules/前端开发规范.md`，作为后续前端开发的主规范，并显式纳入 `.agents/skills/react-best-practices/` 的适配规则。
-- 更新 `docs/decisions/AI_CHANGELOG.md`，记录本次规则沉淀和性能规范增强的决策与原因。
+- 在当前 Trellis 任务中记录本次规则沉淀和性能规范增强的决策与原因，并按需同步
+  `.trellis/spec/log.md`。
 
 ## Content Strategy
 - 先写“现有约定”，确保规范与现有代码可对齐。

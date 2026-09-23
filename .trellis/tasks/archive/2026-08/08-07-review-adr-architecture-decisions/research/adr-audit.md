@@ -2,7 +2,7 @@
 
 ## Scope and Method
 
-Reviewed all twelve original documents in `docs/adr/` against the current source
+Reviewed all twelve original architecture decision documents against the current source
 tree, tests, runtime configuration, and Trellis specifications. The follow-up
 remediation also added ADR-0013, normalized the ADR index, and added an isolated
 Alembic round-trip regression test. No production runtime or production
@@ -39,7 +39,8 @@ its exception-detail prohibition.
 **Category: design risk.**
 
 ADR-0008 says the removal migration destructively deletes AI history with no
-archive or backup prerequisite (`docs/adr/0008-remove-ai-inventory-query-capability.md:9`).
+archive or backup prerequisite; the current requirement is preserved in the
+archived AI retirement task and `.trellis/spec/log.md`.
 The migration does drop the tables and enum types
 (`backend/app/alembic/versions/6e8f2b1c4d7a_remove_ai_inventory_query_capability.py:36-42`).
 The implementation therefore matches the ADR, but the decision lacks data
@@ -55,7 +56,8 @@ approved record that recovery is intentionally unavailable.
 **Category: factual drift.**
 
 ADR-0005 limits Redis to the broker and short-lived task results and calls
-`runtime.ping` the only initial task (`docs/adr/0005-use-celery-redis-for-background-runtime.md:3-5,13-14`).
+`runtime.ping` the only initial task; the current runtime contract is in
+`.trellis/spec/backend/async-task-guidelines.md`.
 The current configuration has a separate Redis cache URL
 (`backend/app/core/config.py:73-88`), and the current task registry includes
 outbox, scheduler, audit, and inventory work
@@ -70,7 +72,7 @@ separation, and link the outbox and scheduler ADRs.
 **Category: factual drift and documentation improvement.**
 
 ADR-0001 says a data-dense admin experience may use Ant Design
-(`docs/adr/0001-use-ant-design-for-complex-admin-components.md:3`). The current
+(`.trellis/spec/frontend/component-guidelines.md`). The current
 frontend component specification makes Ant Design the default for that class
 of screen and defines the provider ownership and the `shared/excel` exception
 (`.trellis/spec/frontend/component-guidelines.md:45,55,62,67`). The provider,
@@ -84,7 +86,8 @@ decision not to adopt `@ant-design/pro-components` remains valid.
 **Category: documentation improvement.**
 
 ADR-0004 requires a documented rationale for UUID exceptions to new
-independent entities (`docs/adr/0004-use-bigint-identity-for-new-entity-primary-keys.md:3-8`).
+independent entities; the current primary-key contract is in
+`.trellis/spec/backend/database-guidelines.md`.
 `auth_session` is a later, independently created/revoked persistent record
 with a UUID primary key (`backend/app/models/auth_session.py:14,22`), and that
 UUID is exposed as the JWT `sid` (`backend/app/modules/auth/session.py:15`).
@@ -100,7 +103,7 @@ from the implementation alone.
 
 ADR-0012 is Accepted and says the refactoring shape is implemented, but its
 Context still says `SchedulerRun` lifecycle state is currently split across
-`service.py` and `tasks.py` (`docs/adr/0012-concentrate-scheduler-run-lifecycle-state.md:20-32`).
+`service.py` and `tasks.py` (`.trellis/spec/backend/state-transition-guidelines.md`).
 The current source puts durable transitions in `run_lifecycle.py`
 (`backend/app/modules/scheduler/run_lifecycle.py:50-227`), delegates from
 `service.py` (`backend/app/modules/scheduler/service.py:299-323`), uses
@@ -139,9 +142,9 @@ do not rewrite deprecated or superseded historical reasoning.
 
 | ADR | Disposition | Category | Evidence / reason |
 | --- | --- | --- | --- |
-| 0001 | Revise | Factual drift / documentation improvement | Frontend boundary in [component guidelines](../../../spec/frontend/component-guidelines.md) (line 45) and Ant Design provider in `frontend/src/app/providers/AntdProvider.tsx`. |
-| 0002 | Retain; add metadata | Documentation improvement | Lightweight item flow is the reference in [directory structure](../../../spec/backend/directory-structure.md) (line 59) and `backend/app/api/routes/items.py`. |
-| 0003 | Retain as deprecated | Documentation improvement | Supersession is explicit in [ADR-0006](../../../../docs/adr/0006-use-request-scoped-unit-of-work-for-http-writes.md) (line 9) and the current write dependency `backend/app/api/dependencies/database.py:19-31`. |
+| 0001 | Revise | Factual drift / documentation improvement | Frontend boundary in [component guidelines](../../../../../spec/frontend/component-guidelines.md) (line 45) and Ant Design provider in `frontend/src/app/providers/AntdProvider.tsx`. |
+| 0002 | Retain; add metadata | Documentation improvement | Lightweight item flow is the reference in [directory structure](../../../../../spec/backend/directory-structure.md) (line 59) and `backend/app/api/routes/items.py`. |
+| 0003 | Retain as deprecated | Documentation improvement | Supersession is explicit in the request-scoped Unit of Work task and current write dependency `backend/app/api/dependencies/database.py:19-31`. |
 | 0004 | Revise | Documentation improvement | UUID session contract is implemented in `backend/app/models/auth_session.py` and `backend/app/modules/auth/session.py`; rationale is now recorded in the ADR. |
 | 0005 | Revise | Factual drift | Current Redis roles are defined in `backend/app/core/config.py:73-88`; task inventory is covered by `backend/tests/core/test_celery.py:389-416`. |
 | 0006 | Retain; add cross-references | Documentation improvement | Request commit/rollback and post-commit cache invalidation are implemented in `backend/app/api/dependencies/database.py:19-31`. |
@@ -179,4 +182,4 @@ database; no production runtime or production database was touched.
 - ADR-0008 states the required data-disposal approval and backup/recovery
   preconditions; its migration now has an isolated `head -> predecessor ->
   head` regression test.
-- `docs/adr/README.md` provides status and supersession navigation.
+- The archived ADR review task provides status and supersession history; current implementation rules live in `.trellis/spec/**`.

@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-09-23
+
+- Consolidated architecture decision recording into Trellis. Current rules are
+  owned by `.trellis/spec/**`, while task rationale and historical decisions
+  remain in `.trellis/tasks/**`; the duplicate `docs/adr/**` and
+  `docs/decisions/**` stores were removed.
+- Updated decision-recording skill guidance, archived task context manifests,
+  and supporting documentation so deleted decision paths are not required.
+
 ## 2026-08-02
 
 - Added the reusable XLSX import/export contract: Pydantic alias DTOs own
@@ -50,7 +59,7 @@
 ## 2026-07-27
 
 - Superseded the active AI inventory sidecar contract and operation guidance
-  under ADR-0008. The inventory AI query capability is retired; its active
+  under the archived AI inventory retirement task. The inventory AI query capability is retired; its active
   spec catalog entry and operation guides were removed. Historical ADRs and
   archived task artifacts remain audit records only.
 
@@ -107,7 +116,7 @@
   repository and `crud.item` helpers do not commit.
 - Source inputs: `.trellis/tasks/07-09-backend-items-module-boundary/`,
   `backend/app/api/routes/items.py`, `backend/app/modules/items/service.py`,
-  `backend/app/modules/items/repository.py`, and ADR-0002/0003.
+  `backend/app/modules/items/repository.py`, and the archived transaction-boundary tasks.
 
 ## 2026-07-10
 
@@ -187,7 +196,7 @@ Current logging guidance takes precedence over archived planning: merge_contextv
 
 ## [2026-07-24 13:37:56] update | Retain validated internal Sentry trace IDs
 
-Sentry transaction payloads are rebuilt from an allowlist and retain only canonical lowercase 32-character trace IDs for internal correlation; ADR-0001 records the strict-mode rollback.
+Sentry transaction payloads are rebuilt from an allowlist and retain only canonical lowercase 32-character trace IDs for internal correlation; the current logging specification records the strict-mode rollback.
 
 ## [2026-07-24 14:23:01] update | Preserve startup failure root-cause events
 

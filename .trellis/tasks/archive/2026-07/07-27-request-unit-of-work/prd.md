@@ -45,5 +45,5 @@
 
 - 前置：无。
 - 后续：`07-27-explicit-audit-actor` 与 `07-27-generic-email-outbox` 依赖此任务提供的 HTTP 原子提交边界。
-- 决策依据：`docs/adr/0006-use-request-scoped-unit-of-work-for-http-writes.md`。
+- 决策依据：`.trellis/spec/backend/database-guidelines.md`。
 - 研究记录：`research/fastapi-function-scope-evidence.md`。

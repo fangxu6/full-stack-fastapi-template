@@ -18,7 +18,7 @@ task, not by this archived harness task.
   SMTP nor a mailbox UI and local port `1080` is unavailable.
 - Recovery HTTP success means a durable email outbox request was created; SMTP
   delivery is asynchronous and is not part of the HTTP contract
-  (`docs/adr/0009-use-generic-email-outbox-for-non-report-mail.md:15-30`).
+  (`.trellis/spec/backend/state-transition-guidelines.md`).
 - Three inventory cases depend on pre-existing or high-cardinality master and
   balance data (`frontend/tests/inventory.spec.ts:46-64`, `167-197`), and
   three scheduler cases need `scheduler.jobs.manage`, which controls the page

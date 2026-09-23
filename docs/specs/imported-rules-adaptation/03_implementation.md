@@ -9,7 +9,7 @@
 - 重写 `docs/rules/需求宪章.md` 与 `docs/rules/需求规则.md`，切换到 `docs/specs/<feature>/01~04` 流程。
 - 重写 `docs/rules/需求文档编号规范示例.md`，用当前仓库的 spec 目录示例替换旧的 `/Doc/requirement` 示例。
 - 重写 `docs/rules/项目宪章.md`，保留可迁移工程原则，移除 `/speckit`、`featureKey`、Ant Design、MySQL 等另一项目硬编码规则。
-- 更新 `docs/decisions/AI_CHANGELOG.md`，记录本次规则体系适配。
+- 在当前 Trellis 任务中记录本次规则体系适配，并按需同步 `.trellis/spec/log.md`。
 
 ## Adaptation Strategy
 
@@ -32,7 +32,7 @@
 - 后端技术基线：`backend/README.md`、`backend/pyproject.toml`
 - 前端技术基线：`frontend/README.md`、`frontend/package.json`
 - 前端主规范：`docs/rules/前端开发规范.md`
-- 决策记录：`docs/decisions/AI_CHANGELOG.md`、`docs/decisions/ADR-xxxx.md`
+- 决策记录：当前 Trellis 任务的 `prd.md` / `design.md` 与 `.trellis/spec/`
 
 ## Non-Goals
 - 不把当前仓库改造成外来项目的企业规范结构。

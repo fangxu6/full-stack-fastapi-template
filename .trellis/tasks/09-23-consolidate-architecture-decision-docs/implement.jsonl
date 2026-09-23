@@ -1,0 +1,5 @@
+{"file":".trellis/spec/guides/index.md","reason":"Shared Trellis spec maintenance and repository-relative link rules."}
+{"file":".trellis/spec/backend/index.md","reason":"Backend spec catalog for current architecture, database, task-runtime, logging, and state contracts."}
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend spec catalog for the Ant Design/component decision migrated from the ADR set."}
+{"file":".trellis/spec/log.md","reason":"Append-only record of current spec decisions and historical migration sources."}
+{"file":".agents/skills/domain-modeling/SKILL.md","reason":"Local decision-recording workflow that must be updated with the deleted ADR path."}

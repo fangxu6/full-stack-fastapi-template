@@ -13,8 +13,8 @@
   - `docs/specs/enterprise-scaffold-1-0/04_test_spec.md`
 - 保留并继续作为总览文档：
   - `docs/enterprise-scaffold-assessment.md`
-- 更新决策记录：
-  - `docs/decisions/AI_CHANGELOG.md`
+- 更新决策记录：当前 Trellis 任务的 `prd.md` / `design.md`，并按需同步
+  `.trellis/spec/log.md`
 
 - 后端目标改造范围：
   - `backend/app/api/main.py`

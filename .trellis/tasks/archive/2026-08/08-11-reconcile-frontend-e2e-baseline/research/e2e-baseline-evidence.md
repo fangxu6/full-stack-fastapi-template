@@ -21,7 +21,8 @@ move in `08-10-refactor-frontend-legacy-directories`.
   `docs/rules/Playwright E2E 配置与运行教程.md:17-78`.
 - Password recovery creates a durable `PASSWORD_RECOVERY` outbox row;
   delivery happens asynchronously through Celery and SMTP. HTTP success does
-  not guarantee SMTP acceptance: `docs/adr/0009-use-generic-email-outbox-for-non-report-mail.md:15-30`.
+  not guarantee SMTP acceptance; the current contract is in
+  `.trellis/spec/backend/state-transition-guidelines.md`.
 - `.env_test` currently points SMTP to an external server while
   `frontend/.env` points the browser helper at `http://localhost:1080`; neither
   configuration creates the mail service the test reads.

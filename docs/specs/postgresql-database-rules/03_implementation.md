@@ -16,7 +16,8 @@
   - JSONB、范围类型、分区、RLS
   - Schema 演进流程与安全演进要求
 - 新增 `docs/specs/postgresql-database-rules/` 作为本次规则升级的最小规格记录。
-- 更新 `docs/decisions/AI_CHANGELOG.md` 记录本次规则升级原因与风险。
+- 在当前 Trellis 任务中记录本次规则升级原因与风险，并按需同步
+  `.trellis/spec/log.md`。
 
 ## Implementation Notes
 

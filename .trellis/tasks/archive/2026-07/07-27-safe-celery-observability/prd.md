@@ -55,4 +55,4 @@
 
 - 前置：无运行时依赖；按整体顺序在 P0/P1 后实施，确保后续 outbox worker 从一开始具备统一安全观测。
 - 后续：`07-27-generic-email-outbox` 复用本任务的生命周期日志，不自行添加任务包装器。
-- 决策依据：`docs/adr/0010-use-safe-celery-task-observability-context.md`。
+- 决策依据：`.trellis/spec/backend/logging-guidelines.md`。

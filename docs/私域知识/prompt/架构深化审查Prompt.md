@@ -31,7 +31,7 @@ rtk git log --oneline -12
 
 请先读取并遵守：
 - CONTEXT.md
-- 与候选模块相关的 docs/adr/
+- 与候选模块相关的 `.trellis/spec/` 与 `.trellis/tasks/archive/` 决策记录
 - 相关 .trellis/tasks/archive/ 任务记录
 - 与候选模块相关的当前源码、调用方和测试检索结果
 

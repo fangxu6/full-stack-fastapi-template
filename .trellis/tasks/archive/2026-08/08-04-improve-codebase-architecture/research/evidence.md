@@ -2,16 +2,16 @@
 
 ## Repository constraints
 
-- `docs/adr/0002-evolve-backend-as-modular-monolith.md`: preserve the modular
+- `.trellis/spec/backend/directory-structure.md`: preserve the modular
   monolith; only bounded capabilities should gain deeper module structure.
-- `docs/adr/0006-use-request-scoped-unit-of-work-for-http-writes.md`: HTTP
+- `.trellis/spec/backend/database-guidelines.md`: HTTP
   writes use `WriteSessionDep`; services and CRUD helpers do not own commit or
   rollback.
-- `docs/adr/0001-use-ant-design-for-complex-admin-components.md`: retain the
+- `.trellis/spec/frontend/component-guidelines.md`: retain the
   existing mixed frontend design system; do not turn an architecture review
   into a component migration.
-- `docs/adr/0005-use-celery-redis-for-background-runtime.md` and
-  `docs/adr/0009-use-generic-email-outbox-for-non-report-mail.md`: preserve
+- `.trellis/spec/backend/async-task-guidelines.md` and
+  `.trellis/spec/backend/state-transition-guidelines.md`: preserve
   PostgreSQL business state and the existing background delivery decisions.
 
 ## Hotspots

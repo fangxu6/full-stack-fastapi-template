@@ -49,4 +49,4 @@
 ## Dependencies
 
 - 前置：`07-27-request-unit-of-work`、`07-27-explicit-audit-actor`、`07-27-safe-celery-observability` 必须完成并提交。
-- 决策依据：`docs/adr/0009-use-generic-email-outbox-for-non-report-mail.md`。
+- 决策依据：`.trellis/spec/backend/state-transition-guidelines.md`。

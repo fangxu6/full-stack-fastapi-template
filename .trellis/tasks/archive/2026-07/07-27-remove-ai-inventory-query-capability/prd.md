@@ -3,7 +3,7 @@
 ## Goal
 
 Remove the retired inventory AI query capability completely, following
-`docs/adr/0008-remove-ai-inventory-query-capability.md`. The repository must
+the archived AI inventory retirement decision. The repository must
 retain no executable AI BFF, internal tool, sidecar, AI secret/configuration,
 generated AI client surface, or active AI planning task.
 

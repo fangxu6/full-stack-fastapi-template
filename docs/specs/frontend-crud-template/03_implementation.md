@@ -7,7 +7,7 @@
 - 新增规格目录 `docs/specs/frontend-crud-template/`。
 - 新增 `docs/rules/前端CRUD开发模板.md`。
 - 更新 `docs/rules/前端开发规范.md`，增加对 CRUD 模板的引用。
-- 更新 `docs/decisions/AI_CHANGELOG.md`，记录本次决策。
+- 在当前 Trellis 任务中记录本次决策，并按需同步 `.trellis/spec/log.md`。
 
 ## Template Basis
 - 页面装配与 Suspense 边界：来自 `routes/_layout/items.tsx` 和 `routes/_layout/admin.tsx`

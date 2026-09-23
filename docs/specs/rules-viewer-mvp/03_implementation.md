@@ -14,7 +14,7 @@
 - `backend/tests/api/routes/test_docs.py`
 - `frontend/src/routes/_layout/rules.tsx`
 - `frontend/src/components/Sidebar/AppSidebar.tsx`
-- `docs/decisions/AI_CHANGELOG.md`
+- 当前 Trellis 任务的 `prd.md` / `design.md` 与 `.trellis/spec/log.md`
 - `docs/specs/rules-viewer-mvp/*`
 - generated:
   - `frontend/src/client/**`

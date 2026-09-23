@@ -5,7 +5,7 @@
 - Implemented Ant Design as a gradual complex-component layer for the React frontend.
 - Added `AntdProvider` under `frontend/src/app/providers/` and wrapped the app in `frontend/src/main.tsx`.
 - Used `/rules` as the pilot page by moving the thick route implementation into `frontend/src/platform/docs/pages/RulesPage.tsx`; the route entry now stays thin.
-- Added ADR `docs/adr/0001-use-ant-design-for-complex-admin-components.md`.
+- Added the Ant Design component contract to `.trellis/spec/frontend/component-guidelines.md`.
 - Updated frontend Trellis specs with the Ant Design boundary, provider placement rule, and quality gate notes.
 - Kept existing shadcn/ui flows intact and did not add `@ant-design/pro-components`; npm reports its peer range is `antd` `^4.24.15 || ^5.11.2`, not Ant Design 6.
 

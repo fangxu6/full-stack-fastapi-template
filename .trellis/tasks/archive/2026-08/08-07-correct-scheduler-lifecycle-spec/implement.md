@@ -37,7 +37,7 @@
 Run from the repository root:
 
 ```powershell
-rg -n "finish_run" .trellis/spec docs/adr
+rg -n "finish_run" .trellis/spec
 rg -n "tasks\.py|orchestration\.py|finish_outcome|SchedulerRunOutcome" .trellis/spec/backend/async-task-guidelines.md
 python .trellis/scripts/spec_wiki.py lint
 python .trellis/scripts/task.py validate .trellis/tasks/08-07-correct-scheduler-lifecycle-spec

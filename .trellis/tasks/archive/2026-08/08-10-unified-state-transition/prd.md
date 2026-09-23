@@ -9,7 +9,7 @@
 ## Confirmed Facts
 
 - `docs/state-machine-unified-transition-design.md` 当前已存在但未跟踪，内容仍是此前讨论稿；本任务需要在保留有效内容的基础上核对并完善它，不得覆盖用户已有内容。
-- `SchedulerRun` 已有持久化状态与集中生命周期边界：`backend/app/modules/scheduler/run_lifecycle.py` 负责运行状态、租约、终态和清理写入；`docs/adr/0012-concentrate-scheduler-run-lifecycle-state.md` 记录了这一决定。
+- `SchedulerRun` 已有持久化状态与集中生命周期边界：`backend/app/modules/scheduler/run_lifecycle.py` 负责运行状态、租约、终态和清理写入；`.trellis/spec/backend/state-transition-guidelines.md` 记录了这一决定。
 - 库存纠错是已完成的真实多对象工作流：申请、工作项和 Attempt 各有独立状态，设计中已包含一张无统一名称的申请状态迁移表，见 `.trellis/tasks/archive/2026-08/08-04-inventory-exception-correction/design.md`。
 - 用户已决定本任务回填 scheduler、库存纠错、Email Outbox 和库存日报投递的现有工作流状态迁移矩阵；回填是设计文档工作，不改变这些模块的运行时代码。
 - `backend/app/models/inventory.py`、`backend/app/models/scheduler.py` 和 `backend/app/models/email.py` 已使用领域内 `StrEnum` 与 PostgreSQL enum 保存有限状态；数据库规则已规定持久化业务状态使用命名 `StrEnum`，而不是把开放分类或真正二元事实误建模为状态。

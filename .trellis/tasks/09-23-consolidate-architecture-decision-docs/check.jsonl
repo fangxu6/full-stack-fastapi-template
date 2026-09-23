@@ -1,0 +1,5 @@
+{"file":".trellis/spec/guides/index.md","reason":"Quality and link-maintenance checks for Trellis specifications."}
+{"file":".trellis/spec/backend/index.md","reason":"Backend documentation synchronization and final quality expectations."}
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend documentation synchronization and final quality expectations."}
+{"file":".trellis/spec/log.md","reason":"Verify migrated decision history remains represented in the spec maintenance log."}
+{"file":".agents/skills/domain-modeling/SKILL.md","reason":"Verify the decision-recording guidance no longer points to deleted directories."}

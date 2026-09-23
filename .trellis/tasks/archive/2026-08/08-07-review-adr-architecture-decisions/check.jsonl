@@ -3,4 +3,4 @@
 {"file":".trellis/spec/backend/database-guidelines.md","reason":"Data-model, transaction, and audit review baseline."}
 {"file":".trellis/spec/backend/async-task-guidelines.md","reason":"Background-runtime correctness baseline."}
 {"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Frontend review baseline for the Ant Design ADR."}
-{"file":"docs/llm-wiki/index.md","reason":"Repository knowledge starting point, verified against live implementation."}
+{"file":".trellis/spec/index.md","reason":"Repository specification starting point, verified against live implementation."}

@@ -67,4 +67,4 @@ structlog NDJSON 流中保留完整异常和 traceback，供运维排查。
 - [implement.md](implement.md)
 - [e2e-api-tests.md](e2e-api-tests.md)
 - [deferred-iterations.md](deferred-iterations.md)
-- [ADR-0002](../../../docs/decisions/ADR-0002-structlog-json-error-traces.md)
+- [Logging guidelines](../../../../spec/backend/logging-guidelines.md)

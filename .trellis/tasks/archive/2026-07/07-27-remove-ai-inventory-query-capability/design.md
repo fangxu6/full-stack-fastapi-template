@@ -49,8 +49,8 @@ with `down_revision = "8c4d1e7a2b5f"`.
 
 ## Trellis and documentation
 
-- Add a short implementation entry to `docs/decisions/AI_CHANGELOG.md` pointing
-  to ADR-0008.
+- Add a short implementation entry to `.trellis/spec/log.md` pointing to the
+  archived retirement task.
 - Remove AI operation guides, the active sidecar contract, its catalog entry,
   and README links; append a supersession note to `.trellis/spec/log.md`.
 - Archive `07-16-mastra-ai-orchestration-feasibility`,

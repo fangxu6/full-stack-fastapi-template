@@ -16,7 +16,7 @@
 | Versioned delivery config | 从 `.env`、`.env.production.example`、`copier.yml`、Compose 的 prestart/backend/worker/beat 和两份部署工作流删除变量 | 其余环境变量及部署步骤 |
 | Current documentation | 删除 ADR-0001；从 ADR-0002、logging 指南、架构/能力评估、README 和 deployment 文档删除 Sentry 能力说明、替代方案和链接 | structlog stdout NDJSON 的现行约束 |
 | One-time cleanup workflow | 新增 `workflow_dispatch` 工作流；固定 `SENTRY_DSN`，在指定 self-hosted environment runner 上验证容器和 backend 健康后，删除 environment/repository secret | 不读取或显示 secret 值；不接受任意 secret、路径或命令输入 |
-| Historical record | 不改归档任务、`docs/decisions/AI_CHANGELOG.md`、`.trellis/spec/log.md` 或其他历史记录 | 已发生决策的可追溯性 |
+| Historical record | 不改归档任务或 `.trellis/spec/log.md` 中的历史记录 | 已发生决策的可追溯性 |
 
 ## Runtime Contract
 
