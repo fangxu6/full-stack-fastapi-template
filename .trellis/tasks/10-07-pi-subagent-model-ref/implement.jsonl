@@ -1,0 +1,2 @@
+{"file": ".trellis/tasks/10-07-pi-subagent-model-ref/research/probe-model-resolution.mjs", "reason": "Reproduces the trellis_subagent model-resolution failure; determines whether the chosen model ref resolves to an authenticated provider"}
+{"file": ".trellis/tasks/10-07-pi-subagent-model-ref/prd.md", "reason": "Decision record: the chosen option's scope and the trellis update conflict behaviour"}

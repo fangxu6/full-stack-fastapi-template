@@ -3,6 +3,9 @@ name: trellis-implement
 description: |
   Code implementation expert. Understands Trellis specs and requirements, then implements features. No git commit allowed.
 tools: read, write, edit, bash, find, grep
+# Optional model pin. Must be provider-qualified: a bare id is resolved against the
+# session's provider and can silently land on a provider without credentials.
+# model: openai/gpt-6-luna
 ---
 
 ## Required: Load Trellis Context First

@@ -3,6 +3,9 @@ name: trellis-research
 description: |
   Code and technical research expert. Finds relevant files, patterns, docs, and persists findings to the current task's research/ directory.
 tools: read, write, bash, find, grep
+# Optional model pin. Must be provider-qualified: a bare id is resolved against the
+# session's provider and can silently land on a provider without credentials.
+# model: openai/gpt-6-luna
 ---
 # Research Agent
 

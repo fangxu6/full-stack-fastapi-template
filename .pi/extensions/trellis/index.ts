@@ -665,7 +665,7 @@ function resolvePiCli(): { command: string; args: string[] } {
   return { command: "pi", args: [] };
 }
 
-function resolveRunCfg(
+export function resolveRunCfg(
   input: SubagentInput,
   agentCfg: AgentConfig,
   inheritedThinking?: string,
@@ -682,7 +682,22 @@ function resolveRunCfg(
   const rawModel = inputModel ?? agentModel ?? str(inheritedModel);
   const inputSuffixThinking = normalize(inputModel?.match(suffixRe)?.[1]);
   const agentSuffixThinking = normalize(agentModel?.match(suffixRe)?.[1]);
-  const baseModel = rawModel?.replace(suffixRe, "");
+  let baseModel = rawModel?.replace(suffixRe, "");
+  // pi's fuzzy model matcher is auth-blind: a bare id can resolve to an
+  // unauthenticated provider (e.g. "gpt-5:high" -> amazon-bedrock/us.openai.gpt-5.6-terra),
+  // because the auth-checked exact-match path is skipped once a ":thinking" suffix is
+  // appended. Never hand the child CLI a bare pattern — qualify it with the session provider.
+  if (baseModel && !baseModel.includes("/")) {
+    const ref = str(inheritedModel);
+    const cut = ref?.indexOf("/") ?? -1;
+    const provider = cut > 0 ? ref!.slice(0, cut) : undefined;
+    if (!provider)
+      throw new Error(
+        `trellis_subagent: model "${baseModel}" has no provider prefix and the session model is unknown — ` +
+          `pin a provider-qualified model (e.g. "openai/${baseModel}") in .pi/agents/*.md or pass one in the tool call`,
+      );
+    baseModel = `${provider}/${baseModel}`;
+  }
   const thinking =
     normalize(input.thinking) ??
     inputSuffixThinking ??
@@ -700,7 +715,7 @@ function contextModelRef(ctx?: PiExtensionContext): string | undefined {
   return provider && modelId ? `${provider}/${modelId}` : undefined;
 }
 
-function buildPiArgs(cfg: PiRunConfig): string[] {
+export function buildPiArgs(cfg: PiRunConfig): string[] {
   const args = ["--mode", "json", "-p", "--no-session"];
   if (cfg.model)
     args.push(

@@ -1,0 +1,1 @@
+{"file": ".trellis/tasks/10-07-pi-subagent-model-ref/research/probe-model-resolution.mjs", "reason": "Verification step: the dispatched model ref must resolve to the intended authenticated provider, never amazon-bedrock"}

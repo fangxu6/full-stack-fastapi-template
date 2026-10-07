@@ -3,6 +3,9 @@ name: trellis-check
 description: |
   Code quality check expert. Reviews changes against Trellis specs, fixes issues directly, and verifies quality gates.
 tools: read, write, edit, bash, find, grep
+# Optional model pin. Must be provider-qualified: a bare id is resolved against the
+# session's provider and can silently land on a provider without credentials.
+# model: openai/gpt-6-luna
 ---
 
 ## Required: Load Trellis Context First
