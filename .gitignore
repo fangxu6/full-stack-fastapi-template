@@ -22,3 +22,4 @@ backend/celerybeat-schedule*
 backend/.python-version
 /.specify/scripts/powershell/create-new-feature.ps1
 .trellis-other/
+.cortexkit/magic-context/
