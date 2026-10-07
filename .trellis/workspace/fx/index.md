@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 73
-- **Last Active**: 2026-09-23
+- **Total Sessions**: 74
+- **Last Active**: 2026-10-07
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~93 | Active |
+| `journal-2.md` | ~115 | Active |
 | `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 74 | 2026-10-07 | 合并 Trellis v0.6.17 工作流 | `2698ea5` | `master` |
 | 73 | 2026-09-23 | Consolidate architecture decision docs | `bcc19e9` | `master` |
 | 72 | 2026-09-23 | Remove LLM-Wiki and knowledge-base skills | `7e288a5` | `master` |
 | 71 | 2026-09-19 | Implement event callback kernel | `ef16b14` | `master` |

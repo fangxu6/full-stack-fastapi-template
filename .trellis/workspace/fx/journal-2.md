@@ -91,3 +91,25 @@ Removed docs/adr and docs/decisions, migrated current rules and historical decis
 ### Status
 
 [OK] **Completed**
+
+
+## Session 74: 合并 Trellis v0.6.17 工作流
+<!-- trellis-session: v=2 fp=a79e5e60431a6ab0 -->
+
+**Date**: 2026-10-07
+**Task**: 合并 Trellis v0.6.17 工作流
+**Branch**: `master`
+
+### Summary
+
+以 .trellis/workflow.md.new 为基线合并 Trellis v0.6.17 工作流，保留本地 E2E、grill-with-docs、spec wiki、isolated environment 和生成文件提交规则；新增 task_error、空 context 校验、allow-empty-context 与 DeepSeek Harness。通过 5 个单元测试和 workflow 结构检查，提交 2698ea5。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2698ea5` | docs: merge Trellis v0.6.17 workflow |
+
+### Status
+
+[OK] **Completed**
