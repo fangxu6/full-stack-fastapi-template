@@ -1,0 +1,2 @@
+{"file":".agents/skills/trellis-meta/references/customize-local/change-workflow.md","reason":"工作流定制契约：编辑 .trellis/workflow.md 时保持状态标签成对、阶段说明同步和平台路由一致。"}
+{"file":".trellis/tasks/10-07-merge-trellis-v0617-workflow/research/merge-analysis.md","reason":"基于仓库证据比较 v0.6.17 候选新增内容与合并时必须保留的本地工作流策略。"}
