@@ -1,0 +1,28 @@
+{
+  "id": "align-pi-subagent-models",
+  "name": "align-pi-subagent-models",
+  "title": "对齐本仓库 Pi/Codex subagent 角色模型",
+  "description": "把本仓库 .pi/agents 与 .codex/agents 下三个 Trellis 角色的模型从注释改为生效的 pin：Pi 侧 cctq-codex/gpt-6-luna，Codex 侧 gpt-6-luna。",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "fx",
+  "assignee": "fx",
+  "createdAt": "2026-10-08",
+  "completedAt": null,
+  "branch": "master",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "title": "对齐本仓库 Pi/Codex subagent 角色模型"
+  }
+}

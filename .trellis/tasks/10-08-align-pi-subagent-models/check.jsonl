@@ -1,0 +1,2 @@
+{"file": ".trellis/tasks/10-08-align-pi-subagent-models/prd.md", "reason": "Acceptance criteria to verify against: 6 aligned references, live role resolution, unchanged thinking values, no code/provider/trust changes"}
+{"file": ".trellis/tasks/10-08-align-pi-subagent-models/implement.md", "reason": "Execution checklist, commands and rollback points used to confirm the change stayed within scope"}

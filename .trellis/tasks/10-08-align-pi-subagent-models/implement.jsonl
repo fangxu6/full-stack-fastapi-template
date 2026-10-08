@@ -1,0 +1,2 @@
+{"file": ".trellis/tasks/10-08-align-pi-subagent-models/prd.md", "reason": "Scope, confirmed facts, acceptance criteria and out-of-scope for the role-model alignment"}
+{"file": ".trellis/tasks/10-07-investigate-pi-subagent-jse-ai-speckit/research/verification-report.md", "reason": "Evidence baseline: which providers exist locally, why the current models fail, and the exact model-resolution precedence in code"}

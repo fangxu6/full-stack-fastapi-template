@@ -4,15 +4,15 @@
 
 1. [x] Create the Trellis task and capture the investigation scope.
 2. [x] Inspect the target extension, Herdr transport, role definitions, project configuration, policy bridge, package scripts, and tests.
-3. [ ] Save a path-and-line research report under this task's `research/` directory.
-4. [ ] Record baseline metadata for the target files and confirm the target has no Git repository.
-5. [ ] Run `npm run typecheck` in `D:/Workspace/JSE_AI_Speckit`.
-6. [ ] Run `npm run test:herdr` in `D:/Workspace/JSE_AI_Speckit`.
-7. [ ] Run focused Python tests covering Pi/subagent policy, Herdr/reviewer flow, and implementation state.
-8. [ ] Inspect `pi`, `herdr`, `HERDR_*`, project trust, and provider prerequisites without changing configuration.
-9. [ ] Run the smallest safe live native subagent probe available. Run live Herdr only if its prerequisites are already healthy.
-10. [ ] Recompute target metadata and confirm no target files changed or unexpected processes/artifacts remain.
-11. [ ] Write the final verification report and classify the result as `正常`, `部分正常`, or `无法验证`.
+3. [x] Saved both the path-and-line research findings and the command-level verification report under this task's `research/` directory.
+4. [x] Recorded baseline metadata for the target. **Correction:** the target **is** a Git worktree (branch `jse_test`, HEAD `e9a5c2310ae552c1f2916a7ce4fd6899de0d1290`); the earlier "no Git repository" reading came from a transient command failure and was wrong.
+5. [x] Attempted `npm run typecheck` — **blocked**, exit 1: the target has no `node_modules`, so `tsc` is not installed. Installing it would modify the target and was refused under R5.
+6. [x] Ran `npm run test:herdr` — 43 tests, 41 pass, **2 fail**; both failures are Windows-only test portability defects (a `/`-hardcoded path regex, and a POSIX `chmod 0500` precondition that win32 does not enforce).
+7. [x] Ran the focused Python tests — all green: `test_trellis_subagent_flow.py` 38 OK, `test_trellis_reviewer_pane.py` OK, `test_trellis_reviewer_channel.py` 6 OK. (`test_trellis_phased_plan.py` was listed in the plan but is outside the Pi/subagent surface and was not exercised.)
+8. [x] Inspected `pi`, `herdr`, `HERDR_*`, project trust, and provider readiness without changing configuration. The target is **not** in `~/.pi/agent/trust.json`, and its role models point at providers (`newapi-cn`, `sub2api-astra`) that are not configured on this machine.
+9. [x] Ran the safe live probes: a real Herdr transport detection (blocked — parser expects key `protocol`/value 20, live Herdr 0.9.3 emits `private_protocol: 22`) and a real native child Pi JSON-mode call (event contract compatible with the parser; provider availability measured separately). The full extension-level dispatch was **not** run because it would require approving project trust, which this plan forbids.
+10. [x] Recomputed target metadata: tracked state byte-identical (420 → 420 entries), HEAD unchanged, untracked set unchanged; removed the `__pycache__` residue this run created; no pane created and no service started or stopped.
+11. [x] Wrote the final verification report with the verdict **`部分正常`**.
 
 ## Planned Commands
 
