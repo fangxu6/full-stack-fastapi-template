@@ -5,7 +5,7 @@ description: |
 tools: read, write, bash, find, grep
 # Optional model pin. Must be provider-qualified: a bare id is resolved against the
 # session's provider and can silently land on a provider without credentials.
-# model: openai/gpt-6-luna
+model: cctq-codex/gpt-6-luna
 ---
 # Research Agent
 
