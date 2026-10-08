@@ -225,10 +225,10 @@ pi --list-models
 
 - [x] The chosen option is recorded in the Decision section above before `task.py start`.
 - [x] `probe-model-resolution.mjs` resolves the refs a dispatch can produce to the intended provider/model (no `amazon-bedrock`) — verified for the session model plus the three candidate pins.
-- [ ] One real `trellis_subagent` dispatch in the Pi project completes without `No API key found for amazon-bedrock` (result card shows ✓). Not run from the session that wrote the guard — the extension loads at pi session start, so this needs a fresh session.
+- [x] One real `trellis_subagent` dispatch in the Pi project completes without `No API key found for amazon-bedrock`. **Satisfied 2026-10-08** in a fresh session in `D:\Workspace\full-stack-fastapi-template` (which loads this extension): a real `trellis_subagent` call (`agent=trellis-research`, `mode=single`) returned `subagent-probe-ok` on the native path — no Bedrock, no key error. Recorded in `.trellis/tasks/10-08-align-pi-subagent-models/research/pi-subagent-model-alignment.md`.
 - [x] Option C was taken, so the tool-call override path is covered — guarded by `scripts/check-pi-subagent-model-ref.test.ts` ("tool-call model overrides the frontmatter pin, still qualified").
-- [ ] If Option A: the convention is written where the dispatching agent actually reads it; "keep it in mind" alone does not pass.
-- [x] No provider-specific pin is committed (a relay name would not resolve on another machine); the commented hint names the canonical `openai/gpt-6-luna`, and the `trellis update` cost of a local pin is recorded (see Implemented).
+- [x] ~~If Option A:~~ N/A — Option A was not taken; the convention is enforced by the Option C guard instead, and the durable rule is now written in `.trellis/spec/trellis-subagent-dispatch-contract.md` (§3.2, §7).
+- [x] ~~No provider-specific pin is committed (a relay name would not resolve on another machine); the commented hint names the canonical `openai/gpt-6-luna`, and the `trellis update` cost of a local pin is recorded (see Implemented).~~ **Superseded 2026-10-08** by `10-08-align-pi-subagent-models`, which pinned all three roles per the maintainer's instruction. The portability concern this criterion was protecting against is unresolved — see the Closing Note below.
 - [x] The trap is captured durably (project memory / spec note) so a future session does not re-derive it: never hand `trellis_subagent` a bare model id.
 
 ## Out Of Scope
@@ -254,3 +254,64 @@ not match Oh My Pi's own convention: the bundled agents unpacked by `omp agents 
 never mentions `model` at all, so the ref is resolved by the platform, not by Trellis. Confirm what `pi/task`
 actually resolves to before copying that pattern into Pi; a wrong ref here fails the same way this task's
 bug does.
+
+---
+
+## Closing Note (2026-10-08)
+
+Closed by `10-08-align-pi-subagent-models`. Status: **done, with one recorded drift.**
+
+### Spec reference
+
+The durable rule this task set out to capture now lives in
+[`trellis-subagent-dispatch-contract.md`](../../../spec/trellis-subagent-dispatch-contract.md):
+
+- §3.2 documents the bare-id qualifier and the auth-blind fuzzy-matcher root cause
+  found here (`gpt-5:high` → `amazon-bedrock/us.openai.gpt-5.6-terra`).
+- §3.4 records that `.trellis/config.yaml` has no role-model knob.
+- §4 / §6 carry this task's failure signatures and required checks.
+- §7 is the Wrong/Correct pair for a bare vs qualified ref.
+
+### Re-verified on close
+
+| Check | Result |
+| --- | --- |
+| `bun test scripts/check-pi-subagent-model-ref.test.ts` | **6 pass / 0 fail** — the guard survived later agent-frontmatter edits |
+| `node research/probe-model-resolution.mjs "cctq-codex/gpt-6-luna:high"` | `→ cctq-codex/gpt-6-luna` · `auth=true` · no bedrock in the resolved path |
+| Real `trellis_subagent` dispatch | returned `subagent-probe-ok` without `No API key found` — the last open acceptance criterion |
+
+### Recorded drift: the pin policy was reversed
+
+This task decided **against** committing an active pin, on the grounds that a pin
+carries a provider name and relay names are machine-local (`cctq-codex` is defined in
+`~/.pi/agent/models.json`), so unpinned inherit-the-session was the only portable
+default. `a3f09d8`'s commit body states this explicitly.
+
+`10-08-align-pi-subagent-models` then committed active pins on both platforms at the
+maintainer's instruction:
+
+```yaml
+# .pi/agents/trellis-*.md
+model: cctq-codex/gpt-6-luna
+```
+
+```toml
+# .codex/agents/trellis-*.toml
+model = "gpt-6-luna"
+```
+
+That is a deliberate override, not an oversight — but the concern this task raised is
+**still open**: a teammate whose `~/.pi/agent/models.json` has no `cctq-codex`
+provider (or whose `~/.codex/config.toml` has no `sub2api`) will now get a dispatch
+that cannot resolve, whereas before the pin they inherited their own working session
+model. The two goals — "make it work on my machine" and "make it work on a fresh
+machine" — are in direct tension and were resolved in favour of the former.
+
+If the team does not share provider definitions, the portable form is the commented
+hint plus the guard: leave the `model:` line commented and let the qualified session
+ref flow through.
+
+### Also unchanged / out of scope
+
+The `.omp/agents/*.md` `pi/task` question above was never resolved — it remains a
+same-class risk to check before copying that pattern into Pi.

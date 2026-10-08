@@ -363,3 +363,7 @@ Removed retired tool-specific retrieval instructions from shared guides while re
 ## [2026-10-08 15:51:02] update | Add Trellis sub-agent dispatch & role model contract
 
 New spec trellis-subagent-dispatch-contract.md: Pi resolves model as tool-call > .pi/agents frontmatter > inherited session, and requires a provider-qualified id (bare ids throw, index.ts:683-697); Codex takes a bare id because the provider is global. Records that .trellis/config.yaml has no role-model knob, that this repo has no Herdr path, and that the shipped commented hints (openai/... and gpt-5.6-terra) are traps. Triggered by task 10-08-align-pi-subagent-models.
+
+## [2026-10-08 15:54:36] update | Record pin portability caveat in sub-agent dispatch contract
+
+Add §3.5: a pinned provider name is machine-local (cctq-codex lives in ~/.pi/agent/models.json, sub2api in ~/.codex/config.toml), so a committed pin asserts a fact about one developer's machine. Documents that 10-07-pi-subagent-model-ref rejected an active pin for this reason and 10-08-align-pi-subagent-models then committed one at the maintainer's instruction, and tells the reader how to choose. §5 Good case now gated on 'every machine has that provider'.

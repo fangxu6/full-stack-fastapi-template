@@ -114,6 +114,33 @@ Adding a provider prefix to a Codex agent `model` would not resolve.
   sub-agents here are native-only. The Herdr `herdr.roles.*` model source does
   not apply to this repo.
 
+### 3.5 Portability of a pin — read this before committing one
+
+**A pinned provider name is machine-local.** `cctq-codex` / `rightapi-codex` /
+`deepseek` exist only in `~/.pi/agent/models.json`, and Codex's `sub2api` only in
+`~/.codex/config.toml`. Neither file is shared, so a committed pin asserts a fact
+about one developer's machine:
+
+| State | On the machine that pinned | On a teammate without that provider |
+| --- | --- | --- |
+| Active pin | works | dispatch cannot resolve |
+| No pin (inherit) | follows the session (always provider-qualified) | follows *their* session, so it works |
+
+This is a real tension, and it was deliberately decided in both directions in this
+repo: task `10-07-pi-subagent-model-ref` rejected an active pin for exactly this
+reason (see `a3f09d8`'s commit body), and task `10-08-align-pi-subagent-models` then
+committed active pins at the maintainer's instruction. Whichever is chosen, the
+guard in §3.2 is what makes the *unpinned* form safe, and the pin is what makes the
+model explicit.
+
+Pick deliberately:
+
+- **Shared team setup** (everyone has the same `models.json` / Codex provider, or
+  the definition ships with the repo) → an active pin is correct and portable.
+- **Heterogeneous machines** → keep the `model:` line commented and rely on
+  inheritance plus the §3.2 guard; the hint documents the intent without asserting
+  a local provider.
+
 ---
 
 ## 4. Validation & Error Matrix
@@ -133,7 +160,8 @@ Adding a provider prefix to a Codex agent `model` would not resolve.
 
 ## 5. Good / Base / Bad Cases
 
-- **Good** — pin both platforms explicitly, each in its own spelling:
+- **Good** — pin both platforms explicitly, each in its own spelling (only if every
+  machine has that provider — see §3.5):
 
   ```yaml
   # .pi/agents/trellis-implement.md
