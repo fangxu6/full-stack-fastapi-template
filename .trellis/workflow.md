@@ -58,8 +58,9 @@ python3 ./.trellis/scripts/task.py list-archive
 # platforms; the AI curates real spec + research entries during planning. `validate` fails
 # and `start` refuses while a seeded manifest is still empty — sub-agents would run with
 # zero spec context. Pass `start --allow-empty-context` when that is intentional.
+# Order: curate with `add-context` during planning, then `validate`, then `start`.
 python3 ./.trellis/scripts/task.py add-context <name> <action> <file> <reason>
-python3 ./.trellis/scripts/task.py list-context <name> [action]
+python3 ./.trellis/scripts/task.py list-context <name>          # lists implement.jsonl + check.jsonl (no per-manifest filter)
 python3 ./.trellis/scripts/task.py validate <name>
 
 # Task metadata
