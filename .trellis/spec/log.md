@@ -359,3 +359,7 @@ Required UploadFile parameters use Annotated[UploadFile, File()] without an Elli
 ## [2026-08-17 16:16:44] update | Simplify source inspection guidance
 
 Removed retired tool-specific retrieval instructions from shared guides while retaining direct-read and narrow-search advice.
+
+## [2026-10-08 15:51:02] update | Add Trellis sub-agent dispatch & role model contract
+
+New spec trellis-subagent-dispatch-contract.md: Pi resolves model as tool-call > .pi/agents frontmatter > inherited session, and requires a provider-qualified id (bare ids throw, index.ts:683-697); Codex takes a bare id because the provider is global. Records that .trellis/config.yaml has no role-model knob, that this repo has no Herdr path, and that the shipped commented hints (openai/... and gpt-5.6-terra) are traps. Triggered by task 10-08-align-pi-subagent-models.
