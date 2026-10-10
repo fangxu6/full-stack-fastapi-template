@@ -1,0 +1,29 @@
+{
+  "id": "react-native-app",
+  "name": "react-native-app",
+  "title": "引入 React Native App 端",
+  "description": "在现有 Web 前端基础上追加 React Native App 功能，规划跨端复用与边界",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "fx",
+  "assignee": "fx",
+  "createdAt": "2026-10-10",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "10-10-cross-platform-kernel",
+    "10-10-mobile-app-slice"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

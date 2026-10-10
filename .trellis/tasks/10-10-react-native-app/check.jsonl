@@ -1,0 +1,8 @@
+{"file":".trellis/spec/index.md","reason":"Spec catalog entry point; the generated-client path statement must stay consistent after relocation."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Verify the full layer chain still holds: backend schema to generator to generated client to both consumers."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Verify no end reimplements contract or domain semantics and no /api/v1 literal escapes the shared packages."}
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"Verify Web layering is intact and no frontend-to-mobile or mobile-to-frontend import appeared."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Verify the generated-path review rule and the API-type checklist item against the relocated client."}
+{"file":".trellis/spec/frontend/route-permission-navigation-contract.md","reason":"Verify the permission truth-source wording was updated and shared/permissions remains the single Web entry."}
+{"file":".trellis/spec/templates/e2e-api-tests-template.md","reason":"Cross-layer E2E is required even without a new HTTP endpoint; do not replace real runtime cases with unit-only checks."}
+{"file":".trellis/tasks/10-10-react-native-app/e2e-api-tests.md","reason":"Verify every planned case was executed or has a recorded concrete environment blocker."}

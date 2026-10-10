@@ -1,0 +1,9 @@
+{"file":".trellis/spec/index.md","reason":"Spec catalog entry point; keep the generated-client path statement consistent after relocation."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Verify the whole chain still resolves: backend schema, generator, relocated generated client, and both consumers."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Verify no /api/v1 literal remains outside the shared packages and no end duplicates the query mapping."}
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"Verify Web layering is intact and the generated boundary is documented at its new location."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Verify Biome scope, generated-path review rule, and the API-type checklist item against the relocation."}
+{"file":".trellis/spec/frontend/type-safety.md","reason":"Verify generated files remain unedited and types still flow from the contract package."}
+{"file":".trellis/spec/frontend/route-permission-navigation-contract.md","reason":"Verify the permission truth-source wording now points at packages/domain while shared/permissions stays the Web entry."}
+{"file":".trellis/spec/frontend/hook-guidelines.md","reason":"Verify the new cross-platform boundary gate is wired per the hook contract and has positive and negative tests."}
+{"file":".trellis/spec/templates/e2e-api-tests-template.md","reason":"Cross-layer E2E is required even without a new HTTP endpoint; do not replace runtime cases with unit-only checks."}

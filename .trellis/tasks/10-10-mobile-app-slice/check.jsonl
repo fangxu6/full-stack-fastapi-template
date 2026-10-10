@@ -1,0 +1,8 @@
+{"file":".trellis/spec/index.md","reason":"Spec catalog entry point; confirm no Web-only rule was violated by adding the mobile app."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Verify the App consumes the shared contract and domain rather than adding a second interface definition."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Verify no /api/v1 literal or duplicated query mapping exists inside mobile/."}
+{"file":".trellis/spec/frontend/route-permission-navigation-contract.md","reason":"Verify the App uses backend RBAC semantics and that server-side rejection still applies, not just hidden entries."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Verify query options and error classification come from the shared domain layer."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Verify the Web quality gate still passes after the mobile app was added to the workspace."}
+{"file":".trellis/spec/templates/e2e-api-tests-template.md","reason":"Verify App-side E2E cases were executed on a real device or have a recorded concrete environment blocker."}
+{"file":".trellis/tasks/10-10-react-native-app/e2e-api-tests.md","reason":"Verify E2E-001 through E2E-008 were actually run, including the 403 permission-rejection cases."}

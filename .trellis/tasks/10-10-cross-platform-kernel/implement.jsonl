@@ -1,0 +1,8 @@
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"Web layering rules plus the generated-boundary statement that moves from frontend/src/client to packages/contract."}
+{"file":".trellis/spec/frontend/type-safety.md","reason":"Generated API contracts are consumed from the client boundary and generated files stay out of manual edits."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Generated-path review rules, Biome scope, and the API-type checklist item that names the client path."}
+{"file":".trellis/spec/frontend/route-permission-navigation-contract.md","reason":"Permission truth source and query-key semantics move into @repo/domain; the wording must be updated, not bypassed."}
+{"file":".trellis/spec/frontend/hook-guidelines.md","reason":"Trellis quality-hook contract for wiring the new cross-platform boundary gate."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Reuse boundary: share contract and domain semantics, do not duplicate URL or query mapping per end."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Cross-layer map from backend schema through generator to the generated client path being relocated."}
+{"file":".trellis/tasks/10-10-react-native-app/design.md","reason":"Sections 3-6 define allowed dependency directions, the request-layer seam, the domain split and the token managed block."}

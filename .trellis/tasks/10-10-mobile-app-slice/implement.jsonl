@@ -1,0 +1,6 @@
+{"file":".trellis/spec/frontend/route-permission-navigation-contract.md","reason":"RBAC permission semantics and query-key contract the App consumes instead of reimplementing."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"TanStack Query conventions the App reuses through @repo/domain query options."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Cross-layer flow from App UI through the shared domain to backend endpoints and RBAC enforcement."}
+{"file":".trellis/spec/templates/e2e-api-tests-template.md","reason":"Format reference for the App-side E2E execution conditions."}
+{"file":".trellis/tasks/10-10-react-native-app/design.md","reason":"Sections 7-8 define the mobile directory layout, the injected auth seam, and the per-page permission codes."}
+{"file":".trellis/tasks/10-10-react-native-app/e2e-api-tests.md","reason":"Authoritative E2E case definitions this task executes (E2E-001 through E2E-008)."}

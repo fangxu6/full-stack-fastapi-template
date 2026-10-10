@@ -1,0 +1,6 @@
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Cross-layer integration review: contract relocation spans backend schema, generator, the existing Web consumers and the new mobile consumer."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"One shared kernel for both ends; forbid per-end reimplementation of contract and domain semantics."}
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"Existing Web layering boundaries that the new shared packages must not break."}
+{"file":".trellis/spec/frontend/route-permission-navigation-contract.md","reason":"Permission truth-source wording must be updated when permissions move into @repo/domain."}
+{"file":".trellis/spec/templates/e2e-api-tests-template.md","reason":"Authoritative format for the cross-layer E2E plan in e2e-api-tests.md."}
+{"file":".trellis/tasks/10-10-react-native-app/research-zqsystem-cross-platform.md","reason":"External evidence: ungoverned interface-level duplication and uncontrolled project growth are the two failure modes this design must eliminate."}
